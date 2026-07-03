@@ -15,6 +15,10 @@ import '../features/members/presentation/screens/member_detail_screen.dart';
 import '../features/members/presentation/screens/member_directory_screen.dart';
 import '../features/dashboard/presentation/screens/higher_authority_home_screen.dart';
 import '../features/admin/presentation/screens/admin_home_screen.dart';
+import '../features/admin/presentation/screens/operator_list_screen.dart';
+import '../features/admin/presentation/screens/create_operator_screen.dart';
+import '../features/admin/presentation/screens/lookup_tables_screen.dart';
+import '../features/admin/presentation/screens/audit_log_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = _AuthChangeNotifier(ref);
@@ -66,6 +70,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Admin
       GoRoute(path: '/admin', builder: (_, __) => const AdminHomeScreen()),
+      GoRoute(path: '/admin/operators', builder: (_, __) => const OperatorListScreen()),
+      GoRoute(path: '/admin/operators/create', builder: (_, __) => const CreateOperatorScreen()),
+      GoRoute(path: '/admin/lookups', builder: (_, __) => const LookupTablesScreen()),
+      GoRoute(path: '/admin/audit', builder: (_, __) => const AuditLogScreen()),
     ],
   );
 

@@ -13,7 +13,7 @@ Future<void> main() async {
   await Firebase.initializeApp();
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
   await Hive.initFlutter();
   await Hive.openBox<String>('offline_registrations');

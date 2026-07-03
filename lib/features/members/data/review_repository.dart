@@ -194,7 +194,7 @@ class ReviewRepository {
         .select(_memberDetailSelect)
         .eq('id', id)
         .single();
-    return MemberDetail.fromMap(data as Map<String, dynamic>);
+    return MemberDetail.fromMap(data);
   }
 
   Future<void> approveMember(String memberId) async {

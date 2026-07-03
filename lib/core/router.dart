@@ -10,6 +10,9 @@ import '../features/auth/presentation/screens/pending_approval_screen.dart';
 import '../features/members/presentation/screens/personnel_home_screen.dart';
 import '../features/members/presentation/screens/registration_screen.dart';
 import '../features/members/presentation/screens/my_submissions_screen.dart';
+import '../features/members/presentation/screens/review_queue_screen.dart';
+import '../features/members/presentation/screens/member_detail_screen.dart';
+import '../features/members/presentation/screens/member_directory_screen.dart';
 import '../features/dashboard/presentation/screens/higher_authority_home_screen.dart';
 import '../features/admin/presentation/screens/admin_home_screen.dart';
 
@@ -54,6 +57,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Higher Authority
       GoRoute(path: '/dashboard', builder: (_, __) => const HigherAuthorityHomeScreen()),
+      GoRoute(path: '/review-queue', builder: (_, __) => const ReviewQueueScreen()),
+      GoRoute(
+        path: '/member/:id',
+        builder: (_, state) => MemberDetailScreen(memberId: state.pathParameters['id']!),
+      ),
+      GoRoute(path: '/member-directory', builder: (_, __) => const MemberDirectoryScreen()),
 
       // Admin
       GoRoute(path: '/admin', builder: (_, __) => const AdminHomeScreen()),

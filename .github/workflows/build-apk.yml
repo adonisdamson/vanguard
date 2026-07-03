@@ -78,13 +78,13 @@ jobs:
 
       # --- Release APK (tag pushes or manual trigger with release=true) ---
       - name: Decode keystore
-        if: ${{ inputs.release == 'true' || startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ inputs.release == true || startsWith(github.ref, 'refs/tags/v') }}
         run: |
           mkdir -p android/app
           echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 -d > android/app/vanguard-release.keystore
 
       - name: Build release APK
-        if: ${{ inputs.release == 'true' || startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ inputs.release == true || startsWith(github.ref, 'refs/tags/v') }}
         env:
           KEY_STORE_PATH: ${{ github.workspace }}/android/app/vanguard-release.keystore
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -93,7 +93,7 @@ jobs:
         run: flutter build apk --release --no-pub
 
       - name: Upload release APK
-        if: ${{ inputs.release == 'true' || startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ inputs.release == true || startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@v4
         with:
           name: vanguard-release-${{ github.ref_name }}

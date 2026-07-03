@@ -53,5 +53,7 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-    - assets/lottie/
-    - assets/images/
+    - assets/lottie/placeholder.txt
+    - assets/images/ndc_flag.png
+    - assets/images/ghana_flag.png
+    - assets/images/ndc_umbrella.png

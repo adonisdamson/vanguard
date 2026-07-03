@@ -8,6 +8,8 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/pending_approval_screen.dart';
 import '../features/members/presentation/screens/personnel_home_screen.dart';
+import '../features/members/presentation/screens/registration_screen.dart';
+import '../features/members/presentation/screens/my_submissions_screen.dart';
 import '../features/dashboard/presentation/screens/higher_authority_home_screen.dart';
 import '../features/admin/presentation/screens/admin_home_screen.dart';
 
@@ -21,7 +23,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       final session = ref.read(currentSessionProvider);
       final location = state.matchedLocation;
 
-      // Splash handles its own navigation
       if (location == '/') return null;
 
       const publicRoutes = {'/login', '/forgot-password'};
@@ -31,10 +32,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      // Logged in but explicitly on pending-approval is valid
       if (location == '/pending-approval') return null;
 
-      // Redirect away from auth screens when logged in
       if (publicRoutes.contains(location)) {
         final user = await ref.read(appUserProvider.future);
         return _roleHome(user);
@@ -47,8 +46,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/pending-approval', builder: (_, __) => const PendingApprovalScreen()),
+
+      // Personnel
       GoRoute(path: '/home', builder: (_, __) => const PersonnelHomeScreen()),
+      GoRoute(path: '/register-member', builder: (_, __) => const RegistrationScreen()),
+      GoRoute(path: '/my-submissions', builder: (_, __) => const MySubmissionsScreen()),
+
+      // Higher Authority
       GoRoute(path: '/dashboard', builder: (_, __) => const HigherAuthorityHomeScreen()),
+
+      // Admin
       GoRoute(path: '/admin', builder: (_, __) => const AdminHomeScreen()),
     ],
   );
@@ -69,8 +76,6 @@ String _roleHome(AppUser? user) {
 
 class _AuthChangeNotifier extends ChangeNotifier {
   _AuthChangeNotifier(Ref ref) {
-    ref.listen(supabaseAuthProvider, (_, __) {
-      notifyListeners();
-    });
+    ref.listen(supabaseAuthProvider, (_, __) => notifyListeners());
   }
 }

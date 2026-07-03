@@ -8,13 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../application/review_providers.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
-import '../widgets/member_list_tile.dart';
 import '../widgets/member_status_badge.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
@@ -25,9 +24,25 @@ class MemberDirectoryScreen extends ConsumerStatefulWidget {
 }
 
 class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
+  static const _pageSize = 20;
   final _searchCtrl = TextEditingController();
   Timer? _debounce;
+
+  final List<MemberDetail> _items = [];
+  int _page = 0;
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = false;
+  String? _error;
+  String _activeFilter = 'all';
+  String _activeSearch = '';
   bool _exporting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPage(0);
+  }
 
   @override
   void dispose() {
@@ -39,10 +54,37 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
   void _onSearchChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      ref.read(directorySearchProvider.notifier).state = value.trim();
-      ref.read(directoryPageProvider.notifier).state = 0;
-      ref.invalidate(memberDirectoryProvider);
+      _activeSearch = value.trim();
+      _loadPage(0);
     });
+  }
+
+  Future<void> _loadPage(int page) async {
+    if (!mounted) return;
+    setState(() {
+      if (page == 0) { _loading = true; _error = null; }
+      else _loadingMore = true;
+    });
+    try {
+      final items = await ReviewRepository().searchMembers(
+        page: page,
+        query: _activeSearch.isEmpty ? null : _activeSearch,
+        statusFilter: _activeFilter,
+        pageSize: _pageSize,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (page == 0) _items.clear();
+        _items.addAll(items);
+        _page = page;
+        _hasMore = items.length == _pageSize;
+        _loading = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _loading = false; _loadingMore = false; });
+    }
   }
 
   Future<void> _triggerExport() async {
@@ -51,19 +93,16 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       final token = Supabase.instance.client.auth.currentSession?.accessToken;
       if (token == null) throw Exception('Not authenticated');
 
-      final filter = ref.read(directoryFilterProvider);
-      final search = ref.read(directorySearchProvider);
       final baseUrl = dotenv.env['RAILWAY_API_URL'] ?? '';
       final uri = Uri.parse('$baseUrl/api/exports/members');
-
       final client = HttpClient();
       final request = await client.postUrl(uri);
       request.headers.set('Authorization', 'Bearer $token');
       request.headers.set('Content-Type', 'application/json');
       request.write(jsonEncode({
         'filter': {
-          if (filter != 'all') 'status': filter,
-          if (search.isNotEmpty) 'search': search,
+          if (_activeFilter != 'all') 'status': _activeFilter,
+          if (_activeSearch.isNotEmpty) 'search': _activeSearch,
         },
       }));
 
@@ -81,22 +120,18 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       await file.writeAsBytes(bytes);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.ndcGreen,
-            content: Text(
-              'Export saved to Documents (${(bytes.length / 1024).toStringAsFixed(1)} KB)',
-              style: AppTextStyles.body(color: AppColors.ndcWhite),
-            ),
-            duration: const Duration(seconds: 5),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.ndcGreen,
+          content: Text(
+            'Export saved (${(bytes.length / 1024).toStringAsFixed(1)} KB)',
+            style: AppTextStyles.body(color: AppColors.ndcWhite),
           ),
-        );
+          duration: const Duration(seconds: 5),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -105,9 +140,6 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filter = ref.watch(directoryFilterProvider);
-    final membersAsync = ref.watch(memberDirectoryProvider);
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -121,11 +153,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
         actions: [
           IconButton(
             icon: _exporting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.ndcWhite),
-                  )
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.ndcWhite))
                 : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.ndcWhite, size: 22),
             onPressed: _exporting ? null : _triggerExport,
             tooltip: 'Export CSV',
@@ -138,59 +166,63 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       ),
       body: Column(
         children: [
-          // Search + filter bar
           _SearchBar(
             controller: _searchCtrl,
             onChanged: _onSearchChanged,
-            selectedFilter: filter,
+            selectedFilter: _activeFilter,
             onFilterChanged: (f) {
-              ref.read(directoryFilterProvider.notifier).state = f;
-              ref.read(directoryPageProvider.notifier).state = 0;
-              ref.invalidate(memberDirectoryProvider);
+              _activeFilter = f;
+              _loadPage(0);
             },
           ),
-
-          // Member list
           Expanded(
             child: RefreshIndicator(
               color: AppColors.ndcGreen,
-              onRefresh: () async => ref.invalidate(memberDirectoryProvider),
-              child: membersAsync.when(
-                data: (members) => members.isEmpty
-                    ? _EmptyDirectory(hasSearch: _searchCtrl.text.isNotEmpty)
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        itemCount: members.length,
-                        itemBuilder: (_, i) => _DirectoryTile(member: members[i]),
-                      ),
-                loading: () => ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: 8,
-                  itemBuilder: (_, __) => const Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: MemberTileSkeleton(),
-                  ),
-                ),
-                error: (e, _) => Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 40, color: AppColors.ndcRed),
-                      const SizedBox(height: 12),
-                      Text('Failed to load members', style: AppTextStyles.h3()),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => ref.invalidate(memberDirectoryProvider),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              onRefresh: () => _loadPage(0),
+              child: _buildBody(),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 8,
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: MemberTileSkeleton(),
+        ),
+      );
+    }
+    if (_error != null && _items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
+            const SizedBox(height: 12),
+            Text('Failed to load members', style: AppTextStyles.h3()),
+            const SizedBox(height: 8),
+            TextButton(onPressed: () => _loadPage(0), child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    if (_items.isEmpty) return _EmptyDirectory(hasSearch: _searchCtrl.text.isNotEmpty);
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: _items.length + (_hasMore ? 1 : 0),
+      itemBuilder: (_, i) {
+        if (i == _items.length) {
+          return LoadMoreButton(loading: _loadingMore, onPressed: () => _loadPage(_page + 1));
+        }
+        return _DirectoryTile(member: _items[i]);
+      },
     );
   }
 }
@@ -201,23 +233,16 @@ class _SearchBar extends StatelessWidget {
   final String selectedFilter;
   final void Function(String) onFilterChanged;
 
-  const _SearchBar({
-    required this.controller,
-    required this.onChanged,
-    required this.selectedFilter,
-    required this.onFilterChanged,
-  });
+  const _SearchBar({required this.controller, required this.onChanged, required this.selectedFilter, required this.onFilterChanged});
 
   @override
   Widget build(BuildContext context) {
-    final filters = [('all', 'All'), ('pending', 'Pending'), ('active', 'Active'), ('rejected', 'Rejected')];
-
+    const filters = [('all', 'All'), ('pending', 'Pending'), ('active', 'Active'), ('rejected', 'Rejected')];
     return Container(
       color: AppColors.surface,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Column(
         children: [
-          // Search field
           TextField(
             controller: controller,
             onChanged: onChanged,
@@ -232,10 +257,7 @@ class _SearchBar extends StatelessWidget {
               suffixIcon: controller.text.isNotEmpty
                   ? IconButton(
                       icon: const PhosphorIcon(PhosphorIconsFill.x, size: 18, color: AppColors.textMuted),
-                      onPressed: () {
-                        controller.clear();
-                        onChanged('');
-                      },
+                      onPressed: () { controller.clear(); onChanged(''); },
                     )
                   : null,
               isDense: true,
@@ -243,8 +265,6 @@ class _SearchBar extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-
-          // Filter chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -261,10 +281,7 @@ class _SearchBar extends StatelessWidget {
                         color: selected ? AppColors.ndcGreen : AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        f.$2,
-                        style: AppTextStyles.small(color: selected ? AppColors.ndcWhite : AppColors.textSecondary),
-                      ),
+                      child: Text(f.$2, style: AppTextStyles.small(color: selected ? AppColors.ndcWhite : AppColors.textSecondary)),
                     ),
                   ),
                 );

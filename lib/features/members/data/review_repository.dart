@@ -156,52 +156,33 @@ class ReviewRepository {
     final from = page * pageSize;
     final to = from + pageSize - 1;
 
-    var q = _db
-        .from('members')
-        .select(_memberDetailSelect)
-        .order('created_at', ascending: false)
-        .range(from, to);
+    // Build filter chain before .order()/.range() so we stay on PostgrestFilterBuilder.
+    // Names: ILIKE with leading wildcard — uses pg_trgm GIN index (idx_members_name_trgm).
+    // Phone/member_number: prefix-only ILIKE (no leading %) — uses btree indexes.
+    var q = _db.from('members').select(_memberDetailSelect);
+
+    if (query != null && query.trim().isNotEmpty) {
+      final s = query.trim();
+      q = q.or(
+        'first_name.ilike.%$s%,'
+        'last_name.ilike.%$s%,'
+        'phone.ilike.$s%,'
+        'member_number.ilike.$s%',
+      );
+    }
 
     if (statusFilter != null && statusFilter != 'all') {
-      q = _db
-          .from('members')
-          .select(_memberDetailSelect)
-          .eq('status', statusFilter)
-          .order('created_at', ascending: false)
-          .range(from, to);
+      q = q.eq('status', statusFilter);
     }
 
     if (constituencyId != null) {
-      q = _db
-          .from('members')
-          .select(_memberDetailSelect)
-          .eq('constituency_id', constituencyId)
-          .order('created_at', ascending: false)
-          .range(from, to);
+      q = q.eq('constituency_id', constituencyId);
     }
 
-    // Text search — ILIKE with indexed columns
-    if (query != null && query.trim().isNotEmpty) {
-      final s = query.trim();
-      q = _db
-          .from('members')
-          .select(_memberDetailSelect)
-          .or('first_name.ilike.%$s%,last_name.ilike.%$s%,phone.ilike.%$s%,member_number.ilike.%$s%')
-          .order('created_at', ascending: false)
-          .range(from, to);
+    final data = await q
+        .order('created_at', ascending: false)
+        .range(from, to);
 
-      if (statusFilter != null && statusFilter != 'all') {
-        q = _db
-            .from('members')
-            .select(_memberDetailSelect)
-            .or('first_name.ilike.%$s%,last_name.ilike.%$s%,phone.ilike.%$s%,member_number.ilike.%$s%')
-            .eq('status', statusFilter)
-            .order('created_at', ascending: false)
-            .range(from, to);
-      }
-    }
-
-    final data = await q;
     return (data as List)
         .map((m) => MemberDetail.fromMap(m as Map<String, dynamic>))
         .toList();

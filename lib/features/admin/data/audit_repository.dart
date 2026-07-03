@@ -43,6 +43,7 @@ class AuditRepository {
   Future<List<AuditEntry>> fetchAuditLog({
     int page = 0,
     String? actionFilter,
+    int pageSize = _pageSize,
   }) async {
     var query = _db
         .from('audit_log')
@@ -54,7 +55,7 @@ class AuditRepository {
 
     final data = await query
         .order('created_at', ascending: false)
-        .range(page * _pageSize, (page + 1) * _pageSize - 1);
+        .range(page * pageSize, (page + 1) * pageSize - 1);
     return (data as List).map((m) => AuditEntry.fromMap(m as Map<String, dynamic>)).toList();
   }
 }

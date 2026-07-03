@@ -4,20 +4,98 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/member_providers.dart';
 import '../../application/offline_queue.dart';
+import '../../data/member_repository.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../widgets/member_list_tile.dart';
 
-class MySubmissionsScreen extends ConsumerWidget {
+class MySubmissionsScreen extends ConsumerStatefulWidget {
   const MySubmissionsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MySubmissionsScreen> createState() => _MySubmissionsScreenState();
+}
+
+class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
+  static const _pageSize = 20;
+  final List<MemberSummary> _items = [];
+  int _page = 0;
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPage(0);
+  }
+
+  Future<void> _loadPage(int page) async {
+    if (!mounted) return;
+    final session = ref.read(currentSessionProvider);
+    if (session == null) return;
+
+    setState(() {
+      if (page == 0) { _loading = true; _error = null; }
+      else _loadingMore = true;
+    });
+
+    try {
+      final filter = ref.read(submissionsFilterProvider);
+      final items = await MemberRepository().fetchMySubmissions(
+        userId: session.user.id,
+        page: page,
+        statusFilter: filter,
+        pageSize: _pageSize,
+      );
+      if (!mounted) return;
+      setState(() {
+        if (page == 0) _items.clear();
+        _items.addAll(items);
+        _page = page;
+        _hasMore = items.length == _pageSize;
+        _loading = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _loading = false; _loadingMore = false; });
+    }
+  }
+
+  Future<void> _refresh() async => _loadPage(0);
+
+  Future<void> _syncOfflineQueue() async {
+    if (!OfflineQueue.hasItems) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No offline registrations to sync.')),
+      );
+      return;
+    }
+    final synced = await OfflineQueue.flush();
+    if (!mounted) return;
+    ref.invalidate(myStatsProvider);
+    await _refresh();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: AppColors.ndcGreen,
+      content: Text(
+        synced > 0 ? 'Synced $synced registration${synced == 1 ? '' : 's'}.' : 'Sync failed — check connection.',
+        style: AppTextStyles.body(color: AppColors.ndcWhite),
+      ),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final filter = ref.watch(submissionsFilterProvider);
-    final membersAsync = ref.watch(mySubmissionsProvider);
+
+    // Reload when filter changes
+    ref.listen(submissionsFilterProvider, (_, __) => _loadPage(0));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -32,7 +110,7 @@ class MySubmissionsScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.ndcWhite, size: 20),
-            onPressed: () => _syncOfflineQueue(context, ref),
+            onPressed: _syncOfflineQueue,
             tooltip: 'Sync offline',
           ),
         ],
@@ -50,28 +128,13 @@ class MySubmissionsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // Offline queue banner
           if (OfflineQueue.hasItems) _OfflineBanner(count: OfflineQueue.count),
-
-          // Filter tabs
           _FilterTabs(selectedFilter: filter),
-
-          // Member list
           Expanded(
             child: RefreshIndicator(
               color: AppColors.ndcGreen,
-              onRefresh: () async => ref.invalidate(mySubmissionsProvider),
-              child: membersAsync.when(
-                data: (members) => members.isEmpty
-                    ? _EmptyState(filter: filter)
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-                        itemCount: members.length,
-                        itemBuilder: (_, i) => MemberListTile(member: members[i]),
-                      ),
-                loading: () => _LoadingList(),
-                error: (e, _) => _ErrorState(error: e.toString()),
-              ),
+              onRefresh: _refresh,
+              child: _buildBody(),
             ),
           ),
         ],
@@ -79,28 +142,35 @@ class MySubmissionsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _syncOfflineQueue(BuildContext context, WidgetRef ref) async {
-    if (!OfflineQueue.hasItems) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No offline registrations to sync.')),
-      );
-      return;
-    }
-
-    final synced = await OfflineQueue.flush();
-    if (!context.mounted) return;
-
-    ref.invalidate(mySubmissionsProvider);
-    ref.invalidate(myStatsProvider);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.ndcGreen,
-        content: Text(
-          synced > 0 ? 'Synced $synced registration${synced == 1 ? '' : 's'}.' : 'Sync failed — check connection.',
-          style: AppTextStyles.body(color: AppColors.ndcWhite),
+  Widget _buildBody() {
+    if (_loading) {
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 6,
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: MemberTileSkeleton(),
         ),
-      ),
+      );
+    }
+    if (_error != null && _items.isEmpty) {
+      return _ErrorState(onRetry: _refresh);
+    }
+    if (_items.isEmpty) {
+      return _EmptyState(filter: ref.read(submissionsFilterProvider));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+      itemCount: _items.length + (_hasMore ? 1 : 0),
+      itemBuilder: (_, i) {
+        if (i == _items.length) {
+          return LoadMoreButton(
+            loading: _loadingMore,
+            onPressed: () => _loadPage(_page + 1),
+          );
+        }
+        return MemberListTile(member: _items[i]);
+      },
     );
   }
 }
@@ -111,12 +181,7 @@ class _FilterTabs extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final filters = [
-      ('all', 'All'),
-      ('pending', 'Pending'),
-      ('active', 'Approved'),
-      ('rejected', 'Rejected'),
-    ];
+    const filters = [('all', 'All'), ('pending', 'Pending'), ('active', 'Approved'), ('rejected', 'Rejected')];
 
     return Container(
       color: AppColors.surface,
@@ -129,11 +194,7 @@ class _FilterTabs extends ConsumerWidget {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
-                onTap: () {
-                  ref.read(submissionsFilterProvider.notifier).state = tab.$1;
-                  ref.read(submissionsPageProvider.notifier).state = 0;
-                  ref.invalidate(mySubmissionsProvider);
-                },
+                onTap: () => ref.read(submissionsFilterProvider.notifier).state = tab.$1,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -143,9 +204,7 @@ class _FilterTabs extends ConsumerWidget {
                   ),
                   child: Text(
                     tab.$2,
-                    style: AppTextStyles.small(
-                      color: isSelected ? AppColors.ndcWhite : AppColors.textSecondary,
-                    ),
+                    style: AppTextStyles.small(color: isSelected ? AppColors.ndcWhite : AppColors.textSecondary),
                   ),
                 ),
               ),
@@ -171,9 +230,11 @@ class _OfflineBanner extends StatelessWidget {
         children: [
           const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 16, color: AppColors.ndcWhite),
           const SizedBox(width: 8),
-          Text(
-            '$count registration${count == 1 ? '' : 's'} queued offline — tap ↺ to sync.',
-            style: AppTextStyles.small(color: AppColors.ndcWhite),
+          Expanded(
+            child: Text(
+              '$count registration${count == 1 ? '' : 's'} queued offline — tap ↺ to sync.',
+              style: AppTextStyles.small(color: AppColors.ndcWhite),
+            ),
           ),
         ],
       ),
@@ -213,23 +274,9 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _LoadingList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      itemBuilder: (_, __) => const Padding(
-        padding: EdgeInsets.only(bottom: 10),
-        child: MemberTileSkeleton(),
-      ),
-    );
-  }
-}
-
 class _ErrorState extends StatelessWidget {
-  final String error;
-  const _ErrorState({required this.error});
+  final VoidCallback onRetry;
+  const _ErrorState({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +286,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 40, color: AppColors.ndcRed),
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
             const SizedBox(height: 12),
             Text('Failed to load submissions', style: AppTextStyles.h3()),
             const SizedBox(height: 8),
@@ -248,6 +295,8 @@ class _ErrorState extends StatelessWidget {
               style: AppTextStyles.body(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 16),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

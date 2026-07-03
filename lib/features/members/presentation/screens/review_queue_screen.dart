@@ -3,21 +3,61 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../application/review_providers.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../widgets/member_status_badge.dart';
 
-class ReviewQueueScreen extends ConsumerWidget {
+class ReviewQueueScreen extends ConsumerStatefulWidget {
   const ReviewQueueScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final queueAsync = ref.watch(reviewQueueProvider);
+  ConsumerState<ReviewQueueScreen> createState() => _ReviewQueueScreenState();
+}
 
+class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
+  static const _pageSize = 20;
+  final List<MemberDetail> _items = [];
+  int _page = 0;
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPage(0);
+  }
+
+  Future<void> _loadPage(int page) async {
+    if (!mounted) return;
+    setState(() {
+      if (page == 0) { _loading = true; _error = null; }
+      else _loadingMore = true;
+    });
+    try {
+      final items = await ReviewRepository().fetchPendingMembers(page: page, pageSize: _pageSize);
+      if (!mounted) return;
+      setState(() {
+        if (page == 0) _items.clear();
+        _items.addAll(items);
+        _page = page;
+        _hasMore = items.length == _pageSize;
+        _loading = false;
+        _loadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _loading = false; _loadingMore = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -31,7 +71,7 @@ class ReviewQueueScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.ndcWhite, size: 20),
-            onPressed: () => ref.invalidate(reviewQueueProvider),
+            onPressed: () => _loadPage(0),
           ),
         ],
         bottom: const PreferredSize(
@@ -41,36 +81,63 @@ class ReviewQueueScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         color: AppColors.ndcGreen,
-        onRefresh: () async => ref.invalidate(reviewQueueProvider),
-        child: queueAsync.when(
-          data: (members) => members.isEmpty
-              ? const _EmptyQueue()
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: members.length,
-                  itemBuilder: (_, i) => _ReviewTile(member: members[i]),
-                ),
-          loading: () => ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: 6,
-            itemBuilder: (_, __) => const Padding(
-              padding: EdgeInsets.only(bottom: 10),
-              child: MemberTileSkeleton(),
-            ),
-          ),
-          error: (e, _) => _ErrorState(error: e.toString(), onRetry: () => ref.invalidate(reviewQueueProvider)),
-        ),
+        onRefresh: () => _loadPage(0),
+        child: _buildBody(),
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 6,
+        itemBuilder: (_, __) => const Padding(
+          padding: EdgeInsets.only(bottom: 10),
+          child: MemberTileSkeleton(),
+        ),
+      );
+    }
+    if (_error != null && _items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
+            const SizedBox(height: 12),
+            Text('Failed to load queue', style: AppTextStyles.h3()),
+            const SizedBox(height: 16),
+            TextButton(onPressed: () => _loadPage(0), child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    if (_items.isEmpty) return const _EmptyQueue();
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: _items.length + (_hasMore ? 1 : 0),
+      itemBuilder: (_, i) {
+        if (i == _items.length) {
+          return LoadMoreButton(loading: _loadingMore, onPressed: () => _loadPage(_page + 1));
+        }
+        return _ReviewTile(
+          member: _items[i],
+          onChanged: () => _loadPage(0),
+        );
+      },
     );
   }
 }
 
-class _ReviewTile extends ConsumerWidget {
+class _ReviewTile extends StatelessWidget {
   final MemberDetail member;
-  const _ReviewTile({required this.member});
+  final VoidCallback onChanged;
+
+  const _ReviewTile({required this.member, required this.onChanged});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => context.push('/member/${member.id}'),
       child: Container(
@@ -102,37 +169,15 @@ class _ReviewTile extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(
-              'Submitted ${_ago(member.createdAt)}',
-              style: AppTextStyles.caption(),
-            ),
+            Text('Submitted ${_ago(member.createdAt)}', style: AppTextStyles.caption()),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: _QuickAction(
-                    label: 'Approve',
-                    icon: PhosphorIconsFill.checkCircle,
-                    color: AppColors.ndcGreen,
-                    onTap: () => _confirmApprove(context, ref, member),
-                  ),
-                ),
+                Expanded(child: _QuickAction(label: 'Approve', icon: PhosphorIconsFill.checkCircle, color: AppColors.ndcGreen, onTap: () => _confirmApprove(context, member, onChanged))),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: _QuickAction(
-                    label: 'Reject',
-                    icon: PhosphorIconsFill.xCircle,
-                    color: AppColors.ndcRed,
-                    onTap: () => _showRejectDialog(context, ref, member),
-                  ),
-                ),
+                Expanded(child: _QuickAction(label: 'Reject', icon: PhosphorIconsFill.xCircle, color: AppColors.ndcRed, onTap: () => _showRejectDialog(context, member, onChanged))),
                 const SizedBox(width: 10),
-                _QuickAction(
-                  label: 'View',
-                  icon: PhosphorIconsFill.eye,
-                  color: AppColors.textSecondary,
-                  onTap: () => context.push('/member/${member.id}'),
-                ),
+                _QuickAction(label: 'View', icon: PhosphorIconsFill.eye, color: AppColors.textSecondary, onTap: () => context.push('/member/${member.id}')),
               ],
             ),
           ],
@@ -147,97 +192,74 @@ class _ReviewTile extends ConsumerWidget {
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     return '${diff.inMinutes}m ago';
   }
+}
 
-  Future<void> _confirmApprove(BuildContext context, WidgetRef ref, MemberDetail member) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Approve ${member.fullName}?', style: AppTextStyles.h3()),
-        content: Text('This will mark the member as active.', style: AppTextStyles.body()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Approve', style: TextStyle(color: AppColors.ndcGreen)),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    try {
-      await ReviewRepository().approveMember(member.id);
-      HapticFeedback.mediumImpact();
-      ref.invalidate(reviewQueueProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.ndcGreen,
-            content: Text('${member.fullName} approved.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
+Future<void> _confirmApprove(BuildContext context, MemberDetail member, VoidCallback onChanged) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text('Approve ${member.fullName}?', style: AppTextStyles.h3()),
+      content: Text('This will mark the member as active.', style: AppTextStyles.body()),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Approve', style: TextStyle(color: AppColors.ndcGreen))),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+  try {
+    await ReviewRepository().approveMember(member.id);
+    HapticFeedback.mediumImpact();
+    onChanged();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.ndcGreen,
+        content: Text('${member.fullName} approved.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+      ));
     }
+  } catch (e) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
   }
+}
 
-  Future<void> _showRejectDialog(BuildContext context, WidgetRef ref, MemberDetail member) async {
-    final ctrl = TextEditingController();
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Reject ${member.fullName}?', style: AppTextStyles.h3()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Provide a reason (required):', style: AppTextStyles.body()),
-            const SizedBox(height: 10),
-            TextField(
-              controller: ctrl,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'e.g. Duplicate registration, incomplete documents...',
-                hintStyle: AppTextStyles.body(color: AppColors.textMuted),
-              ),
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (ctrl.text.trim().isEmpty) return;
-              Navigator.pop(context, ctrl.text.trim());
-            },
-            child: Text('Reject', style: TextStyle(color: AppColors.ndcRed)),
-          ),
+Future<void> _showRejectDialog(BuildContext context, MemberDetail member, VoidCallback onChanged) async {
+  final ctrl = TextEditingController();
+  final reason = await showDialog<String>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text('Reject ${member.fullName}?', style: AppTextStyles.h3()),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Provide a reason (required):', style: AppTextStyles.body()),
+          const SizedBox(height: 10),
+          TextField(controller: ctrl, maxLines: 3, autofocus: true,
+            decoration: InputDecoration(hintText: 'e.g. Duplicate registration…', hintStyle: AppTextStyles.body(color: AppColors.textMuted))),
         ],
       ),
-    );
-    if (reason == null || !context.mounted) return;
-    try {
-      await ReviewRepository().rejectMember(member.id, reason);
-      HapticFeedback.mediumImpact();
-      ref.invalidate(reviewQueueProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.ndcRed,
-            content: Text('${member.fullName} rejected.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
-      }
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () { if (ctrl.text.trim().isEmpty) return; Navigator.pop(context, ctrl.text.trim()); },
+          child: Text('Reject', style: TextStyle(color: AppColors.ndcRed)),
+        ),
+      ],
+    ),
+  );
+  if (reason == null || !context.mounted) return;
+  try {
+    await ReviewRepository().rejectMember(member.id, reason);
+    HapticFeedback.mediumImpact();
+    onChanged();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.ndcRed,
+        content: Text('${member.fullName} rejected.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+      ));
     }
+  } catch (e) {
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
   }
 }
 
@@ -246,7 +268,6 @@ class _QuickAction extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-
   const _QuickAction({required this.label, required this.icon, required this.color, required this.onTap});
 
   @override
@@ -283,8 +304,7 @@ class _EmptyQueue extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 72, height: 72,
             decoration: const BoxDecoration(color: AppColors.greenLight, shape: BoxShape.circle),
             child: const PhosphorIcon(PhosphorIconsFill.checks, size: 36, color: AppColors.ndcGreen),
           ),
@@ -292,28 +312,6 @@ class _EmptyQueue extends StatelessWidget {
           Text('All caught up!', style: AppTextStyles.h2()),
           const SizedBox(height: 8),
           Text('No pending registrations to review.', style: AppTextStyles.body(color: AppColors.textSecondary)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-  const _ErrorState({required this.error, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 40, color: AppColors.ndcRed),
-          const SizedBox(height: 12),
-          Text('Failed to load queue', style: AppTextStyles.h3()),
-          const SizedBox(height: 16),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );

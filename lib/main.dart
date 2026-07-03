@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router.dart';
+import 'shared/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,7 +12,7 @@ Future<void> main() async {
   await Firebase.initializeApp();
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!, // named param kept for now — update to publishableKey once Supabase SDK v3 lands
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
   runApp(const ProviderScope(child: VanguardApp()));
 }
@@ -25,6 +26,7 @@ class VanguardApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Vanguard',
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

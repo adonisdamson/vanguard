@@ -51,6 +51,7 @@ android/app/google-services.json
 google-services.json
 *.keystore
 *.jks
+supabaseaccesstoken.txt
 
 # Server node_modules
 server/node_modules/

@@ -1,0 +1,6 @@
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.supabase.** { *; }
+-dontwarn com.google.**
+-dontwarn io.flutter.**

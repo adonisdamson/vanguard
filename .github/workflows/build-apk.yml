@@ -1,24 +1,18 @@
-name: Build Android APK
+name: Build & Release APK
 
 on:
   push:
     branches: [master, main]
-    tags: ['v*']
-  pull_request:
-    branches: [master, main]
   workflow_dispatch:
-    inputs:
-      release:
-        description: 'Build release APK (requires keystore secrets)'
-        required: false
-        default: 'false'
-        type: boolean
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build APK
+    name: Build Signed Release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -63,46 +57,46 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # --- Debug APK (every push) ---
-      - name: Build debug APK
-        if: ${{ !inputs.release && !startsWith(github.ref, 'refs/tags/v') }}
-        run: flutter build apk --debug --no-pub
-
-      - name: Upload debug APK
-        if: ${{ !inputs.release && !startsWith(github.ref, 'refs/tags/v') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: vanguard-debug-${{ github.sha }}
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 14
-
-      # --- Release APK (tag pushes or manual trigger with release=true) ---
       - name: Decode keystore
-        if: ${{ inputs.release == true || startsWith(github.ref, 'refs/tags/v') }}
         run: |
           mkdir -p android/app
           echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 -d > android/app/vanguard-release.keystore
 
       - name: Build release APK
-        if: ${{ inputs.release == true || startsWith(github.ref, 'refs/tags/v') }}
         env:
           KEY_STORE_PATH: ${{ github.workspace }}/android/app/vanguard-release.keystore
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: flutter build apk --release --no-pub
+        run: |
+          flutter build apk --release --no-pub
+          cp build/app/outputs/flutter-apk/app-release.apk Vanguard-NDC.apk
 
-      - name: Upload release APK
-        if: ${{ inputs.release == true || startsWith(github.ref, 'refs/tags/v') }}
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vanguard-release-${{ github.ref_name }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: Vanguard-NDC-release
+          path: Vanguard-NDC.apk
           retention-days: 90
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Update rolling GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-          generate_release_notes: true
+          tag_name: latest
+          name: "Vanguard NDC — Latest Build"
+          body: |
+            ## Vanguard NDC Membership App
+
+            **Download the APK below and install it on your Android phone.**
+
+            > **How to install:**
+            > 1. Download `Vanguard-NDC.apk`
+            > 2. Open the file on your phone
+            > 3. If prompted, allow "Install from unknown sources" in Settings
+            > 4. Tap Install
+
+            ---
+            Built from commit `${{ github.sha }}` on `${{ github.ref_name }}`
+          files: Vanguard-NDC.apk
+          prerelease: false
+          make_latest: true

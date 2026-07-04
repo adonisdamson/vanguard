@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/constants/assets.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -80,31 +81,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         setState(() { _awaitingEmailConfirm = true; _loading = false; });
       }
     } catch (e, st) {
-      debugPrint('[SignUp] error: $e\n$st');
       if (mounted) {
-        setState(() { _error = _humanize(e); _loading = false; });
+        setState(() {
+          _error = AppErrorMapper.forAuth(e, st) ??
+              "Something didn't work. Please try again.";
+          _loading = false;
+        });
       }
     }
-  }
-
-  String _humanize(Object e) {
-    final s = e.toString();
-    if (s.contains('user_already_exists') ||
-        s.contains('User already registered') ||
-        s.contains('already been registered')) {
-      return 'This email already has an account. Sign in instead.';
-    }
-    if (s.contains('weak_password') || s.contains('Password should be')) {
-      return 'Use at least 8 characters for your password.';
-    }
-    if (s.contains('invalid') && s.contains('email')) {
-      return 'Enter a valid email address.';
-    }
-    if (s.contains('SocketException') || s.contains('network') ||
-        s.contains('timeout')) {
-      return 'You appear to be offline. Check your connection and try again.';
-    }
-    return 'Couldn\'t create your account: ${e.toString().split(']').last.trim()}';
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../data/operator_repository.dart';
 import '../../../members/data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -123,7 +124,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.umbrellaRed,
-          content: Text('Failed to create operator: $e', style: AppTextStyles.body(color: AppColors.surface)),
+          content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
         ));
       }
     }

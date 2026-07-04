@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -88,7 +89,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _loading = false; _loadingMore = false; });
+      setState(() { _error = AppErrorMapper.forDataLoad(e); _loading = false; _loadingMore = false; });
     }
   }
 

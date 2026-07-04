@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/assets.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -22,14 +22,13 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey      = GlobalKey<FormState>();
-  final _emailCtrl    = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  final _emailFocus   = FocusNode();
+  final _formKey       = GlobalKey<FormState>();
+  final _emailCtrl     = TextEditingController();
+  final _passwordCtrl  = TextEditingController();
+  final _emailFocus    = FocusNode();
   final _passwordFocus = FocusNode();
 
-  bool _loading = false;
-  bool _googleLoading = false;
+  bool    _loading = false;
   String? _error;
 
   @override
@@ -50,26 +49,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
       await _routeByRole();
     } catch (e, st) {
-      debugPrint('[Login] error: $e\n$st');
-      setState(() => _error = _humanize(e));
+      final msg = AppErrorMapper.forAuth(e, st) ??
+          "Something didn't work. Please try again.";
+      if (mounted) setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _signInGoogle() async {
-    setState(() { _googleLoading = true; _error = null; });
-    try {
-      await ref.read(authServiceProvider).signInWithGoogle();
-      // signInWithGoogle returns normally on user-cancel (googleUser == null)
-      // Only route if we actually got a session
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) await _routeByRole();
-    } catch (e, st) {
-      debugPrint('[Login/Google] error: $e\n$st');
-      setState(() => _error = _humanize(e));
-    } finally {
-      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
@@ -82,32 +66,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context.go('/pending-approval');
     } else {
       switch (user.role) {
-        case AppUserRole.admin:          context.go('/admin');
+        case AppUserRole.admin:           context.go('/admin');
         case AppUserRole.higherAuthority: context.go('/dashboard');
-        case AppUserRole.personnel:      context.go('/home');
+        case AppUserRole.personnel:       context.go('/home');
       }
     }
-  }
-
-  String _humanize(Object e) {
-    final s = e.toString();
-    if (s.contains('Invalid login credentials') || s.contains('invalid_credentials')) {
-      return 'Incorrect email or password. Please try again.';
-    }
-    if (s.contains('Email not confirmed')) {
-      return 'Check your email and click the confirmation link first.';
-    }
-    if (s.contains('Too many requests')) {
-      return 'Too many attempts. Wait a moment and try again.';
-    }
-    if (s.contains('SocketException') || s.contains('network') || s.contains('timeout')) {
-      return 'You appear to be offline. Check your connection and try again.';
-    }
-    if (s.contains('cancelled') || s.contains('canceled') ||
-        s.contains('sign_in_failed') || s.contains('ApiException: 10')) {
-      return 'Google sign-in is not configured yet. Use email/password to sign in.';
-    }
-    return 'Couldn\'t sign in: ${e.toString().split(']').last.trim()}';
   }
 
   @override
@@ -195,22 +158,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             size: 18,
                             color: AppColors.surface),
                       ),
-                      const SizedBox(height: AppSpacing.base),
-
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('or', style: AppTextStyles.caption()),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.base),
-
-                      _GoogleButton(
-                          loading: _googleLoading, onPressed: _signInGoogle),
                       const SizedBox(height: AppSpacing.xl),
 
                       Row(
@@ -240,7 +187,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-// ── Compact header band ≤ 180dp ───────────────────────────────────────────────
+// ── Compact header band ───────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   @override
@@ -257,7 +204,6 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Logo + wordmark row
               Row(
                 children: [
                   Container(
@@ -287,7 +233,6 @@ class _Header extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              // H1, not Display — fits without scrolling
               Text('Welcome back.',
                   style: AppTextStyles.h1(color: AppColors.surface)),
               const SizedBox(height: 4),
@@ -300,106 +245,6 @@ class _Header extends StatelessWidget {
       ],
     );
   }
-}
-
-// ── Google sign-in button with real multicolor G glyph ───────────────────────
-
-class _GoogleButton extends StatelessWidget {
-  final bool loading;
-  final VoidCallback onPressed;
-  const _GoogleButton({required this.loading, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 52,
-      child: OutlinedButton(
-        onPressed: loading ? null : onPressed,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.hairline, width: 1.5),
-          shape: RoundedRectangleBorder(
-              borderRadius: AppRadii.borderSm),
-          backgroundColor: AppColors.surface,
-        ),
-        child: loading
-            ? const SizedBox(
-                width: 20, height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.5))
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _GoogleG(),
-                  const SizedBox(width: 10),
-                  Text('Continue with Google',
-                      style: AppTextStyles.buttonText(
-                          color: AppColors.ink)),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-// Pixel-accurate Google G using the four canonical brand colors.
-class _GoogleG extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: const Size(20, 20), painter: _GoogleGPainter());
-}
-
-class _GoogleGPainter extends CustomPainter {
-  static const _blue   = Color(0xFF4285F4);
-  static const _red    = Color(0xFFEA4335);
-  static const _yellow = Color(0xFFFBBC05);
-  static const _green  = Color(0xFF34A853);
-
-  @override
-  void paint(Canvas canvas, Size s) {
-    final cx = s.width / 2;
-    final cy = s.height / 2;
-    final r  = s.width / 2;
-    final paint = Paint()..style = PaintingStyle.stroke;
-
-    // Blue top-right arc (0° → -180° counterclockwise, i.e. 0 → -π)
-    paint.color = _blue;
-    paint.strokeWidth = s.width * 0.22;
-    paint.strokeCap = StrokeCap.butt;
-    canvas.drawArc(
-        Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.75),
-        -0.5, 3.28, false, paint);
-
-    // Horizontal G-bar (right side)
-    paint.style = PaintingStyle.fill;
-    paint.color = _blue;
-    final barY = cy - r * 0.16;
-    canvas.drawRect(
-        Rect.fromLTWH(cx, barY, r * 0.85, r * 0.32), paint);
-
-    // Color the four quadrant arcs
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = s.width * 0.22;
-
-    // Red: top-left arc
-    paint.color = _red;
-    canvas.drawArc(
-        Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.75),
-        3.93, 1.05, false, paint);
-
-    // Yellow: bottom-left
-    paint.color = _yellow;
-    canvas.drawArc(
-        Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.75),
-        2.62, 1.31, false, paint);
-
-    // Green: bottom-right
-    paint.color = _green;
-    canvas.drawArc(
-        Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.75),
-        1.31, 1.31, false, paint);
-  }
-
-  @override
-  bool shouldRepaint(_) => false;
 }
 
 // ── Error banner (dismissible) ────────────────────────────────────────────────
@@ -426,8 +271,7 @@ class _ErrorBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
               child: Text(message,
-                  style:
-                      AppTextStyles.small(color: AppColors.umbrellaRed))),
+                  style: AppTextStyles.small(color: AppColors.umbrellaRed))),
           GestureDetector(
             onTap: onDismiss,
             child: const PhosphorIcon(PhosphorIconsRegular.x,

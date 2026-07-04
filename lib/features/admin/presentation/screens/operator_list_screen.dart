@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../data/operator_repository.dart';
 import '../../../auth/application/user_role_provider.dart';
 import '../../../members/data/location_repository.dart';
@@ -65,7 +66,7 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _loading = false; _loadingMore = false; });
+      setState(() { _error = AppErrorMapper.forDataLoad(e); _loading = false; _loadingMore = false; });
     }
   }
 

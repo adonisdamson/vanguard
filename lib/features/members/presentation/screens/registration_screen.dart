@@ -1204,7 +1204,7 @@ class _Step4PhotoReviewState extends ConsumerState<_Step4PhotoReview> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not access camera/gallery: ${e.toString()}')),
+          const SnackBar(content: Text('Camera or gallery not available. Check app permissions.')),
         );
       }
     } finally {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../application/member_providers.dart';
 import '../../application/offline_queue.dart';
 import '../../data/member_repository.dart';
@@ -68,7 +69,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _loading = false; _loadingMore = false; });
+      setState(() { _error = AppErrorMapper.forDataLoad(e); _loading = false; _loadingMore = false; });
     }
   }
 

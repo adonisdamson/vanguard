@@ -1,9 +1,5 @@
 {
-  "redirects": [
-    {
-      "source": "/download",
-      "destination": "https://github.com/adonisdamson/vanguard/releases/latest/download/vanguard-latest.apk",
-      "permanent": false
-    }
+  "rewrites": [
+    { "source": "/download", "destination": "/api/download" }
   ]
 }

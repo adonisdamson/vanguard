@@ -182,7 +182,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              color: AppColors.ndcGreen,
+              color: AppColors.canopyGreen,
               onRefresh: () => _loadPage(0),
               child: _buildBody(),
             ),
@@ -208,7 +208,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.umbrellaRed),
             const SizedBox(height: 12),
             Text('Failed to load members', style: AppTextStyles.h3()),
             const SizedBox(height: 8),

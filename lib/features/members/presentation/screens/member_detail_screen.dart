@@ -56,7 +56,7 @@ class MemberDetailScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 40, color: AppColors.ndcRed),
+              const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 40, color: AppColors.umbrellaRed),
               const SizedBox(height: 12),
               Text('Could not load member', style: AppTextStyles.h3()),
               const SizedBox(height: 8),

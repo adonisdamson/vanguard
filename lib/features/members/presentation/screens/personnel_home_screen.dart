@@ -69,7 +69,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
         backgroundColor: AppColors.canopyGreen,
         foregroundColor: AppColors.surface,
         icon: const PhosphorIcon(PhosphorIconsFill.userPlus, size: 20),
-        label: Text('Register', style: AppTextStyles.bodyMedium(color: AppColors.ndcWhite)),
+        label: Text('Register', style: AppTextStyles.bodyMedium(color: AppColors.surface)),
         onPressed: () => context.push('/register-member'),
       ),
       body: RefreshIndicator(
@@ -132,7 +132,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                 _ActionCard(
                   icon: PhosphorIconsFill.listChecks,
                   label: 'My Submissions',
-                  color: AppColors.ndcBlack,
+                  color: AppColors.ink,
                   onTap: () => context.go('/my-submissions'),
                 ),
                 _ActionCard(

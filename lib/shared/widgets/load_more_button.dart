@@ -22,13 +22,13 @@ class LoadMoreButton extends StatelessWidget {
                   height: 14,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.ndcGreen,
+                    color: AppColors.canopyGreen,
                   ),
                 )
-              : const PhosphorIcon(PhosphorIconsRegular.arrowDown, size: 16, color: AppColors.ndcGreen),
+              : const PhosphorIcon(PhosphorIconsRegular.arrowDown, size: 16, color: AppColors.canopyGreen),
           label: Text(
             loading ? 'Loading…' : 'Load More',
-            style: AppTextStyles.small(color: AppColors.ndcGreen),
+            style: AppTextStyles.small(color: AppColors.canopyGreen),
           ),
         ),
       ),

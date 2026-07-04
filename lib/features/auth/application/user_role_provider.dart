@@ -26,12 +26,14 @@ class AppUser {
       id: map['id'] as String,
       fullName: map['full_name'] as String,
       email: map['email'] as String,
-      role: _parseRole(map['role'] as String),
-      isActive: map['is_active'] as bool,
+      role: _parseRole(map['role'] as String?),
+      isActive: map['is_active'] as bool? ?? false,
     );
   }
 
-  static AppUserRole _parseRole(String role) {
+  // role is null for pending self-signup users — treat as personnel so the
+  // router's isActive check still gates them to /pending-approval.
+  static AppUserRole _parseRole(String? role) {
     switch (role) {
       case 'admin':
         return AppUserRole.admin;

@@ -248,7 +248,7 @@ class _TrendChartState extends State<_TrendChart> {
                   touchTooltipData: BarTouchTooltipData(
                     getTooltipItem: (group, gI, rod, rI) => BarTooltipItem(
                       '${rod.toY.toInt()}',
-                      AppTextStyles.badge(color: AppColors.ndcWhite),
+                      AppTextStyles.badge(color: AppColors.surface),
                     ),
                   ),
                 ),
@@ -351,11 +351,11 @@ class _ErrorCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.redLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.ndcRed.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 20, color: AppColors.ndcRed),
+          const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 20, color: AppColors.umbrellaRed),
           const SizedBox(width: 12),
           Expanded(child: Text('Could not load stats.', style: AppTextStyles.body())),
           TextButton(onPressed: onRetry, child: const Text('Retry')),

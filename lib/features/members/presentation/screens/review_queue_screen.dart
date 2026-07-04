@@ -107,7 +107,7 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.umbrellaRed),
             const SizedBox(height: 12),
             Text('Failed to load queue', style: AppTextStyles.h3()),
             const SizedBox(height: 16),
@@ -248,7 +248,7 @@ Future<void> _showRejectDialog(BuildContext context, MemberDetail member, VoidCa
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         TextButton(
           onPressed: () { if (ctrl.text.trim().isEmpty) return; Navigator.pop(context, ctrl.text.trim()); },
-          child: Text('Reject', style: TextStyle(color: AppColors.ndcRed)),
+          child: Text('Reject', style: TextStyle(color: AppColors.umbrellaRed)),
         ),
       ],
     ),

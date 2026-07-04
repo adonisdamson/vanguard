@@ -145,7 +145,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.umbrellaRed),
             const SizedBox(height: 12),
             Text('Failed to load audit log', style: AppTextStyles.h3()),
             const SizedBox(height: 8),

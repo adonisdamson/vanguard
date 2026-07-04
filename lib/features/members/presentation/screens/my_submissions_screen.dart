@@ -212,12 +212,12 @@ class _OfflineBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 16, color: AppColors.ndcWhite),
+          const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 16, color: AppColors.surface),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               '$count registration${count == 1 ? '' : 's'} queued offline — tap ↺ to sync.',
-              style: AppTextStyles.small(color: AppColors.ndcWhite),
+              style: AppTextStyles.small(color: AppColors.surface),
             ),
           ),
         ],
@@ -270,7 +270,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.ndcRed),
+            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.umbrellaRed),
             const SizedBox(height: 12),
             Text('Failed to load submissions', style: AppTextStyles.h3()),
             const SizedBox(height: 8),

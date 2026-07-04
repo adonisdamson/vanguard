@@ -51,6 +51,15 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.15
   riverpod_generator: ^2.6.3
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon_umbrella.png"
+  adaptive_icon_background: "#006B3F"
+  adaptive_icon_foreground: "assets/icon/app_icon_umbrella.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
@@ -58,6 +67,7 @@ flutter:
     - .env
     - assets/lottie/
     - assets/illustrations/
+    - assets/icon/
     - assets/images/ndc_flag.png
     - assets/images/ghana_flag.png
     - assets/images/ndc_umbrella.png

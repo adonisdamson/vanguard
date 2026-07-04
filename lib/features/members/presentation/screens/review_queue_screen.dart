@@ -103,18 +103,7 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
       );
     }
     if (_error != null && _items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.umbrellaRed),
-            const SizedBox(height: 12),
-            Text('Failed to load queue', style: AppTextStyles.h3()),
-            const SizedBox(height: 16),
-            TextButton(onPressed: () => _loadPage(0), child: const Text('Retry')),
-          ],
-        ),
-      );
+      return EmptyState.offline(onRetry: () => _loadPage(0));
     }
     if (_items.isEmpty) return const EmptyState.reviewQueueEmpty();
 

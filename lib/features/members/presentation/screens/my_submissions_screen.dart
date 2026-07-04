@@ -9,7 +9,9 @@ import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/brand_illustration.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/filter_chip_bar.dart';
 import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
@@ -233,19 +235,18 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final label = filter == 'all'
+        ? 'No submissions yet'
+        : 'No ${filter == 'active' ? 'approved' : filter} submissions';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const PhosphorIcon(PhosphorIconsRegular.usersThree, size: 56, color: AppColors.textMuted),
-            const SizedBox(height: 16),
-            Text(
-              filter == 'all' ? 'No submissions yet' : 'No ${filter == 'active' ? 'approved' : filter} submissions',
-              style: AppTextStyles.h3(),
-              textAlign: TextAlign.center,
-            ),
+            const BrandIllustration('assets/illustrations/empty_no_members.png', size: 160),
+            const SizedBox(height: 20),
+            Text(label, style: AppTextStyles.h2(), textAlign: TextAlign.center),
             const SizedBox(height: 8),
             Text(
               'Members you register will appear here.',
@@ -264,27 +265,5 @@ class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.onRetry});
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const PhosphorIcon(PhosphorIconsFill.wifiSlash, size: 40, color: AppColors.umbrellaRed),
-            const SizedBox(height: 12),
-            Text('Failed to load submissions', style: AppTextStyles.h3()),
-            const SizedBox(height: 8),
-            Text(
-              'Check your connection and pull down to retry.',
-              style: AppTextStyles.body(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EmptyState.offline(onRetry: onRetry);
 }

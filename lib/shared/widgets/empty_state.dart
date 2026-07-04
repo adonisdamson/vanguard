@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import 'brand_illustration.dart';
 import 'ndc_button.dart';
 
 class EmptyState extends StatelessWidget {
@@ -24,11 +24,11 @@ class EmptyState extends StatelessWidget {
   }) : assert(icon != null || illustrationAsset != null,
             'Provide either icon or illustrationAsset');
 
-  // ── Named constructors for each app empty state ────────────────────────────
+  // ── Named constructors ────────────────────────────────────────────────────
 
   const EmptyState.noMembers({super.key, VoidCallback? onRegister})
       : icon = null,
-        illustrationAsset = 'assets/illustrations/empty_members.svg',
+        illustrationAsset = 'assets/illustrations/empty_no_members.png',
         title = 'No members yet',
         subtitle = 'Registered members appear here. Start by adding one.',
         actionLabel = 'Register member',
@@ -36,7 +36,7 @@ class EmptyState extends StatelessWidget {
 
   const EmptyState.noSearchResults({super.key, String query = ''})
       : icon = null,
-        illustrationAsset = 'assets/illustrations/empty_search.svg',
+        illustrationAsset = 'assets/illustrations/empty_no_results.png',
         title = 'No matches found',
         subtitle = 'Check the spelling or try a phone number or member ID.',
         actionLabel = null,
@@ -44,7 +44,7 @@ class EmptyState extends StatelessWidget {
 
   const EmptyState.reviewQueueEmpty({super.key})
       : icon = null,
-        illustrationAsset = 'assets/illustrations/empty_review.svg',
+        illustrationAsset = 'assets/illustrations/empty_no_pending.png',
         title = "You're all caught up",
         subtitle = 'No registrations waiting for review.',
         actionLabel = null,
@@ -52,11 +52,27 @@ class EmptyState extends StatelessWidget {
 
   const EmptyState.chooseConstituency({super.key})
       : icon = null,
-        illustrationAsset = 'assets/illustrations/empty_polling.svg',
+        illustrationAsset = 'assets/illustrations/empty_choose_constituency.png',
         title = 'Choose a constituency',
         subtitle = 'Polling stations show once you pick a constituency above.',
         actionLabel = null,
         onAction = null;
+
+  const EmptyState.noPendingOperators({super.key})
+      : icon = null,
+        illustrationAsset = 'assets/illustrations/empty_no_pending.png',
+        title = 'No pending requests',
+        subtitle = 'New sign-ups waiting for approval will show here.',
+        actionLabel = null,
+        onAction = null;
+
+  const EmptyState.offline({super.key, VoidCallback? onRetry})
+      : icon = null,
+        illustrationAsset = 'assets/illustrations/empty_offline.png',
+        title = 'No connection',
+        subtitle = 'Check your signal. Any pending registrations are saved and will sync when you reconnect.',
+        actionLabel = 'Retry',
+        onAction = onRetry;
 
   const EmptyState.noRegions({super.key, VoidCallback? onAdd})
       : icon = PhosphorIconsRegular.mapTrifold,
@@ -74,7 +90,7 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildGraphic(),
+            _buildGraphic(context),
             const SizedBox(height: 20),
             Text(
               title,
@@ -103,13 +119,9 @@ class EmptyState extends StatelessWidget {
     );
   }
 
-  Widget _buildGraphic() {
+  Widget _buildGraphic(BuildContext context) {
     if (illustrationAsset != null) {
-      return SvgPicture.asset(
-        illustrationAsset!,
-        width: 120,
-        height: 120,
-      );
+      return BrandIllustration(illustrationAsset!, size: 160);
     }
     return Container(
       width: 72,

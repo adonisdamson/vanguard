@@ -123,25 +123,10 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
       );
     }
     if (_error != null && _items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const PhosphorIcon(PhosphorIconsRegular.wifiSlash, size: 40, color: AppColors.umbrellaRed),
-            const SizedBox(height: AppSpacing.sm),
-            Text('Failed to load operators', style: AppTextStyles.h3()),
-            const SizedBox(height: AppSpacing.sm),
-            TextButton(onPressed: () => _loadPage(0), child: const Text('Retry')),
-          ],
-        ),
-      );
+      return EmptyState.offline(onRetry: () => _loadPage(0));
     }
     if (_items.isEmpty && _pending.isEmpty) {
-      return const EmptyState(
-        icon: PhosphorIconsRegular.usersThree,
-        title: 'No operators yet',
-        subtitle: 'Create the first operator account using the button below.',
-      );
+      return const EmptyState.noPendingOperators();
     }
 
     return ListView.builder(

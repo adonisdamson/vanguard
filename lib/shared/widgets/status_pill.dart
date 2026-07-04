@@ -28,13 +28,18 @@ class StatusPill extends StatelessWidget {
       MemberStatus.suspended => (AppColors.fillMuted, AppColors.statusSuspended, 'Suspended'),
     };
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: AppRadii.borderPill,
+    return Semantics(
+      label: 'Status: $label',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: AppRadii.borderPill,
+        ),
+        child: ExcludeSemantics(
+          child: Text(label, style: AppTextStyles.badge(color: fg)),
+        ),
       ),
-      child: Text(label, style: AppTextStyles.badge(color: fg)),
     );
   }
 }

@@ -24,19 +24,30 @@ class FilterChipBar<T> extends StatelessWidget {
           final isSelected = chip.value == selected;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => onSelected(chip.value),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.canopyGreen : AppColors.fillMuted,
-                  borderRadius: AppRadii.borderPill,
-                ),
-                child: Text(
-                  chip.label,
-                  style: AppTextStyles.label(
-                    color: isSelected ? AppColors.surface : AppColors.ink,
+            child: Semantics(
+              label: chip.label,
+              selected: isSelected,
+              button: true,
+              child: SizedBox(
+                height: 48, // minimum WCAG touch target
+                child: Center(
+                  child: InkWell(
+                    onTap: () => onSelected(chip.value),
+                    borderRadius: AppRadii.borderPill,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.canopyGreen : AppColors.fillMuted,
+                        borderRadius: AppRadii.borderPill,
+                      ),
+                      child: Text(
+                        chip.label,
+                        style: AppTextStyles.label(
+                          color: isSelected ? AppColors.surface : AppColors.ink,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

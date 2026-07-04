@@ -267,6 +267,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Discard registration',
           icon: const PhosphorIcon(PhosphorIconsRegular.x, color: AppColors.surface, size: 22),
           onPressed: () => _confirmExit(context),
         ),

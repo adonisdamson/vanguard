@@ -1,9 +1,14 @@
-name: Build & Release APK
+name: Vanguard — Build & Release APK
 
 on:
   push:
     branches: [master, main]
   workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Optional release notes for this build'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -24,7 +29,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
+      - name: Set up Flutter 3.38.1
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.38.1'
@@ -65,38 +70,77 @@ jobs:
       - name: Build release APK
         env:
           KEY_STORE_PATH: ${{ github.workspace }}/android/app/vanguard-release.keystore
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_ALIAS:          ${{ secrets.KEY_ALIAS }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_PASSWORD:       ${{ secrets.KEY_PASSWORD }}
         run: |
-          flutter build apk --release --no-pub
-          cp build/app/outputs/flutter-apk/app-release.apk Vanguard-NDC.apk
+          flutter build apk --release --no-pub \
+            --build-number=${{ github.run_number }} \
+            --build-name=1.0.${{ github.run_number }}
+          cp build/app/outputs/flutter-apk/app-release.apk Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+
+      - name: Collect build metadata
+        id: meta
+        run: |
+          echo "apk_size=$(du -sh Vanguard-NDC-v1.0.${{ github.run_number }}.apk | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "build_date=$(date -u '+%d %B %Y, %H:%M UTC')" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "commit_msg=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Vanguard-NDC-release
-          path: Vanguard-NDC.apk
+          name: Vanguard-NDC-v1.0.${{ github.run_number }}
+          path: Vanguard-NDC-v1.0.${{ github.run_number }}.apk
           retention-days: 90
 
-      - name: Update rolling GitHub Release
+      - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Vanguard NDC — Latest Build"
+          name: "Vanguard NDC — Build ${{ github.run_number }}"
           body: |
-            ## Vanguard NDC Membership App
+            # Vanguard NDC Membership App
+            > NDC Tema West Constituency — Member Registration & Management
 
-            **Download the APK below and install it on your Android phone.**
+            ## Install
 
-            > **How to install:**
-            > 1. Download `Vanguard-NDC.apk`
-            > 2. Open the file on your phone
-            > 3. If prompted, allow "Install from unknown sources" in Settings
-            > 4. Tap Install
+            1. **Download** `Vanguard-NDC-v1.0.${{ github.run_number }}.apk` below
+            2. Open the file on your Android phone
+            3. If prompted, enable **Install from unknown sources** in Settings → Security
+            4. Tap **Install** — takes about 10 seconds
 
             ---
-            Built from commit `${{ github.sha }}` on `${{ github.ref_name }}`
-          files: Vanguard-NDC.apk
+
+            ## What's in this build
+
+            ${{ github.event.inputs.release_notes != '' && github.event.inputs.release_notes || steps.meta.outputs.commit_msg }}
+
+            ### Highlights
+            - Role-based access: Personnel · Higher Authority · Admin
+            - Full member registration with photo, location & offline queue
+            - Review queue with approve / reject + full audit trail
+            - Member directory with live search across 283 Tema West polling stations
+            - **CSV and PDF export** — Higher Authority & Admin
+            - NDC brand illustrations on all empty & error states
+            - Adaptive launcher icon on canopy green background
+            - Accessibility: semantic labels, 48dp touch targets throughout
+
+            ---
+
+            ## Build info
+
+            | Field | Value |
+            |---|---|
+            | Version | 1.0.${{ github.run_number }} |
+            | APK size | ${{ steps.meta.outputs.apk_size }} |
+            | Commit | [`${{ steps.meta.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |
+            | Branch | `${{ github.ref_name }}` |
+            | Built | ${{ steps.meta.outputs.build_date }} |
+
+            ---
+
+            > **Minimum Android:** 5.0 (API 21) · **Architecture:** arm64-v8a + armeabi-v7a
+          files: Vanguard-NDC-v1.0.${{ github.run_number }}.apk
           prerelease: false
           make_latest: true

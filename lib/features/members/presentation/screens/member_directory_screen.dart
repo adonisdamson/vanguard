@@ -93,6 +93,41 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
   }
 
   Future<void> _triggerExport() async {
+    // Let user pick format
+    final format = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.hairline, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            Text('Export format', style: AppTextStyles.h2()),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const PhosphorIcon(PhosphorIconsRegular.fileCsv, color: AppColors.canopyGreen),
+              title: const Text('CSV spreadsheet'),
+              subtitle: const Text('Open in Excel or Google Sheets'),
+              onTap: () => Navigator.pop(ctx, 'csv'),
+            ),
+            ListTile(
+              leading: const PhosphorIcon(PhosphorIconsRegular.filePdf, color: AppColors.umbrellaRed),
+              title: const Text('PDF register'),
+              subtitle: const Text('Printable formatted report'),
+              onTap: () => Navigator.pop(ctx, 'pdf'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (format == null) return;
+
     setState(() => _exporting = true);
     try {
       final token = Supabase.instance.client.auth.currentSession?.accessToken;
@@ -105,13 +140,15 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       request.headers.set('Authorization', 'Bearer $token');
       request.headers.set('Content-Type', 'application/json');
       request.write(jsonEncode({
-        'filter': {
-          if (_activeFilter != 'all') 'status': _activeFilter,
-          if (_activeSearch.isNotEmpty) 'search': _activeSearch,
-        },
+        'format': format,
+        if (_activeFilter != 'all') 'status': _activeFilter,
+        if (_activeSearch.isNotEmpty) 'search': _activeSearch,
       }));
 
-      final response = await request.close().timeout(const Duration(seconds: 60));
+      final response = await request.close().timeout(const Duration(seconds: 120));
+      if (response.statusCode != 200) {
+        throw Exception('Server error ${response.statusCode}');
+      }
       final chunks = <List<int>>[];
       await for (final chunk in response) {
         chunks.add(chunk);
@@ -120,15 +157,16 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       client.close();
 
       final dir = await getApplicationDocumentsDirectory();
-      final ts = DateTime.now().millisecondsSinceEpoch;
-      final file = File('${dir.path}/members_export_$ts.csv');
+      final ts = DateTime.now().toIso8601String().replaceAll(':', '-').substring(0, 19);
+      final ext = format == 'pdf' ? 'pdf' : 'csv';
+      final file = File('${dir.path}/members_$ts.$ext');
       await file.writeAsBytes(bytes);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
           content: Text(
-            'Export saved (${(bytes.length / 1024).toStringAsFixed(1)} KB)',
+            '${format.toUpperCase()} saved — ${(bytes.length / 1024).toStringAsFixed(1)} KB',
             style: AppTextStyles.body(color: AppColors.surface),
           ),
           duration: const Duration(seconds: 5),
@@ -136,7 +174,9 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -151,6 +191,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
@@ -161,7 +202,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
                 : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.surface, size: 22),
             onPressed: _exporting ? null : _triggerExport,
-            tooltip: 'Export CSV',
+            tooltip: 'Export (CSV / PDF)',
           ),
         ],
         bottom: const PreferredSize(

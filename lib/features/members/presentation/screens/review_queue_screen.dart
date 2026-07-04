@@ -68,12 +68,14 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
         title: Text('Review queue', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
+            tooltip: 'Refresh',
             icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.surface, size: 20),
             onPressed: () => _loadPage(0),
           ),

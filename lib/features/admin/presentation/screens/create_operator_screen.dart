@@ -137,6 +137,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),

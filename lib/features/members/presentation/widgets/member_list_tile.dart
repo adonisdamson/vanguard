@@ -19,7 +19,16 @@ class MemberListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
+    final statusLabel = switch (member.status) {
+      'active'    => 'approved',
+      'rejected'  => 'rejected',
+      'suspended' => 'suspended',
+      _           => 'pending review',
+    };
+    return Semantics(
+      label: '${member.fullName}, ${member.memberNumber ?? member.phone ?? ''}, $statusLabel',
+      button: onTap != null,
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -49,10 +58,11 @@ class MemberListTile extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            StatusPill.fromString(member.status),
+            ExcludeSemantics(child: StatusPill.fromString(member.status)),
           ],
         ),
       ),
+    ),
     );
   }
 

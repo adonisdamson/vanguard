@@ -79,12 +79,14 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Back',
           icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
         title: Text('Operator accounts', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
+            tooltip: 'Refresh',
             icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.surface, size: 20),
             onPressed: () => _loadPage(0),
           ),
@@ -532,6 +534,7 @@ class _OperatorTile extends StatelessWidget {
 
             // Context menu — bottom sheet, not popup
             IconButton(
+              tooltip: 'More options',
               icon: const PhosphorIcon(
                 PhosphorIconsRegular.dotsThreeVertical,
                 size: 20,

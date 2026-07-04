@@ -24,6 +24,14 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final semanticLabel = delta != null ? '$label: $value, $delta' : '$label: $value';
+    return Semantics(
+      label: semanticLabel,
+      child: ExcludeSemantics(child: _card()),
+    );
+  }
+
+  Widget _card() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

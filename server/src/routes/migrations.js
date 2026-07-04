@@ -106,20 +106,39 @@ const MIGRATIONS = [
   },
 ];
 
-function makeClient() {
+function makeCandidates() {
   const ref = new URL(process.env.SUPABASE_URL).hostname.split('.')[0];
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const base = { database: 'postgres', user: `postgres.${ref}`, password: key, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 };
+  return [
+    // Supabase session pooler — IPv4, JWT auth (port 5432)
+    { ...base, host: `${ref}.pooler.supabase.com`, port: 5432 },
+    // Supabase transaction pooler — IPv4, JWT auth (port 6543)
+    { ...base, host: `${ref}.pooler.supabase.com`, port: 6543 },
+    // AWS regional session pooler variations
+    { ...base, host: `aws-0-eu-central-1.pooler.supabase.com`, port: 5432 },
+    { ...base, host: `aws-0-us-east-1.pooler.supabase.com`, port: 5432 },
+    { ...base, host: `aws-0-us-west-1.pooler.supabase.com`, port: 5432 },
+    { ...base, host: `aws-0-ap-southeast-1.pooler.supabase.com`, port: 5432 },
+    // Direct DB — IPv6 only; works if Railway's network has IPv6 routing
+    { ...base, host: `db.${ref}.supabase.co`, port: 5432 },
+  ];
+}
 
-  // Try JWT-based auth on the direct DB host (Railway has IPv6)
-  return new Client({
-    host: `db.${ref}.supabase.co`,
-    port: 5432,
-    database: 'postgres',
-    user: `postgres.${ref}`,
-    password: key,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
-  });
+async function tryConnect() {
+  const candidates = makeCandidates();
+  const errors = [];
+  for (const cfg of candidates) {
+    const c = new Client(cfg);
+    try {
+      await c.connect();
+      return { client: c, host: cfg.host, port: cfg.port };
+    } catch (e) {
+      errors.push(`${cfg.host}:${cfg.port} — ${e.message}`);
+      try { await c.end(); } catch (_) {}
+    }
+  }
+  throw new Error('All connection candidates failed:\n' + errors.join('\n'));
 }
 
 // POST /api/internal/run-migrations
@@ -129,20 +148,19 @@ router.post('/', async (req, res) => {
     return res.status(403).json({ error: 'Invalid secret' });
   }
 
-  const client = makeClient();
   const results = [];
+  let conn;
 
   try {
-    await client.connect();
-    results.push({ step: 'connect', ok: true, user: (await client.query('SELECT current_user')).rows[0] });
+    conn = await tryConnect();
+    results.push({ step: 'connect', ok: true, via: `${conn.host}:${conn.port}`, user: (await conn.client.query('SELECT current_user')).rows[0] });
 
     for (const m of MIGRATIONS) {
       try {
-        await client.query(m.sql);
+        await conn.client.query(m.sql);
         results.push({ step: m.id, ok: true, desc: m.description });
       } catch (err) {
         results.push({ step: m.id, ok: false, error: err.message, desc: m.description });
-        // Continue — some steps may fail if already applied
       }
     }
 
@@ -150,7 +168,7 @@ router.post('/', async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, connectError: err.message, results });
   } finally {
-    try { await client.end(); } catch (_) {}
+    if (conn) try { await conn.client.end(); } catch (_) {}
   }
 });
 

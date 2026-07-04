@@ -79,6 +79,7 @@ jobs:
             --build-number=${{ github.run_number }} \
             --build-name=1.0.${{ github.run_number }}
           cp build/app/outputs/flutter-apk/app-release.apk Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+          cp build/app/outputs/flutter-apk/app-release.apk vanguard-latest.apk
 
       - name: Collect build metadata
         id: meta
@@ -166,6 +167,8 @@ jobs:
 
             > **Minimum Android:** 5.0 (API 21) &nbsp;·&nbsp; **Architecture:** arm64-v8a + armeabi-v7a
             > This is the only current APK — previous builds have been removed.
-          files: Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+          files: |
+            Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+            vanguard-latest.apk
           prerelease: false
           make_latest: true

@@ -74,6 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _routeByRole() async {
     if (!mounted) return;
+    ref.invalidate(appUserProvider);
     final user = await ref.read(appUserProvider.future);
     if (!mounted) return;
     if (user == null || !user.isActive) {

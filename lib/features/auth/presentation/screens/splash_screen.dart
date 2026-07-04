@@ -79,7 +79,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) context.go('/login');
       return;
     }
-    // Session exists — do role lookup then route
+    // Session exists — invalidate so we get a fresh lookup, not cached null
+    ref.invalidate(appUserProvider);
     ref.read(appUserProvider.future).then((user) {
       if (!mounted) return;
       if (user == null) {

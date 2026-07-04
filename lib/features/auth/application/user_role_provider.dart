@@ -44,7 +44,11 @@ class AppUser {
 }
 
 final appUserProvider = FutureProvider<AppUser?>((ref) async {
-  final session = ref.watch(currentSessionProvider);
+  // Watch stream for reactivity (re-runs when auth state changes),
+  // but read the synchronous session so we never see a stale null
+  // right after signInWithPassword returns.
+  ref.watch(supabaseAuthProvider);
+  final session = Supabase.instance.client.auth.currentSession;
   if (session == null) return null;
 
   final supabase = Supabase.instance.client;

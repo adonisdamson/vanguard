@@ -44,7 +44,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
 
     setState(() {
       if (page == 0) { _loading = true; _error = null; }
-      else _loadingMore = true;
+      else { _loadingMore = true; }
     });
 
     try {
@@ -83,6 +83,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
     if (!mounted) return;
     ref.invalidate(myStatsProvider);
     await _refresh();
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: AppColors.canopyGreen,
       content: Text(

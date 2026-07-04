@@ -45,7 +45,7 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
     if (!mounted) return;
     setState(() {
       if (page == 0) { _loading = true; _error = null; }
-      else _loadingMore = true;
+      else { _loadingMore = true; }
     });
     try {
       final results = await Future.wait([
@@ -591,8 +591,8 @@ class _OperatorTile extends StatelessWidget {
 
   Future<void> _toggleActive(BuildContext context, {required bool suspend}) async {
     try {
-      if (suspend) await OperatorRepository().suspendOperator(operator.id);
-      else         await OperatorRepository().reactivateOperator(operator.id);
+      if (suspend) { await OperatorRepository().suspendOperator(operator.id); }
+      else { await OperatorRepository().reactivateOperator(operator.id); }
       HapticFeedback.mediumImpact();
       onChanged();
       if (context.mounted) {

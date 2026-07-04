@@ -155,9 +155,9 @@ class OperatorRepository {
       'email': email,
       'role': role,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
-      if (assignedRegionId != null) 'assigned_region_id': assignedRegionId,
-      if (assignedDistrictId != null) 'assigned_district_id': assignedDistrictId,
-      if (assignedConstituencyId != null) 'assigned_constituency_id': assignedConstituencyId,
+      'assigned_region_id': ?assignedRegionId,
+      'assigned_district_id': ?assignedDistrictId,
+      'assigned_constituency_id': ?assignedConstituencyId,
     });
   }
 
@@ -182,9 +182,9 @@ class OperatorRepository {
   }) async {
     await _railwayPost('/api/admin/operators/$id/approve', {
       'role': role,
-      if (assignedRegionId != null) 'assigned_region_id': assignedRegionId,
-      if (assignedDistrictId != null) 'assigned_district_id': assignedDistrictId,
-      if (assignedConstituencyId != null) 'assigned_constituency_id': assignedConstituencyId,
+      'assigned_region_id': ?assignedRegionId,
+      'assigned_district_id': ?assignedDistrictId,
+      'assigned_constituency_id': ?assignedConstituencyId,
     });
   }
 

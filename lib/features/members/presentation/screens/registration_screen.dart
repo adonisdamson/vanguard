@@ -317,8 +317,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     };
   }
 
-  void _confirmExit(BuildContext context) {
-    showDialog<bool>(
+  Future<void> _confirmExit(BuildContext context) async {
+    final exit = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: Text('Discard registration?', style: AppTextStyles.h3()),
@@ -337,9 +337,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           ),
         ],
       ),
-    ).then((exit) {
-      if (exit == true && mounted) context.pop();
-    });
+    );
+    if (exit == true && context.mounted) context.pop();
   }
 }
 

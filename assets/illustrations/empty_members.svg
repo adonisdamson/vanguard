@@ -1,0 +1,15 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Umbrella canopy arc -->
+  <path d="M20 80 Q80 20 140 80" stroke="#006B3F" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Umbrella segments -->
+  <path d="M50 80 Q65 52 80 80" stroke="#006B3F" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M80 80 Q95 52 110 80" stroke="#CE1126" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <!-- Handle -->
+  <path d="M80 80 L80 128" stroke="#006B3F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M80 128 Q68 128 68 116" stroke="#006B3F" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Person silhouette below -->
+  <circle cx="112" cy="104" r="8" stroke="#006B3F" stroke-width="3" fill="none"/>
+  <path d="M104 128 Q104 116 112 116 Q120 116 120 128" stroke="#006B3F" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="48" cy="108" r="8" stroke="#647169" stroke-width="3" fill="none"/>
+  <path d="M40 132 Q40 120 48 120 Q56 120 56 132" stroke="#647169" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

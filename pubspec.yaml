@@ -27,6 +27,7 @@ dependencies:
   # UI
   phosphor_flutter: ^2.1.0
   lottie: ^3.3.1
+  flutter_svg: ^2.0.16
   cached_network_image: ^3.4.1
   google_fonts: ^6.2.1
   fl_chart: ^0.69.0
@@ -56,6 +57,7 @@ flutter:
   assets:
     - .env
     - assets/lottie/
+    - assets/illustrations/
     - assets/images/ndc_flag.png
     - assets/images/ghana_flag.png
     - assets/images/ndc_umbrella.png

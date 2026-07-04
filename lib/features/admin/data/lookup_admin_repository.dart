@@ -153,7 +153,7 @@ class LookupAdminRepository {
           {
             'constituency_id': constituencyId,
             'name': stationName,
-            if (eaValue != null) 'electoral_area': eaValue,
+            'electoral_area': ?eaValue,
           },
           onConflict: 'constituency_id,name',
         );

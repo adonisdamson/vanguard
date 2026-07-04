@@ -1,0 +1,13 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Document outline -->
+  <rect x="36" y="24" width="88" height="112" rx="8" stroke="#006B3F" stroke-width="4" fill="none"/>
+  <!-- Check lines on document -->
+  <line x1="54" y1="60" x2="106" y2="60" stroke="#E7EAE8" stroke-width="3" stroke-linecap="round"/>
+  <line x1="54" y1="76" x2="106" y2="76" stroke="#E7EAE8" stroke-width="3" stroke-linecap="round"/>
+  <line x1="54" y1="92" x2="90" y2="92" stroke="#E7EAE8" stroke-width="3" stroke-linecap="round"/>
+  <!-- Big checkmark over document -->
+  <path d="M52 100 L72 120 L108 80" stroke="#006B3F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Upward arrow -->
+  <path d="M130 44 L138 36 L146 44" stroke="#CE1126" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <line x1="138" y1="36" x2="138" y2="56" stroke="#CE1126" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

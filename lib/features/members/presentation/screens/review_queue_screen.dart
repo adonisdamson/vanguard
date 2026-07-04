@@ -41,7 +41,7 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
     if (!mounted) return;
     setState(() {
       if (page == 0) { _loading = true; _error = null; }
-      else _loadingMore = true;
+      else { _loadingMore = true; }
     });
     try {
       final items = await ReviewRepository().fetchPendingMembers(page: page, pageSize: _pageSize);

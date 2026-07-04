@@ -39,7 +39,7 @@ class AuthService {
       password: password,
       data: {
         'full_name': fullName,
-        if (requestedRole != null) 'requested_role': requestedRole,
+        'requested_role': ?requestedRole,
       },
     );
     if (res.user == null) throw Exception('Sign-up failed. Please try again.');

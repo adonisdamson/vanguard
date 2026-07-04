@@ -45,10 +45,11 @@ jobs:
 
       - name: Write .env file
         run: |
-          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\n' \
+          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\nGOOGLE_WEB_CLIENT_ID=%s\n' \
             "${{ secrets.SUPABASE_URL }}" \
             "${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.RAILWAY_API_URL }}" > .env
+            "${{ secrets.RAILWAY_API_URL }}" \
+            "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" > .env
 
       - name: Write google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
@@ -87,6 +88,24 @@ jobs:
           echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           echo "commit_msg=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
 
+      # Delete all old APK assets from the 'latest' release so only the new build is downloadable
+      - name: Delete old release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the latest release ID
+          RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/latest \
+            --jq '.id' 2>/dev/null || echo "")
+          if [ -n "$RELEASE_ID" ]; then
+            # List all assets and delete each one
+            ASSET_IDS=$(gh api repos/${{ github.repository }}/releases/${RELEASE_ID}/assets \
+              --jq '.[].id' 2>/dev/null || echo "")
+            for ASSET_ID in $ASSET_IDS; do
+              gh api --method DELETE repos/${{ github.repository }}/releases/assets/${ASSET_ID} \
+                2>/dev/null && echo "Deleted asset ${ASSET_ID}" || true
+            done
+          fi
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -94,37 +113,42 @@ jobs:
           path: Vanguard-NDC-v1.0.${{ github.run_number }}.apk
           retention-days: 90
 
-      - name: Update GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Vanguard NDC — Build ${{ github.run_number }}"
+          name: "Vanguard NDC — v1.0.${{ github.run_number }}"
           body: |
             # Vanguard NDC Membership App
             > NDC Tema West Constituency — Member Registration & Management
 
-            ## Install
+            ## How to install
 
-            1. **Download** `Vanguard-NDC-v1.0.${{ github.run_number }}.apk` below
+            1. **Download** `Vanguard-NDC-v1.0.${{ github.run_number }}.apk` from the **Assets** section below
             2. Open the file on your Android phone
-            3. If prompted, enable **Install from unknown sources** in Settings → Security
+            3. If prompted, tap **Settings → Install unknown apps** and allow your file manager
             4. Tap **Install** — takes about 10 seconds
+            5. Open **Vanguard** and sign in with your credentials
 
             ---
 
             ## What's in this build
 
-            ${{ github.event.inputs.release_notes != '' && github.event.inputs.release_notes || steps.meta.outputs.commit_msg }}
+            > ${{ github.event.inputs.release_notes != '' && github.event.inputs.release_notes || steps.meta.outputs.commit_msg }}
 
-            ### Highlights
-            - Role-based access: Personnel · Higher Authority · Admin
-            - Full member registration with photo, location & offline queue
-            - Review queue with approve / reject + full audit trail
-            - Member directory with live search across 283 Tema West polling stations
-            - **CSV and PDF export** — Higher Authority & Admin
-            - NDC brand illustrations on all empty & error states
-            - Adaptive launcher icon on canopy green background
-            - Accessibility: semantic labels, 48dp touch targets throughout
+            ### App capabilities
+            | Feature | Status |
+            |---|---|
+            | Role-based access (Personnel · Higher Authority · Admin) | ✅ |
+            | Member registration with photo, GPS & offline queue | ✅ |
+            | Review queue — approve / reject with audit trail | ✅ |
+            | Member directory — live search, 283 polling stations | ✅ |
+            | CSV & PDF export (Higher Authority + Admin) | ✅ |
+            | Paginated streaming exports (100k+ member safe) | ✅ |
+            | NDC brand illustrations on all empty & error states | ✅ |
+            | Adaptive launcher icon — canopy green background | ✅ |
+            | Accessibility — semantic labels, 48dp touch targets | ✅ |
+            | Bootstrap endpoint for first-time admin setup | ✅ |
 
             ---
 
@@ -132,7 +156,7 @@ jobs:
 
             | Field | Value |
             |---|---|
-            | Version | 1.0.${{ github.run_number }} |
+            | Version | `1.0.${{ github.run_number }}` |
             | APK size | ${{ steps.meta.outputs.apk_size }} |
             | Commit | [`${{ steps.meta.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |
             | Branch | `${{ github.ref_name }}` |
@@ -140,7 +164,8 @@ jobs:
 
             ---
 
-            > **Minimum Android:** 5.0 (API 21) · **Architecture:** arm64-v8a + armeabi-v7a
+            > **Minimum Android:** 5.0 (API 21) &nbsp;·&nbsp; **Architecture:** arm64-v8a + armeabi-v7a
+            > This is the only current APK — previous builds have been removed.
           files: Vanguard-NDC-v1.0.${{ github.run_number }}.apk
           prerelease: false
           make_latest: true

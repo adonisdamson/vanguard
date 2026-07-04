@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide OAuthProvider;
 import 'package:google_sign_in/google_sign_in.dart';
@@ -20,7 +21,13 @@ final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 class AuthService {
   final _supabase = Supabase.instance.client;
   final _firebase = FirebaseAuth.instance;
-  final _googleSignIn = GoogleSignIn();
+
+  // serverClientId must be the Web OAuth client ID from Google Cloud Console
+  // (same one configured in Supabase → Auth → Providers → Google).
+  // Set GOOGLE_WEB_CLIENT_ID in .env — see .env.example.
+  GoogleSignIn get _googleSignIn => GoogleSignIn(
+    serverClientId: dotenv.env['GOOGLE_WEB_CLIENT_ID'],
+  );
 
   Future<void> signInWithEmail(String email, String password) async {
     await _supabase.auth.signInWithPassword(email: email, password: password);
@@ -49,15 +56,16 @@ class AuthService {
   }
 
   Future<void> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) throw Exception('Google sign-in cancelled');
+    final gs = _googleSignIn;
+    final googleUser = await gs.signIn();
+    if (googleUser == null) return; // user cancelled — not an error
 
     final googleAuth = await googleUser.authentication;
     if (googleAuth.idToken == null) {
-      throw Exception('Failed to get Google ID token');
+      throw Exception('Google did not return an ID token. Check serverClientId in .env.');
     }
 
-    // Exchange Google token for Firebase credential (for Firebase session)
+    // Exchange Google token for Firebase credential
     await _firebase.signInWithCredential(
       GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -65,7 +73,7 @@ class AuthService {
       ),
     );
 
-    // Exchange Google token for Supabase session (for RLS / auth.uid())
+    // Exchange Google ID token for a Supabase session (drives RLS / auth.uid())
     await _supabase.auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: googleAuth.idToken!,

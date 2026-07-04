@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
@@ -60,7 +61,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() { _googleLoading = true; _error = null; });
     try {
       await ref.read(authServiceProvider).signInWithGoogle();
-      await _routeByRole();
+      // signInWithGoogle returns normally on user-cancel (googleUser == null)
+      // Only route if we actually got a session
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) await _routeByRole();
     } catch (e, st) {
       debugPrint('[Login/Google] error: $e\n$st');
       setState(() => _error = _humanize(e));
@@ -99,7 +103,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (s.contains('SocketException') || s.contains('network') || s.contains('timeout')) {
       return 'You appear to be offline. Check your connection and try again.';
     }
-    if (s.contains('cancelled') || s.contains('canceled')) return 'Sign-in was cancelled.';
+    if (s.contains('cancelled') || s.contains('canceled') ||
+        s.contains('sign_in_failed') || s.contains('ApiException: 10')) {
+      return 'Google sign-in is not configured yet. Use email/password to sign in.';
+    }
     return 'Couldn\'t sign in: ${e.toString().split(']').last.trim()}';
   }
 

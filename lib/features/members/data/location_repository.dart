@@ -30,9 +30,14 @@ class PollingStation {
   final int id;
   final int constituencyId;
   final String name;
-  const PollingStation({required this.id, required this.constituencyId, required this.name});
-  factory PollingStation.fromMap(Map<String, dynamic> m) =>
-      PollingStation(id: m['id'] as int, constituencyId: m['constituency_id'] as int, name: m['name'] as String);
+  final String? electoralArea;
+  const PollingStation({required this.id, required this.constituencyId, required this.name, this.electoralArea});
+  factory PollingStation.fromMap(Map<String, dynamic> m) => PollingStation(
+    id: m['id'] as int,
+    constituencyId: m['constituency_id'] as int,
+    name: m['name'] as String,
+    electoralArea: m['electoral_area'] as String?,
+  );
 }
 
 class LocationRepository {
@@ -61,12 +66,29 @@ class LocationRepository {
     return (data as List).map((m) => Constituency.fromMap(m as Map<String, dynamic>)).toList();
   }
 
-  Future<List<PollingStation>> fetchPollingStations(int constituencyId) async {
+  Future<List<String>> fetchElectoralAreas(int constituencyId) async {
     final data = await _db
         .from('polling_stations')
-        .select('id, constituency_id, name')
+        .select('electoral_area')
         .eq('constituency_id', constituencyId)
-        .order('name');
+        .not('electoral_area', 'is', null)
+        .order('electoral_area');
+    final seen = <String>{};
+    final areas = <String>[];
+    for (final m in data as List) {
+      final ea = m['electoral_area'] as String;
+      if (seen.add(ea)) areas.add(ea);
+    }
+    return areas;
+  }
+
+  Future<List<PollingStation>> fetchPollingStations(int constituencyId, {String? electoralArea}) async {
+    var query = _db
+        .from('polling_stations')
+        .select('id, constituency_id, name, electoral_area')
+        .eq('constituency_id', constituencyId);
+    if (electoralArea != null) query = query.eq('electoral_area', electoralArea);
+    final data = await query.order('name');
     return (data as List).map((m) => PollingStation.fromMap(m as Map<String, dynamic>)).toList();
   }
 }

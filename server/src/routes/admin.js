@@ -8,7 +8,8 @@ router.post('/', async (req, res) => {
   const ctx = await requireRole(req, res, ['admin']);
   if (!ctx) return;
 
-  const { full_name, email, role, phone, password } = req.body;
+  const { full_name, email, role, phone, password,
+          assigned_region_id, assigned_district_id, assigned_constituency_id } = req.body;
   if (!full_name || !email || !role) {
     return res.status(400).json({ error: 'full_name, email, and role are required' });
   }
@@ -30,6 +31,9 @@ router.post('/', async (req, res) => {
     phone: phone || null,
     role,
     created_by: ctx.user.id,
+    assigned_region_id: assigned_region_id || null,
+    assigned_district_id: assigned_district_id || null,
+    assigned_constituency_id: assigned_constituency_id || null,
   });
 
   if (insertError) {
@@ -90,12 +94,18 @@ router.post('/:id/approve', async (req, res) => {
   const ctx = await requireRole(req, res, ['admin']);
   if (!ctx) return;
 
-  const { role } = req.body;
+  const { role, assigned_region_id, assigned_district_id, assigned_constituency_id } = req.body;
   if (!role) return res.status(400).json({ error: 'role is required' });
 
   const { error } = await serviceClient()
     .from('app_users')
-    .update({ role, is_active: true })
+    .update({
+      role,
+      is_active: true,
+      assigned_region_id: assigned_region_id || null,
+      assigned_district_id: assigned_district_id || null,
+      assigned_constituency_id: assigned_constituency_id || null,
+    })
     .eq('id', req.params.id)
     .is('role', null); // only approve pending (role-less) users
 

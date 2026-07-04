@@ -85,4 +85,85 @@ class LookupAdminRepository {
   Future<void> deletePollingStation(int id) async {
     await _db.from('polling_stations').delete().eq('id', id);
   }
+
+  // Bulk import — idempotent upsert of full hierarchy from parsed CSV rows.
+  // Each row must have: region, district, constituency, station_name.
+  // electoral_area is optional.
+  // Returns counts of (upserted, skipped due to missing fields, failed due to error).
+  Future<({int upserted, int skipped, int failed})> bulkImportRows(
+    List<Map<String, String>> rows,
+  ) async {
+    int upserted = 0, skipped = 0, failed = 0;
+
+    final regionCache       = <String, int>{};
+    final districtCache     = <String, int>{};
+    final constituencyCache = <String, int>{};
+
+    for (final row in rows) {
+      final regionName       = row['region']?.trim() ?? '';
+      final districtName     = row['district']?.trim() ?? '';
+      final constituencyName = row['constituency']?.trim() ?? '';
+      final stationName      = row['station_name']?.trim() ?? '';
+      final eaRaw            = row['electoral_area']?.trim() ?? '';
+      final eaValue          = eaRaw.isEmpty ? null : eaRaw;
+
+      if (regionName.isEmpty || districtName.isEmpty || constituencyName.isEmpty || stationName.isEmpty) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        // Region — upsert on name uniqueness
+        if (!regionCache.containsKey(regionName)) {
+          final r = await _db
+              .from('regions')
+              .upsert({'name': regionName}, onConflict: 'name')
+              .select('id')
+              .single();
+          regionCache[regionName] = r['id'] as int;
+        }
+        final regionId = regionCache[regionName]!;
+
+        // District — upsert on (region_id, name) uniqueness
+        final districtKey = '$regionId:$districtName';
+        if (!districtCache.containsKey(districtKey)) {
+          final r = await _db
+              .from('districts')
+              .upsert({'region_id': regionId, 'name': districtName}, onConflict: 'region_id,name')
+              .select('id')
+              .single();
+          districtCache[districtKey] = r['id'] as int;
+        }
+        final districtId = districtCache[districtKey]!;
+
+        // Constituency — upsert on (district_id, name) uniqueness
+        final constituencyKey = '$districtId:$constituencyName';
+        if (!constituencyCache.containsKey(constituencyKey)) {
+          final r = await _db
+              .from('constituencies')
+              .upsert({'district_id': districtId, 'name': constituencyName}, onConflict: 'district_id,name')
+              .select('id')
+              .single();
+          constituencyCache[constituencyKey] = r['id'] as int;
+        }
+        final constituencyId = constituencyCache[constituencyKey]!;
+
+        // Polling station — upsert on (constituency_id, name) uniqueness
+        await _db.from('polling_stations').upsert(
+          {
+            'constituency_id': constituencyId,
+            'name': stationName,
+            if (eaValue != null) 'electoral_area': eaValue,
+          },
+          onConflict: 'constituency_id,name',
+        );
+
+        upserted++;
+      } catch (_) {
+        failed++;
+      }
+    }
+
+    return (upserted: upserted, skipped: skipped, failed: failed);
+  }
 }

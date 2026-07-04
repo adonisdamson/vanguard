@@ -127,10 +127,14 @@ class OperatorRepository {
   }
 
   Future<Map<String, int>> countByRole() async {
-    final data = await _db.from('app_users').select('role, is_active');
+    final data = await _db
+        .from('app_users')
+        .select('role, is_active')
+        .not('role', 'is', null);
     final counts = <String, int>{'admin': 0, 'higher_authority': 0, 'personnel': 0, 'total': 0};
     for (final row in data as List) {
-      final role = row['role'] as String;
+      final role = row['role'] as String? ?? '';
+      if (role.isEmpty) continue;
       counts[role] = (counts[role] ?? 0) + 1;
       counts['total'] = counts['total']! + 1;
     }
@@ -142,12 +146,18 @@ class OperatorRepository {
     required String email,
     required String role,
     String? phone,
+    int? assignedRegionId,
+    int? assignedDistrictId,
+    int? assignedConstituencyId,
   }) async {
     await _railwayPost('/api/admin/operators', {
       'full_name': fullName,
       'email': email,
       'role': role,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (assignedRegionId != null) 'assigned_region_id': assignedRegionId,
+      if (assignedDistrictId != null) 'assigned_district_id': assignedDistrictId,
+      if (assignedConstituencyId != null) 'assigned_constituency_id': assignedConstituencyId,
     });
   }
 
@@ -163,8 +173,19 @@ class OperatorRepository {
     await _railwayPost('/api/admin/operators/$id/role', {'role': role});
   }
 
-  Future<void> approveOperator(String id, String role) async {
-    await _railwayPost('/api/admin/operators/$id/approve', {'role': role});
+  Future<void> approveOperator(
+    String id,
+    String role, {
+    int? assignedRegionId,
+    int? assignedDistrictId,
+    int? assignedConstituencyId,
+  }) async {
+    await _railwayPost('/api/admin/operators/$id/approve', {
+      'role': role,
+      if (assignedRegionId != null) 'assigned_region_id': assignedRegionId,
+      if (assignedDistrictId != null) 'assigned_district_id': assignedDistrictId,
+      if (assignedConstituencyId != null) 'assigned_constituency_id': assignedConstituencyId,
+    });
   }
 
   Future<void> declineOperator(String id) async {

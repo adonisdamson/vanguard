@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/operator_repository.dart';
 import '../../../auth/application/user_role_provider.dart';
+import '../../../members/data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -231,46 +232,120 @@ class _PendingTile extends StatelessWidget {
   };
 
   Future<void> _approve(BuildContext context) async {
-    String selected = operator.requestedRole ?? 'personnel';
-    final role = await showDialog<String>(
+    final locationRepo = LocationRepository();
+    // Pre-load regions so dialog opens without lag
+    final regions = await locationRepo.fetchRegions().catchError((_) => <Region>[]);
+    if (!context.mounted) return;
+
+    String selectedRole = operator.requestedRole ?? 'personnel';
+    Region? selRegion;
+    District? selDistrict;
+    Constituency? selConstituency;
+    List<District> districts = [];
+    List<Constituency> constituencies = [];
+    bool loadingDistricts = false;
+    bool loadingConstituencies = false;
+
+    final result = await showDialog<({String role, int? regionId, int? districtId, int? constituencyId})>(
       context: context,
       builder: (_) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
+        builder: (ctx, setS) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
           title: Text('Approve ${operator.fullName}', style: AppTextStyles.h3()),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Assign a role to activate this account:', style: AppTextStyles.body()),
-              const SizedBox(height: 12),
-              ...['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
-                value: r,
-                groupValue: selected,
-                title: Text(_roleLabel(r), style: AppTextStyles.body()),
-                activeColor: AppColors.canopyGreen,
-                onChanged: (v) => setState(() => selected = v!),
-              )),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Role', style: AppTextStyles.label()),
+                ...['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
+                  dense: true,
+                  value: r,
+                  groupValue: selectedRole,
+                  title: Text(_roleLabel(r), style: AppTextStyles.body()),
+                  activeColor: AppColors.canopyGreen,
+                  onChanged: (v) => setS(() => selectedRole = v!),
+                )),
+                const SizedBox(height: 8),
+                Text('Jurisdiction (optional)', style: AppTextStyles.label()),
+                const SizedBox(height: 6),
+                // Region
+                DropdownButton<Region>(
+                  isExpanded: true,
+                  hint: const Text('Region — optional'),
+                  value: selRegion,
+                  items: regions.map((r) => DropdownMenuItem(value: r, child: Text(r.name))).toList(),
+                  onChanged: (r) async {
+                    setS(() { selRegion = r; selDistrict = null; selConstituency = null; districts = []; constituencies = []; loadingDistricts = true; });
+                    if (r != null) {
+                      final d = await locationRepo.fetchDistricts(r.id).catchError((_) => <District>[]);
+                      if (ctx.mounted) setS(() { districts = d; loadingDistricts = false; });
+                    }
+                  },
+                ),
+                if (selRegion != null) ...[
+                  const SizedBox(height: 4),
+                  loadingDistricts
+                      ? const LinearProgressIndicator(color: AppColors.canopyGreen)
+                      : DropdownButton<District>(
+                          isExpanded: true,
+                          hint: const Text('District — optional'),
+                          value: selDistrict,
+                          items: districts.map((d) => DropdownMenuItem(value: d, child: Text(d.name))).toList(),
+                          onChanged: (d) async {
+                            setS(() { selDistrict = d; selConstituency = null; constituencies = []; loadingConstituencies = true; });
+                            if (d != null) {
+                              final c = await locationRepo.fetchConstituencies(d.id).catchError((_) => <Constituency>[]);
+                              if (ctx.mounted) setS(() { constituencies = c; loadingConstituencies = false; });
+                            }
+                          },
+                        ),
+                ],
+                if (selDistrict != null) ...[
+                  const SizedBox(height: 4),
+                  loadingConstituencies
+                      ? const LinearProgressIndicator(color: AppColors.canopyGreen)
+                      : DropdownButton<Constituency>(
+                          isExpanded: true,
+                          hint: const Text('Constituency — optional'),
+                          value: selConstituency,
+                          items: constituencies.map((c) => DropdownMenuItem(value: c, child: Text(c.name))).toList(),
+                          onChanged: (c) => setS(() => selConstituency = c),
+                        ),
+                ],
+              ],
+            ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             TextButton(
-              onPressed: () => Navigator.pop(context, selected),
+              onPressed: () => Navigator.pop(ctx, (
+                role: selectedRole,
+                regionId: selRegion?.id,
+                districtId: selDistrict?.id,
+                constituencyId: selConstituency?.id,
+              )),
               child: Text('Approve', style: TextStyle(color: AppColors.canopyGreen)),
             ),
           ],
         ),
       ),
     );
-    if (role == null || !context.mounted) return;
+    if (result == null || !context.mounted) return;
     try {
-      await OperatorRepository().approveOperator(operator.id, role);
+      await OperatorRepository().approveOperator(
+        operator.id,
+        result.role,
+        assignedRegionId: result.regionId,
+        assignedDistrictId: result.districtId,
+        assignedConstituencyId: result.constituencyId,
+      );
       HapticFeedback.mediumImpact();
       onChanged();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
-          content: Text('${operator.fullName} approved as ${_roleLabel(role)}.',
+          content: Text('${operator.fullName} approved as ${_roleLabel(result.role)}.',
               style: AppTextStyles.body(color: AppColors.surface)),
         ));
       }

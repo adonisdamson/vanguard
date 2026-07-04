@@ -50,6 +50,13 @@ class _LookupTablesScreenState extends ConsumerState<LookupTablesScreen>
           onPressed: () => context.pop(),
         ),
         title: Text('Lookup tables', style: AppTextStyles.appBarTitle()),
+        actions: [
+          IconButton(
+            icon: const PhosphorIcon(PhosphorIconsRegular.uploadSimple, color: AppColors.surface, size: 20),
+            tooltip: 'CSV bulk import',
+            onPressed: () => context.push('/admin/lookups/import-csv'),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
           child: Column(

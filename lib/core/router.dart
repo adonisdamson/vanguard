@@ -19,6 +19,7 @@ import '../features/admin/presentation/screens/admin_home_screen.dart';
 import '../features/admin/presentation/screens/operator_list_screen.dart';
 import '../features/admin/presentation/screens/create_operator_screen.dart';
 import '../features/admin/presentation/screens/lookup_tables_screen.dart';
+import '../features/admin/presentation/screens/csv_import_screen.dart';
 import '../features/admin/presentation/screens/audit_log_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -75,6 +76,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/admin/operators', builder: (_, __) => const OperatorListScreen()),
       GoRoute(path: '/admin/operators/create', builder: (_, __) => const CreateOperatorScreen()),
       GoRoute(path: '/admin/lookups', builder: (_, __) => const LookupTablesScreen()),
+      GoRoute(path: '/admin/lookups/import-csv', builder: (_, __) => const CsvImportScreen()),
       GoRoute(path: '/admin/audit', builder: (_, __) => const AuditLogScreen()),
     ],
   );

@@ -36,10 +36,10 @@ class RegistrationScreen extends ConsumerStatefulWidget {
 
 class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   int _step = 0;
+  int _sessionCount = 0;
   bool _submitting = false;
   String? _submitError;
 
-  // Step form keys
   final _formKeys = List.generate(4, (_) => GlobalKey<FormState>());
 
   bool _validateStep() => _formKeys[_step].currentState?.validate() ?? false;
@@ -54,46 +54,114 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     if (_step > 0) setState(() => _step--);
   }
 
-  Future<void> _submit() async {
+  Future<bool> _checkDuplicates(RegistrationFormData data) async {
+    final db = Supabase.instance.client;
+    if (data.phone.isNotEmpty) {
+      try {
+        final res = await db
+            .from('members')
+            .select('id, first_name, last_name')
+            .eq('phone', data.phone)
+            .limit(1)
+            .maybeSingle();
+        if (res != null && mounted) {
+          final proceed = await _showDuplicateWarning(
+            'Phone ${data.phone} matches an existing record: ${res['first_name']} ${res['last_name']}.',
+          );
+          if (!proceed) return false;
+        }
+      } catch (_) {}
+    }
+    if (data.dateOfBirth != null) {
+      final dob = data.dateOfBirth!;
+      final dobStr = '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
+      try {
+        final res = await db
+            .from('members')
+            .select('id, first_name, last_name')
+            .eq('first_name', data.firstName)
+            .eq('last_name', data.lastName)
+            .eq('date_of_birth', dobStr)
+            .limit(1)
+            .maybeSingle();
+        if (res != null && mounted) {
+          final proceed = await _showDuplicateWarning(
+            '${data.firstName} ${data.lastName} with that date of birth already exists.',
+          );
+          if (!proceed) return false;
+        }
+      } catch (_) {}
+    }
+    return true;
+  }
+
+  Future<bool> _showDuplicateWarning(String message) async {
+    if (!mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
+            title: Text('Possible duplicate', style: AppTextStyles.h3()),
+            content: Text(message, style: AppTextStyles.body()),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Register anyway', style: TextStyle(color: AppColors.umbrellaRed)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<String?> _doInsert(RegistrationFormData formData, String userId, MemberRepository repo) async {
+    String? storagePath;
+    if (formData.photoLocalPath != null) {
+      try {
+        storagePath = await repo.uploadPhoto(formData.photoLocalPath!, userId);
+        ref.read(registrationFormProvider.notifier).setPhotoStoragePath(storagePath);
+      } catch (_) {}
+    }
+    final updatedForm = ref.read(registrationFormProvider);
+    final result = await repo.insertMember(updatedForm.toInsertMap(userId));
+    return result['id'];
+  }
+
+  void _captureMetadata(String memberId) async {
+    final pos = await CaptureMetadataService.requestLocation();
+    CaptureMetadataService.capture(memberId, lat: pos?.latitude, lng: pos?.longitude).ignore();
+  }
+
+  Future<void> _submit({bool addAnother = false}) async {
     if (!_validateStep()) return;
     _formKeys[_step].currentState!.save();
 
     final session = Supabase.instance.client.auth.currentSession;
     if (session == null) return;
 
+    final formData = ref.read(registrationFormProvider);
+
+    // Duplicate guard — warn but let the operator decide
+    final proceed = await _checkDuplicates(formData);
+    if (!proceed || !mounted) return;
+
     setState(() {
       _submitting = true;
       _submitError = null;
     });
 
-    final formData = ref.read(registrationFormProvider);
     final repo = MemberRepository();
     bool isOffline = false;
     String? memberId;
 
     try {
-      // Upload photo if picked
-      String? storagePath;
-      if (formData.photoLocalPath != null) {
-        try {
-          storagePath = await repo.uploadPhoto(formData.photoLocalPath!, session.user.id);
-          ref.read(registrationFormProvider.notifier).setPhotoStoragePath(storagePath);
-        } catch (_) {
-          // Non-fatal — register without photo
-        }
-      }
-
-      final updatedForm = ref.read(registrationFormProvider);
-      final insertData = updatedForm.toInsertMap(session.user.id);
-
-      final result = await repo.insertMember(insertData);
-      memberId = result['id'];
+      memberId = await _doInsert(formData, session.user.id, repo);
     } catch (e) {
       if (_isNetworkError(e)) {
         isOffline = true;
-        final offlineData = formData.toOfflineJson(session.user.id);
         await OfflineQueue.enqueue(OfflineRegistration(
-          insertData: offlineData,
+          insertData: formData.toOfflineJson(session.user.id),
           photoLocalPath: formData.photoLocalPath,
           registeredBy: session.user.id,
           enqueuedAt: DateTime.now().toIso8601String(),
@@ -107,26 +175,51 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       }
     }
 
-    // Capture metadata (best-effort, after insert)
-    if (memberId != null) {
-      final pos = await CaptureMetadataService.requestLocation();
-      CaptureMetadataService.capture(
-        memberId,
-        lat: pos?.latitude,
-        lng: pos?.longitude,
-      ).ignore();
-    }
-
-    ref.read(registrationFormProvider.notifier).reset();
+    if (memberId != null) _captureMetadata(memberId);
 
     if (!mounted) return;
-    setState(() => _submitting = false);
+    HapticFeedback.mediumImpact();
 
-    if (isOffline) {
-      _showOfflineSaved();
+    if (addAnother) {
+      // Save current location for retention before resetting
+      final retention = LocationRetention(
+        region: null, // objects not tracked in form; step2 stores IDs
+        district: null,
+        constituency: null,
+        pollingStation: null,
+        electoralArea: ref.read(selectedElectoralAreaProvider),
+        ward: formData.ward,
+        branch: formData.branch,
+        residentialAddress: formData.residentialAddress,
+        residenceTown: formData.residenceTown,
+      );
+      ref.read(locationRetentionProvider.notifier).state = retention;
+      ref.read(registrationFormProvider.notifier).resetPersonalOnly();
+      setState(() {
+        _step = 0;
+        _sessionCount++;
+        _submitting = false;
+        _submitError = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.canopyGreen,
+          content: Text(
+            'Saved — member $_sessionCount of this session. Location kept.',
+            style: AppTextStyles.body(color: AppColors.surface),
+          ),
+          duration: const Duration(seconds: 3),
+        ));
+      }
     } else {
-      HapticFeedback.mediumImpact();
-      context.go('/my-submissions');
+      ref.read(registrationFormProvider.notifier).reset();
+      ref.read(locationRetentionProvider.notifier).state = null;
+      setState(() => _submitting = false);
+      if (isOffline) {
+        _showOfflineSaved();
+      } else {
+        context.go('/my-submissions');
+      }
     }
   }
 
@@ -172,7 +265,16 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           icon: const PhosphorIcon(PhosphorIconsRegular.x, color: AppColors.surface, size: 22),
           onPressed: () => _confirmExit(context),
         ),
-        title: Text('Register member', style: AppTextStyles.appBarTitle()),
+        title: _sessionCount > 0
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Register member', style: AppTextStyles.appBarTitle()),
+                  Text('Session · $_sessionCount saved', style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.7))),
+                ],
+              )
+            : Text('Register member', style: AppTextStyles.appBarTitle()),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
           child: CanopyStripe(height: 4),
@@ -194,7 +296,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         submitting: _submitting,
         error: _submitError,
         onBack: _back,
-        onNext: _step < 3 ? _next : _submit,
+        onNext: _step < 3 ? _next : () => _submit(),
+        onSaveAndAnother: _step == 3 ? () => _submit(addAnother: true) : null,
       ),
     );
   }
@@ -280,6 +383,7 @@ class _BottomNav extends StatelessWidget {
   final String? error;
   final VoidCallback onBack;
   final VoidCallback onNext;
+  final VoidCallback? onSaveAndAnother;
 
   const _BottomNav({
     required this.step,
@@ -287,10 +391,12 @@ class _BottomNav extends StatelessWidget {
     required this.error,
     required this.onBack,
     required this.onNext,
+    this.onSaveAndAnother,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isFinalStep = step == 3;
     return Container(
       color: AppColors.surface,
       padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(context).padding.bottom),
@@ -302,20 +408,21 @@ class _BottomNav extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.redLight,
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.redTint,
+                borderRadius: AppRadii.borderSm,
               ),
               child: Text(error!, style: AppTextStyles.small(color: AppColors.umbrellaRed)),
             ),
             const SizedBox(height: 10),
           ],
+          // Primary row: back + main action
           Row(
             children: [
               if (step > 0) ...[
                 SizedBox(
                   height: 52,
                   child: OutlinedButton(
-                    onPressed: onBack,
+                    onPressed: submitting ? null : onBack,
                     child: const PhosphorIcon(PhosphorIconsFill.arrowLeft, size: 20, color: AppColors.canopyGreen),
                   ),
                 ),
@@ -323,16 +430,33 @@ class _BottomNav extends StatelessWidget {
               ],
               Expanded(
                 child: NdcButton(
-                  label: step < 3 ? 'Continue' : 'Submit Registration',
-                  onPressed: onNext,
+                  label: isFinalStep ? 'Save & Add Another' : 'Continue',
+                  onPressed: isFinalStep ? onSaveAndAnother : onNext,
                   loading: submitting,
-                  icon: step < 3
-                      ? const PhosphorIcon(PhosphorIconsFill.arrowRight, size: 18, color: AppColors.surface)
-                      : const PhosphorIcon(PhosphorIconsFill.check, size: 18, color: AppColors.surface),
+                  icon: isFinalStep
+                      ? const PhosphorIcon(PhosphorIconsFill.userPlus, size: 18, color: AppColors.surface)
+                      : const PhosphorIcon(PhosphorIconsFill.arrowRight, size: 18, color: AppColors.surface),
                 ),
               ),
             ],
           ),
+          // Secondary: plain "Save" on final step
+          if (isFinalStep) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: submitting ? null : onNext,
+                icon: const PhosphorIcon(PhosphorIconsFill.check, size: 16, color: AppColors.canopyGreen),
+                label: Text('Save only', style: AppTextStyles.bodyMedium(color: AppColors.canopyGreen)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.canopyGreen),
+                  shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -553,6 +677,7 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
   District? _district;
   Constituency? _constituency;
   PollingStation? _pollingStation;
+  String? _electoralArea;
 
   @override
   void initState() {
@@ -562,6 +687,42 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
     _branch = TextEditingController(text: d.branch ?? '');
     _residentialAddress = TextEditingController(text: d.residentialAddress ?? '');
     _residenceTown = TextEditingController(text: d.residenceTown ?? '');
+
+    // Restore electoral area from Save & Add Another retention
+    final retention = ref.read(locationRetentionProvider);
+    if (retention?.electoralArea != null) {
+      _electoralArea = retention!.electoralArea;
+      // provider is not reset by resetPersonalOnly so it already matches, no need to re-set
+    }
+
+    // Restore dropdown objects if re-entering step 2 after Save & Add Another
+    if (d.regionId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _restoreLocationObjects());
+    }
+  }
+
+  // Match form IDs back to live objects from cached providers.
+  // Providers aren't invalidated on Save & Add Another, so data is already cached.
+  void _restoreLocationObjects() {
+    if (!mounted) return;
+    final d = ref.read(registrationFormProvider);
+
+    ref.read(regionsProvider).whenData((regions) {
+      final r = regions.where((x) => x.id == d.regionId).firstOrNull;
+      if (r != null && mounted) setState(() => _region = r);
+    });
+    ref.read(districtsProvider).whenData((districts) {
+      final r = districts.where((x) => x.id == d.districtId).firstOrNull;
+      if (r != null && mounted) setState(() => _district = r);
+    });
+    ref.read(constituenciesProvider).whenData((constituencies) {
+      final r = constituencies.where((x) => x.id == d.constituencyId).firstOrNull;
+      if (r != null && mounted) setState(() => _constituency = r);
+    });
+    ref.read(pollingStationsProvider).whenData((stations) {
+      final r = stations.where((x) => x.id == d.pollingStationId).firstOrNull;
+      if (r != null && mounted) setState(() => _pollingStation = r);
+    });
   }
 
   @override
@@ -578,6 +739,7 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
     final regionsAsync = ref.watch(regionsProvider);
     final districtsAsync = ref.watch(districtsProvider);
     final constituenciesAsync = ref.watch(constituenciesProvider);
+    final electoralAreasAsync = ref.watch(electoralAreasProvider);
     final pollingStationsAsync = ref.watch(pollingStationsProvider);
 
     return Form(
@@ -603,11 +765,13 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
                 _region = r;
                 _district = null;
                 _constituency = null;
+                _electoralArea = null;
                 _pollingStation = null;
               });
               ref.read(selectedRegionIdProvider.notifier).state = r?.id;
               ref.read(selectedDistrictIdProvider.notifier).state = null;
               ref.read(selectedConstituencyIdProvider.notifier).state = null;
+              ref.read(selectedElectoralAreaProvider.notifier).state = null;
             },
             validator: () => _region == null ? 'Please select a region' : null,
           ),
@@ -626,10 +790,12 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
               setState(() {
                 _district = d;
                 _constituency = null;
+                _electoralArea = null;
                 _pollingStation = null;
               });
               ref.read(selectedDistrictIdProvider.notifier).state = d?.id;
               ref.read(selectedConstituencyIdProvider.notifier).state = null;
+              ref.read(selectedElectoralAreaProvider.notifier).state = null;
             },
             validator: () => _district == null && _region != null ? 'Please select a district' : null,
           ),
@@ -647,13 +813,35 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
             onChanged: (c) {
               setState(() {
                 _constituency = c;
+                _electoralArea = null;
                 _pollingStation = null;
               });
               ref.read(selectedConstituencyIdProvider.notifier).state = c?.id;
+              ref.read(selectedElectoralAreaProvider.notifier).state = null;
             },
             validator: () => _constituency == null && _district != null ? 'Please select a constituency' : null,
           ),
           const SizedBox(height: 16),
+
+          // Electoral Area — optional filter, only shown when constituency is chosen
+          if (_constituency != null) ...[
+            _AsyncDropdown<String>(
+              label: 'Electoral Area',
+              icon: PhosphorIconsRegular.mapPin,
+              hint: 'Filter by electoral area (optional)',
+              asyncData: electoralAreasAsync,
+              selected: _electoralArea,
+              itemLabel: (ea) => ea,
+              onChanged: (ea) {
+                setState(() {
+                  _electoralArea = ea;
+                  _pollingStation = null;
+                });
+                ref.read(selectedElectoralAreaProvider.notifier).state = ea;
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Polling Station
           _AsyncDropdown<PollingStation>(
@@ -1299,16 +1487,21 @@ class _AsyncDropdown<T> extends ConsumerWidget {
         Text(label, style: AppTextStyles.label()),
         const SizedBox(height: 6),
         asyncData.when(
-          data: (items) => _DropdownField<T>(
-            hint: hint,
-            value: selected,
-            icon: icon,
-            items: items,
-            itemLabel: itemLabel,
-            onChanged: onChanged,
-            enabled: enabled && items.isNotEmpty,
-            validator: validator != null ? (_) => validator!() : null,
-          ),
+          data: (items) {
+            // Guard: if selected is not in the loaded list, treat as null to
+            // prevent DropdownButtonFormField assertion errors.
+            final effectiveSelected = (selected != null && items.contains(selected)) ? selected : null;
+            return _DropdownField<T>(
+              hint: hint,
+              value: effectiveSelected,
+              icon: icon,
+              items: items,
+              itemLabel: itemLabel,
+              onChanged: onChanged,
+              enabled: enabled && items.isNotEmpty,
+              validator: validator != null ? (_) => validator!() : null,
+            );
+          },
           loading: () => _loadingField(hint),
           error: (_, __) => _loadingField('Error loading options'),
         ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/operator_repository.dart';
+import '../../../members/data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
@@ -26,12 +27,69 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
   String _selectedRole = 'personnel';
   bool _loading = false;
 
+  // Jurisdiction — optional; null means national/unrestricted scope
+  final _locationRepo = LocationRepository();
+  List<Region> _regions = [];
+  List<District> _districts = [];
+  List<Constituency> _constituencies = [];
+  Region? _region;
+  District? _district;
+  Constituency? _constituency;
+  bool _loadingRegions = true;
+  bool _loadingDistricts = false;
+  bool _loadingConstituencies = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadingRegions = true;
+    _locationRepo.fetchRegions().then((regions) {
+      if (mounted) setState(() { _regions = regions; _loadingRegions = false; });
+    }).catchError((_) {
+      if (mounted) setState(() => _loadingRegions = false);
+    });
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _onRegionChanged(Region? r) async {
+    setState(() {
+      _region = r;
+      _district = null;
+      _constituency = null;
+      _districts = [];
+      _constituencies = [];
+    });
+    if (r == null) return;
+    setState(() => _loadingDistricts = true);
+    try {
+      final d = await _locationRepo.fetchDistricts(r.id);
+      if (mounted) setState(() { _districts = d; _loadingDistricts = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingDistricts = false);
+    }
+  }
+
+  Future<void> _onDistrictChanged(District? d) async {
+    setState(() {
+      _district = d;
+      _constituency = null;
+      _constituencies = [];
+    });
+    if (d == null) return;
+    setState(() => _loadingConstituencies = true);
+    try {
+      final c = await _locationRepo.fetchConstituencies(d.id);
+      if (mounted) setState(() { _constituencies = c; _loadingConstituencies = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingConstituencies = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -44,13 +102,16 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         email: _emailCtrl.text.trim().toLowerCase(),
         role: _selectedRole,
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        assignedRegionId: _region?.id,
+        assignedDistrictId: _district?.id,
+        assignedConstituencyId: _constituency?.id,
       );
       HapticFeedback.mediumImpact();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
           content: Text(
-            'Operator account created. A temporary password will be sent to ${_emailCtrl.text.trim()}.',
+            'Account created. A password reset email will be sent to ${_emailCtrl.text.trim()}.',
             style: AppTextStyles.body(color: AppColors.surface),
           ),
           duration: const Duration(seconds: 5),
@@ -186,6 +247,59 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                 color: AppColors.umbrellaRed,
                 onChanged: (v) => setState(() => _selectedRole = v!),
               ),
+              const SizedBox(height: 28),
+
+              // Jurisdiction section
+              Text('Jurisdiction (optional)', style: AppTextStyles.h3()),
+              const SizedBox(height: 8),
+              Text(
+                'Scope this operator to a specific area. Leave blank for national/unrestricted access.',
+                style: AppTextStyles.small(),
+              ),
+              const SizedBox(height: 14),
+
+              _JurisdictionDropdown<Region>(
+                label: 'Region',
+                icon: PhosphorIconsRegular.mapTrifold,
+                hint: _loadingRegions ? 'Loading regions…' : 'Select region (optional)',
+                items: _regions,
+                selected: _region,
+                enabled: !_loadingRegions && _regions.isNotEmpty,
+                itemLabel: (r) => r.name,
+                onChanged: _onRegionChanged,
+              ),
+              const SizedBox(height: 12),
+
+              _JurisdictionDropdown<District>(
+                label: 'District',
+                icon: PhosphorIconsRegular.buildings,
+                hint: _region == null
+                    ? 'Select region first'
+                    : _loadingDistricts
+                        ? 'Loading districts…'
+                        : 'Select district (optional)',
+                items: _districts,
+                selected: _district,
+                enabled: _region != null && !_loadingDistricts && _districts.isNotEmpty,
+                itemLabel: (d) => d.name,
+                onChanged: _onDistrictChanged,
+              ),
+              const SizedBox(height: 12),
+
+              _JurisdictionDropdown<Constituency>(
+                label: 'Constituency',
+                icon: PhosphorIconsRegular.mapPin,
+                hint: _district == null
+                    ? 'Select district first'
+                    : _loadingConstituencies
+                        ? 'Loading constituencies…'
+                        : 'Select constituency (optional)',
+                items: _constituencies,
+                selected: _constituency,
+                enabled: _district != null && !_loadingConstituencies && _constituencies.isNotEmpty,
+                itemLabel: (c) => c.name,
+                onChanged: (c) => setState(() => _constituency = c),
+              ),
               const SizedBox(height: 32),
 
               NdcButton(
@@ -197,6 +311,58 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _JurisdictionDropdown<T> extends StatelessWidget {
+  final String label;
+  final PhosphorIconData icon;
+  final String hint;
+  final List<T> items;
+  final T? selected;
+  final bool enabled;
+  final String Function(T) itemLabel;
+  final void Function(T?) onChanged;
+
+  const _JurisdictionDropdown({
+    required this.label,
+    required this.icon,
+    required this.hint,
+    required this.items,
+    required this.selected,
+    required this.enabled,
+    required this.itemLabel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.label()),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<T>(
+          value: (selected != null && items.contains(selected)) ? selected : null,
+          hint: Text(hint, style: AppTextStyles.bodyLarge(color: AppColors.textMuted)),
+          decoration: InputDecoration(
+            prefixIcon: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: PhosphorIcon(icon, size: 20, color: AppColors.textMuted),
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 48),
+          ),
+          items: enabled
+              ? items.map((item) => DropdownMenuItem<T>(
+                    value: item,
+                    child: Text(itemLabel(item), style: AppTextStyles.bodyLarge()),
+                  )).toList()
+              : [],
+          onChanged: enabled ? onChanged : null,
+          isExpanded: true,
+        ),
+      ],
     );
   }
 }

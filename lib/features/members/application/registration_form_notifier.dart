@@ -267,6 +267,25 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
     state = state.copyWith(photoStoragePath: path);
   }
 
+  // Clears personal + membership + photo; keeps all location fields.
+  // Used by "Save & Add Another" so operators stay on the same station.
+  void resetPersonalOnly() {
+    state = RegistrationFormData(
+      regionId: state.regionId,
+      regionName: state.regionName,
+      districtId: state.districtId,
+      districtName: state.districtName,
+      constituencyId: state.constituencyId,
+      constituencyName: state.constituencyName,
+      pollingStationId: state.pollingStationId,
+      pollingStationName: state.pollingStationName,
+      ward: state.ward,
+      branch: state.branch,
+      residentialAddress: state.residentialAddress,
+      residenceTown: state.residenceTown,
+    );
+  }
+
   void reset() {
     state = const RegistrationFormData();
   }

@@ -12,6 +12,7 @@ import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/lottie_loader.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/status_pill.dart';
@@ -100,10 +101,13 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       if (mounted) {
         ref.invalidate(memberDetailProvider(widget.member.id));
         ref.invalidate(reviewQueueProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.canopyGreen,
-            content: Text('Member approved.', style: AppTextStyles.body(color: AppColors.surface)),
+        await showDialog<void>(
+          context: context,
+          barrierColor: Colors.black26,
+          barrierDismissible: false,
+          builder: (_) => _ApprovalSuccessOverlay(
+            message: '${widget.member.fullName} approved.',
+            onDone: () => Navigator.of(context).pop(),
           ),
         );
       }
@@ -552,6 +556,42 @@ class _LoadingSkeleton extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
         ],
       ],
+    );
+  }
+}
+
+// ── Approval success overlay ──────────────────────────────────────────────────
+
+class _ApprovalSuccessOverlay extends StatelessWidget {
+  final String message;
+  final VoidCallback onDone;
+  const _ApprovalSuccessOverlay(
+      {required this.message, required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadii.borderLg,
+            boxShadow: AppShadows.e2,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LottieSuccess(size: 72, onComplete: onDone),
+              const SizedBox(height: 12),
+              Text(message,
+                  style: AppTextStyles.body(), textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

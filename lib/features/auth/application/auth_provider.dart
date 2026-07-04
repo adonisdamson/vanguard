@@ -26,7 +26,9 @@ class AuthService {
     await _supabase.auth.signInWithPassword(email: email, password: password);
   }
 
-  Future<void> signUp({
+  // Returns true when a live session exists (email confirmation OFF),
+  // false when the user must confirm their email first.
+  Future<bool> signUp({
     required String fullName,
     required String email,
     required String password,
@@ -41,7 +43,9 @@ class AuthService {
       },
     );
     if (res.user == null) throw Exception('Sign-up failed. Please try again.');
-    // handle_new_user trigger auto-creates the app_users row (pending, roleless)
+    // handle_new_user trigger auto-creates the app_users row (pending, roleless).
+    // Do NOT insert into app_users here — the trigger owns that row creation.
+    return res.session != null;
   }
 
   Future<void> signInWithGoogle() async {

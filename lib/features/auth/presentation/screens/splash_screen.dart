@@ -7,6 +7,7 @@ import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/lottie_loader.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -147,7 +148,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ),
                 const SizedBox(height: 28),
 
-                // Wordmark
+                // Wordmark + Lottie loader
                 SlideTransition(
                   position: _wordmarkSlide,
                   child: FadeTransition(
@@ -165,6 +166,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           style: AppTextStyles.body(
                             color: AppColors.surface.withValues(alpha: 0.70),
                           ),
+                        ),
+                        const SizedBox(height: 28),
+                        // Lottie spinner recolored to surface via ColorFilter
+                        ColorFiltered(
+                          colorFilter: const ColorFilter.matrix([
+                            // Swap canopyGreen to white (surface) for splash bg
+                            0, 0, 0, 0, 1,
+                            0, 0, 0, 0, 1,
+                            0, 0, 0, 0, 1,
+                            0, 0, 0, 1, 0,
+                          ]),
+                          child: const LottieLoader(size: 40),
                         ),
                       ],
                     ),

@@ -20,21 +20,44 @@ class SignUpScreen extends ConsumerStatefulWidget {
 }
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl     = TextEditingController();
-  final _emailCtrl    = TextEditingController();
-  final _passwordCtrl = TextEditingController();
-  final _confirmCtrl  = TextEditingController();
+  final _formKey     = GlobalKey<FormState>();
+  final _nameCtrl    = TextEditingController();
+  final _emailCtrl   = TextEditingController();
+  final _passCtrl    = TextEditingController();
+  final _confirmCtrl = TextEditingController();
 
   bool _loading = false;
   String? _error;
   String? _requestedRole;
 
+  // Inline live-validation state
+  bool _passLengthOk = false;
+  bool _passMatch    = false;
+
+  // After success: email confirmation needed?
+  bool _awaitingEmailConfirm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _passCtrl.addListener(_onPassChanged);
+    _confirmCtrl.addListener(_onPassChanged);
+  }
+
+  void _onPassChanged() {
+    final pw = _passCtrl.text;
+    final cf = _confirmCtrl.text;
+    setState(() {
+      _passLengthOk = pw.length >= 8;
+      _passMatch    = pw.isNotEmpty && pw == cf;
+    });
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
-    _passwordCtrl.dispose();
+    _passCtrl.dispose();
     _confirmCtrl.dispose();
     super.dispose();
   }
@@ -43,33 +66,51 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
     try {
-      await ref.read(authServiceProvider).signUp(
+      final hasSession = await ref.read(authServiceProvider).signUp(
         fullName:      _nameCtrl.text.trim(),
         email:         _emailCtrl.text.trim(),
-        password:      _passwordCtrl.text,
+        password:      _passCtrl.text,
         requestedRole: _requestedRole,
       );
-      if (mounted) context.go('/pending-approval');
-    } catch (e) {
-      setState(() => _error = _humanize(e.toString()));
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      if (hasSession) {
+        context.go('/pending-approval');
+      } else {
+        // Email confirmation is required — show inline confirmation state
+        setState(() { _awaitingEmailConfirm = true; _loading = false; });
+      }
+    } catch (e, st) {
+      debugPrint('[SignUp] error: $e\n$st');
+      if (mounted) {
+        setState(() { _error = _humanize(e); _loading = false; });
+      }
     }
   }
 
-  String _humanize(String raw) {
-    if (raw.contains('already registered') || raw.contains('already been registered')) {
-      return 'An account with this email already exists. Try signing in.';
+  String _humanize(Object e) {
+    final s = e.toString();
+    if (s.contains('user_already_exists') ||
+        s.contains('User already registered') ||
+        s.contains('already been registered')) {
+      return 'This email already has an account. Sign in instead.';
     }
-    if (raw.contains('Password should be')) return 'Password must be at least 6 characters.';
-    if (raw.contains('network') || raw.contains('SocketException')) {
-      return 'No internet connection. Please check your network.';
+    if (s.contains('weak_password') || s.contains('Password should be')) {
+      return 'Use at least 8 characters for your password.';
     }
-    return 'Something went wrong. Please try again.';
+    if (s.contains('invalid') && s.contains('email')) {
+      return 'Enter a valid email address.';
+    }
+    if (s.contains('SocketException') || s.contains('network') ||
+        s.contains('timeout')) {
+      return 'You appear to be offline. Check your connection and try again.';
+    }
+    return 'Couldn\'t create your account: ${e.toString().split(']').last.trim()}';
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_awaitingEmailConfirm) return _EmailSentScreen(email: _emailCtrl.text.trim());
+
     return Scaffold(
       backgroundColor: AppColors.paper,
       body: SafeArea(
@@ -77,85 +118,42 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const CanopyArc(height: 5),
-
-              // Header
-              Container(
-                color: AppColors.deepCanopy,
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 36),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 48, height: 48,
-                          decoration: const BoxDecoration(
-                            color: AppColors.surface,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(9),
-                            child: Image.asset(Assets.ndcUmbrella),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'VANGUARD',
-                              style: AppTextStyles.h1(color: AppColors.surface)
-                                  .copyWith(letterSpacing: 3),
-                            ),
-                            Text(
-                              'Membership Registry',
-                              style: AppTextStyles.small(
-                                color: AppColors.surface.withValues(alpha: 0.65),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                    Text(
-                      'Request access.',
-                      style: AppTextStyles.displayLarge(color: AppColors.surface),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Create your account. An administrator will activate it and assign your role.',
-                      style: AppTextStyles.bodyLarge(
-                        color: AppColors.surface.withValues(alpha: 0.75),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Form
+              _Header(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.screenH, AppSpacing.xl,
+                    AppSpacing.screenH, AppSpacing.xxl),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (_error != null) ...[
-                        _ErrorBanner(message: _error!),
-                        const SizedBox(height: 20),
+                        _ErrorBanner(
+                          message: _error!,
+                          // If already-registered, show Sign in link
+                          showSignInLink:
+                              _error!.contains('already has an account'),
+                          onSignIn: () => context.go('/login'),
+                          onDismiss: () =>
+                              setState(() => _error = null),
+                        ),
+                        const SizedBox(height: AppSpacing.base),
                       ],
 
                       NdcTextField(
-                        label: 'Full Name *',
+                        label: 'Full name',
                         hint: 'Kwame Mensah',
                         icon: PhosphorIconsRegular.person,
                         controller: _nameCtrl,
                         textInputAction: TextInputAction.next,
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Full name is required';
-                          if (v.trim().split(' ').length < 2) return 'Enter your first and last name';
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Full name is required';
+                          }
+                          if (v.trim().split(' ').length < 2) {
+                            return 'Enter first and last name';
+                          }
                           return null;
                         },
                         onChanged: (_) {},
@@ -163,15 +161,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       const SizedBox(height: AppSpacing.base),
 
                       NdcTextField(
-                        label: 'Email Address *',
+                        label: 'Email address',
                         hint: 'you@ndc.org.gh',
                         icon: PhosphorIconsRegular.envelope,
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Email is required';
-                          if (!v.contains('@')) return 'Enter a valid email address';
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Email is required';
+                          }
+                          if (!v.contains('@')) {
+                            return 'Enter a valid email address';
+                          }
                           return null;
                         },
                         onChanged: (_) {},
@@ -179,15 +181,19 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       const SizedBox(height: AppSpacing.base),
 
                       NdcTextField(
-                        label: 'Password *',
+                        label: 'Password',
                         hint: '••••••••',
                         icon: PhosphorIconsRegular.lock,
-                        controller: _passwordCtrl,
+                        controller: _passCtrl,
                         obscureText: true,
                         textInputAction: TextInputAction.next,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Password is required';
-                          if (v.length < 6) return 'Password must be at least 6 characters';
+                          if (v == null || v.isEmpty) {
+                            return 'Password is required';
+                          }
+                          if (v.length < 8) {
+                            return 'Use at least 8 characters';
+                          }
                           return null;
                         },
                         onChanged: (_) {},
@@ -195,7 +201,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       const SizedBox(height: AppSpacing.base),
 
                       NdcTextField(
-                        label: 'Confirm Password *',
+                        label: 'Confirm password',
                         hint: '••••••••',
                         icon: PhosphorIconsRegular.lockKey,
                         controller: _confirmCtrl,
@@ -203,42 +209,51 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _submit(),
                         validator: (v) {
-                          if (v != _passwordCtrl.text) return 'Passwords do not match';
+                          if (v != _passCtrl.text) {
+                            return 'Passwords don\'t match';
+                          }
                           return null;
                         },
                         onChanged: (_) {},
                       ),
+
+                      // Live password feedback
+                      const SizedBox(height: AppSpacing.sm),
+                      _PassFeedback(
+                          lengthOk: _passLengthOk, matchOk: _passMatch),
+
                       const SizedBox(height: AppSpacing.lg),
 
-                      // Optional role hint
-                      _RoleHintPicker(
+                      _RolePicker(
                         value: _requestedRole,
-                        onChanged: (v) => setState(() => _requestedRole = v),
+                        onChanged: (v) =>
+                            setState(() => _requestedRole = v),
                       ),
+
                       const SizedBox(height: AppSpacing.lg),
 
                       NdcButton(
-                        label: 'Request Access',
+                        label: 'Request access',
                         onPressed: _submit,
                         loading: _loading,
                         icon: const PhosphorIcon(
-                          PhosphorIconsFill.paperPlaneRight,
-                          size: 18,
-                          color: AppColors.surface,
-                        ),
+                            PhosphorIconsFill.paperPlaneRight,
+                            size: 18,
+                            color: AppColors.surface),
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
-                      // Back to login
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text('Already have access? ', style: AppTextStyles.small()),
+                          Text('Already have access? ',
+                              style: AppTextStyles.small()),
                           GestureDetector(
                             onTap: () => context.pop(),
                             child: Text(
                               'Sign in',
-                              style: AppTextStyles.small(color: AppColors.canopyGreen)
+                              style: AppTextStyles.small(
+                                      color: AppColors.canopyGreen)
                                   .copyWith(fontWeight: FontWeight.w600),
                             ),
                           ),
@@ -256,16 +271,131 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   }
 }
 
-// ── Role hint picker ──────────────────────────────────────────────────────────
+// ── Compact header (same pattern as login) ────────────────────────────────────
 
-class _RoleHintPicker extends StatelessWidget {
+class _Header extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const CanopyArc(height: 5),
+        Container(
+          color: AppColors.deepCanopy,
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenH, AppSpacing.xl,
+              AppSpacing.screenH, AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Image.asset(Assets.ndcUmbrella),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('VANGUARD',
+                          style: AppTextStyles.h2(color: AppColors.surface)
+                              .copyWith(letterSpacing: 3)),
+                      Text('Membership Registry',
+                          style: AppTextStyles.caption(
+                              color: AppColors.surface
+                                  .withValues(alpha: 0.65))),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Request access.',
+                  style: AppTextStyles.h1(color: AppColors.surface)),
+              const SizedBox(height: 4),
+              Text(
+                'Create your account — an administrator will activate it and assign your role.',
+                style: AppTextStyles.body(
+                    color: AppColors.surface.withValues(alpha: 0.72)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Live password feedback pills ──────────────────────────────────────────────
+
+class _PassFeedback extends StatelessWidget {
+  final bool lengthOk;
+  final bool matchOk;
+  const _PassFeedback({required this.lengthOk, required this.matchOk});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _Pill('8+ characters', lengthOk),
+        const SizedBox(width: 8),
+        _Pill('Passwords match', matchOk),
+      ],
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final String label;
+  final bool ok;
+  const _Pill(this.label, this.ok);
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: ok ? AppColors.greenTint : AppColors.fillMuted,
+        borderRadius: AppRadii.borderPill,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PhosphorIcon(
+            ok ? PhosphorIconsFill.checkCircle : PhosphorIconsRegular.circle,
+            size: 12,
+            color: ok ? AppColors.canopyGreen : AppColors.mist,
+          ),
+          const SizedBox(width: 4),
+          Text(label,
+              style: AppTextStyles.caption(
+                  color: ok ? AppColors.canopyGreen : AppColors.mist)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Compact role picker (56dp rows) ──────────────────────────────────────────
+
+class _RolePicker extends StatelessWidget {
   final String? value;
   final void Function(String?) onChanged;
-  const _RoleHintPicker({required this.value, required this.onChanged});
+  const _RolePicker({required this.value, required this.onChanged});
 
-  static const _options = [
-    ('personnel',       'Personnel',         'Register and manage members'),
-    ('higher_authority','Coordinator',       'Review registrations & view reports'),
+  static const _opts = [
+    ('personnel',        PhosphorIconsRegular.pencilSimple,
+     'Personnel',       'Register and manage members'),
+    ('higher_authority', PhosphorIconsRegular.chartBar,
+     'Coordinator',     'Review registrations & view reports'),
   ];
 
   @override
@@ -273,57 +403,71 @@ class _RoleHintPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Intended role (optional)', style: AppTextStyles.label()),
-        const SizedBox(height: 4),
-        Text(
-          'Helps your admin assign the right role quickly.',
-          style: AppTextStyles.small(),
-        ),
-        const SizedBox(height: 10),
-        ..._options.map((opt) {
-          final (roleKey, label, desc) = opt;
-          final selected = value == roleKey;
+        Text('Intended role', style: AppTextStyles.label()),
+        const SizedBox(height: 2),
+        Text('Optional — helps your admin assign the right role quickly.',
+            style: AppTextStyles.small()),
+        const SizedBox(height: AppSpacing.sm),
+        ..._opts.map((o) {
+          final (key, icon, label, desc) = o;
+          final sel = value == key;
           return GestureDetector(
-            onTap: () => onChanged(selected ? null : roleKey),
+            onTap: () => onChanged(sel ? null : key),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.base,
-                vertical: AppSpacing.sm,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: selected ? AppColors.greenTint : AppColors.surface,
+                color: sel ? AppColors.greenTint : AppColors.surface,
                 borderRadius: AppRadii.borderMd,
                 border: Border.all(
-                  color: selected ? AppColors.canopyGreen : AppColors.hairline,
-                  width: selected ? 1.5 : 1,
-                ),
+                    color: sel ? AppColors.canopyGreen : AppColors.hairline,
+                    width: sel ? 1.5 : 1),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 20, height: 20,
+                    width: 34, height: 34,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: selected ? AppColors.canopyGreen : AppColors.fillMuted,
-                      border: Border.all(
-                        color: selected ? AppColors.canopyGreen : AppColors.hairline,
-                      ),
+                      color: sel
+                          ? AppColors.canopyGreen
+                          : AppColors.fillMuted,
+                      borderRadius: AppRadii.borderSm,
                     ),
-                    child: selected
-                        ? const Icon(Icons.check, size: 12, color: AppColors.surface)
-                        : null,
+                    child: Center(
+                      child: PhosphorIcon(icon,
+                          size: 16,
+                          color: sel
+                              ? AppColors.surface
+                              : AppColors.mist),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(label, style: AppTextStyles.title()),
+                        Text(label, style: AppTextStyles.bodyMedium()),
                         Text(desc, style: AppTextStyles.small()),
                       ],
                     ),
+                  ),
+                  Container(
+                    width: 18, height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: sel
+                          ? AppColors.canopyGreen
+                          : AppColors.fillMuted,
+                      border: Border.all(
+                          color: sel
+                              ? AppColors.canopyGreen
+                              : AppColors.hairline),
+                    ),
+                    child: sel
+                        ? const Icon(Icons.check,
+                            size: 11, color: AppColors.surface)
+                        : null,
                   ),
                 ],
               ),
@@ -335,33 +479,129 @@ class _RoleHintPicker extends StatelessWidget {
   }
 }
 
-// ── Error banner ──────────────────────────────────────────────────────────────
+// ── Error banner (with optional "Sign in" link) ───────────────────────────────
 
 class _ErrorBanner extends StatelessWidget {
   final String message;
-  const _ErrorBanner({required this.message});
+  final bool showSignInLink;
+  final VoidCallback onSignIn;
+  final VoidCallback onDismiss;
+
+  const _ErrorBanner({
+    required this.message,
+    required this.showSignInLink,
+    required this.onSignIn,
+    required this.onDismiss,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
         color: AppColors.redTint,
         borderRadius: AppRadii.borderSm,
-        border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: AppColors.umbrellaRed.withValues(alpha: 0.3)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const PhosphorIcon(
-            PhosphorIconsFill.warningCircle,
-            size: 18,
-            color: AppColors.umbrellaRed,
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: PhosphorIcon(PhosphorIconsFill.warningCircle,
+                size: 16, color: AppColors.umbrellaRed),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(message, style: AppTextStyles.body(color: AppColors.umbrellaRed)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message,
+                    style: AppTextStyles.small(
+                        color: AppColors.umbrellaRed)),
+                if (showSignInLink) ...[
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: onSignIn,
+                    child: Text('Sign in instead →',
+                        style: AppTextStyles.small(
+                                color: AppColors.umbrellaRed)
+                            .copyWith(
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onDismiss,
+            child: const PhosphorIcon(PhosphorIconsRegular.x,
+                size: 16, color: AppColors.umbrellaRed),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Email confirmation sent screen ────────────────────────────────────────────
+
+class _EmailSentScreen extends StatelessWidget {
+  final String email;
+  const _EmailSentScreen({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.paper,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.greenTint,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: AppColors.canopyGreen.withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: PhosphorIcon(
+                      PhosphorIconsFill.envelopeSimple,
+                      size: 36,
+                      color: AppColors.canopyGreen),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              Text('Request sent.',
+                  style: AppTextStyles.h1(),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'We\'ve sent a confirmation to $email.\n\n'
+                'An administrator will review your request and assign your role. '
+                'You\'ll receive an email once you\'re approved.',
+                style: AppTextStyles.body(color: AppColors.mist),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.h1),
+              NdcButton(
+                label: 'Back to sign in',
+                variant: NdcButtonVariant.secondary,
+                onPressed: () => context.go('/login'),
+                icon: const PhosphorIcon(
+                    PhosphorIconsRegular.arrowLeft,
+                    size: 16,
+                    color: AppColors.canopyGreen),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

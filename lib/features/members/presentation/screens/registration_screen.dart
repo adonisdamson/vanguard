@@ -17,8 +17,10 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
+import '../../../../shared/widgets/lottie_loader.dart';
 
 const _stepTitles = [
   'Personal Info',
@@ -202,14 +204,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         _submitError = null;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.canopyGreen,
-          content: Text(
-            'Saved — member $_sessionCount of this session. Location kept.',
-            style: AppTextStyles.body(color: AppColors.surface),
-          ),
-          duration: const Duration(seconds: 3),
-        ));
+        _showSaveSuccess(
+            'Saved — member $_sessionCount of this session. Location kept.');
       }
     } else {
       ref.read(registrationFormProvider.notifier).reset();
@@ -252,6 +248,15 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       ),
     );
     context.go('/home');
+  }
+
+  void _showSaveSuccess(String message) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black26,
+      barrierDismissible: false,
+      builder: (_) => _SaveSuccessOverlay(message: message),
+    );
   }
 
   @override
@@ -1581,6 +1586,46 @@ class _GenderPill extends StatelessWidget {
           label,
           style: AppTextStyles.label(
             color: selected ? AppColors.surface : AppColors.mist,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Save success overlay (Lottie checkmark → auto-dismiss) ───────────────────
+
+class _SaveSuccessOverlay extends StatelessWidget {
+  final String message;
+  const _SaveSuccessOverlay({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 40),
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadii.borderLg,
+            boxShadow: AppShadows.e2,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              LottieSuccess(
+                size: 72,
+                onComplete: () {
+                  if (context.mounted) Navigator.of(context).pop();
+                },
+              ),
+              const SizedBox(height: 12),
+              Text(message,
+                  style: AppTextStyles.body(),
+                  textAlign: TextAlign.center),
+            ],
           ),
         ),
       ),

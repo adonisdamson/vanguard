@@ -7,11 +7,14 @@ import '../../application/review_providers.dart';
 import '../../application/member_providers.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
-import '../widgets/member_status_badge.dart';
+import '../../../../shared/widgets/status_pill.dart';
 
 class MemberDetailScreen extends ConsumerWidget {
   final String memberId;
@@ -23,18 +26,18 @@ class MemberDetailScreen extends ConsumerWidget {
     final auditAsync = ref.watch(auditHistoryProvider(memberId));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcGreen,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Member Details', style: AppTextStyles.appBarTitle()),
+        title: Text('Member details', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.ndcWhite, size: 20),
+            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.surface, size: 20),
             onPressed: () {
               ref.invalidate(memberDetailProvider(memberId));
               ref.invalidate(auditHistoryProvider(memberId));
@@ -43,7 +46,7 @@ class MemberDetailScreen extends ConsumerWidget {
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       body: detailAsync.when(
@@ -86,7 +89,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       'Approve ${widget.member.fullName}?',
       'This will mark the member as active in the registry.',
       'Approve',
-      AppColors.ndcGreen,
+      AppColors.canopyGreen,
     );
     if (!confirmed || !mounted) return;
 
@@ -99,8 +102,8 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
         ref.invalidate(reviewQueueProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.ndcGreen,
-            content: Text('Member approved.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+            backgroundColor: AppColors.canopyGreen,
+            content: Text('Member approved.', style: AppTextStyles.body(color: AppColors.surface)),
           ),
         );
       }
@@ -144,7 +147,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                 if (ctrl.text.trim().isEmpty) return;
                 Navigator.pop(context, ctrl.text.trim());
               },
-              child: Text('Reject', style: TextStyle(color: AppColors.ndcRed)),
+              child: Text('Reject', style: TextStyle(color: AppColors.umbrellaRed)),
             ),
           ],
         ),
@@ -161,8 +164,8 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
         ref.invalidate(reviewQueueProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.ndcRed,
-            content: Text('Member rejected.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+            backgroundColor: AppColors.umbrellaRed,
+            content: Text('Member rejected.', style: AppTextStyles.body(color: AppColors.surface)),
           ),
         );
       }
@@ -197,11 +200,11 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
   Widget build(BuildContext context) {
     final member = widget.member;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.screenH, AppSpacing.base, AppSpacing.screenH, AppSpacing.h1),
       children: [
         // Header card: photo + name + status
         _HeaderCard(member: member),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.base),
 
         // Approve/Reject actions (only if pending)
         if (member.status == 'pending') ...[
@@ -211,11 +214,11 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                 child: NdcButton(
                   label: 'Approve',
                   loading: _submitting,
-                  icon: const PhosphorIcon(PhosphorIconsFill.checkCircle, size: 18, color: AppColors.ndcWhite),
+                  icon: const PhosphorIcon(PhosphorIconsFill.checkCircle, size: 18, color: AppColors.surface),
                   onPressed: _approve,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: NdcButton(
                   label: 'Reject',
@@ -226,28 +229,28 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.base),
         ],
 
         // Rejection reason (if rejected)
         if (member.status == 'rejected' && member.rejectionReason != null) ...[
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpacing.base),
             decoration: BoxDecoration(
-              color: AppColors.redLight,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.ndcRed.withValues(alpha: 0.2)),
+              color: AppColors.redTint,
+              borderRadius: AppRadii.borderMd,
+              border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.2)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const PhosphorIcon(PhosphorIconsFill.xCircle, size: 18, color: AppColors.ndcRed),
-                const SizedBox(width: 10),
+                const PhosphorIcon(PhosphorIconsRegular.xCircle, size: 18, color: AppColors.umbrellaRed),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rejection Reason', style: AppTextStyles.bodyMedium(color: AppColors.ndcRed)),
+                      Text('Rejection reason', style: AppTextStyles.label(color: AppColors.umbrellaRed)),
                       const SizedBox(height: 4),
                       Text(member.rejectionReason!, style: AppTextStyles.body()),
                     ],
@@ -256,53 +259,57 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.base),
         ],
 
         // Personal info
         _Section(
-          title: 'Personal Information',
-          icon: PhosphorIconsFill.person,
+          title: 'Personal information',
+          icon: PhosphorIconsRegular.person,
           rows: [
-            _Row('Full Name', member.fullName),
-            if (member.memberNumber != null) _Row('Member No.', member.memberNumber!),
-            if (member.dateOfBirth != null) _Row('Date of Birth', member.dateOfBirth!),
+            _Row('Full name', member.fullName),
+            if (member.memberNumber != null) _Row('Member no.', member.memberNumber!),
+            if (member.dateOfBirth != null) _Row('Date of birth', member.dateOfBirth!),
             if (member.gender != null) _Row('Gender', member.gender!),
             if (member.phone != null) _Row('Phone', member.phone!),
             if (member.email != null) _Row('Email', member.email!),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
 
         // Location
         _Section(
           title: 'Location',
-          icon: PhosphorIconsFill.mapPin,
+          icon: PhosphorIconsRegular.mapPin,
           rows: [
             if (member.regionName != null) _Row('Region', member.regionName!),
             if (member.districtName != null) _Row('District', member.districtName!),
             if (member.constituencyName != null) _Row('Constituency', member.constituencyName!),
-            if (member.pollingStationName != null) _Row('Polling Station', member.pollingStationName!),
+            if (member.pollingStationName != null) _Row('Polling station', member.pollingStationName!),
             if (member.ward != null) _Row('Ward', member.ward!),
             if (member.branch != null) _Row('Branch', member.branch!),
+            if (member.residentialAddress != null) _Row('Address', member.residentialAddress!),
+            if (member.residenceTown != null) _Row('Town', member.residenceTown!),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
 
         // Membership
         _Section(
           title: 'Membership',
-          icon: PhosphorIconsFill.identificationCard,
+          icon: PhosphorIconsRegular.identificationCard,
           rows: [
             if (member.membershipType != null) _Row('Type', member.membershipType!.replaceAll('_', ' ')),
-            if (member.preferredRole != null) _Row('Preferred Role', member.preferredRole!),
+            if (member.preferredRole != null) _Row('Preferred role', member.preferredRole!),
+            if (member.partyPosition != null) _Row('Party position', member.partyPosition!),
+            if (member.otherParty != null) _Row('Other party', member.otherParty!),
             if (member.profession != null) _Row('Profession', member.profession!),
             if (member.employmentStatus != null) _Row('Employment', member.employmentStatus!),
             if (member.highestAcademicQualification != null) _Row('Qualification', member.highestAcademicQualification!),
             if (member.skills.isNotEmpty) _Row('Skills', member.skills.join(', ')),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
 
         // Audit history
         _AuditSection(auditAsync: widget.auditAsync),
@@ -318,25 +325,26 @@ class _HeaderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Row(
         children: [
           _PhotoAvatar(photoPath: member.photoPath, ref: ref),
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.base),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(member.fullName, style: AppTextStyles.h2()),
+                Text(member.fullName, style: AppTextStyles.h2(), maxLines: 2, overflow: TextOverflow.ellipsis),
                 if (member.memberNumber != null)
                   Text(member.memberNumber!, style: AppTextStyles.memberNumber()),
                 const SizedBox(height: 6),
-                MemberStatusBadge(status: member.status),
+                StatusPill.fromString(member.status),
               ],
             ),
           ),
@@ -360,14 +368,14 @@ class _PhotoAvatar extends StatelessWidget {
     return urlAsync.when(
       data: (url) => url != null
           ? ClipRRect(
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: AppRadii.borderSm,
               child: Image.network(url, width: 80, height: 80, fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => _placeholder()),
             )
           : _placeholder(),
       loading: () => Container(
         width: 80, height: 80,
-        decoration: const BoxDecoration(color: AppColors.surfaceVariant, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: AppColors.fillMuted, borderRadius: AppRadii.borderSm),
       ),
       error: (_, __) => _placeholder(),
     );
@@ -375,8 +383,8 @@ class _PhotoAvatar extends StatelessWidget {
 
   Widget _placeholder() => Container(
     width: 80, height: 80,
-    decoration: const BoxDecoration(color: AppColors.greenLight, shape: BoxShape.circle),
-    child: const PhosphorIcon(PhosphorIconsFill.person, size: 40, color: AppColors.ndcGreen),
+    decoration: BoxDecoration(color: AppColors.greenTint, borderRadius: AppRadii.borderSm),
+    child: const PhosphorIcon(PhosphorIconsRegular.person, size: 40, color: AppColors.canopyGreen),
   );
 }
 
@@ -391,18 +399,19 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     if (rows.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              PhosphorIcon(icon, size: 16, color: AppColors.ndcGreen),
+              PhosphorIcon(icon, size: 16, color: AppColors.canopyGreen),
               const SizedBox(width: 8),
               Text(title, style: AppTextStyles.h3()),
             ],
@@ -444,20 +453,21 @@ class _AuditSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const PhosphorIcon(PhosphorIconsFill.scroll, size: 16, color: AppColors.ndcGreen),
+              const PhosphorIcon(PhosphorIconsRegular.scroll, size: 16, color: AppColors.canopyGreen),
               const SizedBox(width: 8),
-              Text('Audit History', style: AppTextStyles.h3()),
+              Text('Audit history', style: AppTextStyles.h3()),
             ],
           ),
           const SizedBox(height: 12),
@@ -509,7 +519,7 @@ class _AuditEntry extends StatelessWidget {
           Container(
             width: 8, height: 8,
             margin: const EdgeInsets.only(top: 5, right: 10),
-            decoration: const BoxDecoration(color: AppColors.ndcGreen, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: AppColors.canopyGreen, shape: BoxShape.circle),
           ),
           Expanded(
             child: Column(
@@ -535,11 +545,11 @@ class _LoadingSkeleton extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const SkeletonLoader(height: 110, borderRadius: BorderRadius.all(Radius.circular(12))),
-        const SizedBox(height: 16),
+        const SkeletonLoader(height: 110, borderRadius: AppRadii.borderMd),
+        const SizedBox(height: AppSpacing.base),
         for (int i = 0; i < 3; i++) ...[
-          SkeletonLoader(height: 120, borderRadius: const BorderRadius.all(Radius.circular(12))),
-          const SizedBox(height: 12),
+          SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ],
     );

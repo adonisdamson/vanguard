@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_radii.dart';
 import '../theme/app_text_styles.dart';
 
 enum NdcButtonVariant { primary, secondary, danger, ghost }
@@ -69,25 +70,19 @@ class _PrimaryButton extends StatelessWidget {
   final bool loading;
   final Widget? icon;
 
-  const _PrimaryButton({
-    required this.label,
-    this.onPressed,
-    required this.loading,
-    this.icon,
-  });
+  const _PrimaryButton({required this.label, this.onPressed, required this.loading, this.icon});
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+      ),
       child: loading
           ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.ndcWhite,
-              ),
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.surface),
             )
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -106,33 +101,25 @@ class _SecondaryButton extends StatelessWidget {
   final bool loading;
   final Widget? icon;
 
-  const _SecondaryButton({
-    required this.label,
-    this.onPressed,
-    required this.loading,
-    this.icon,
-  });
+  const _SecondaryButton({required this.label, this.onPressed, required this.loading, this.icon});
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(
       onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+      ),
       child: loading
           ? const SizedBox(
-              width: 20,
-              height: 20,
+              width: 20, height: 20,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[icon!, const SizedBox(width: 8)],
-                Text(
-                  label,
-                  style: AppTextStyles.buttonText().copyWith(
-                    color: AppColors.ndcGreen,
-                  ),
-                ),
+                Text(label, style: AppTextStyles.buttonText(color: AppColors.canopyGreen)),
               ],
             ),
     );
@@ -144,28 +131,21 @@ class _DangerButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool loading;
 
-  const _DangerButton({
-    required this.label,
-    this.onPressed,
-    required this.loading,
-  });
+  const _DangerButton({required this.label, this.onPressed, required this.loading});
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.ndcRed,
-        foregroundColor: AppColors.ndcWhite,
+        backgroundColor: AppColors.umbrellaRed,
+        foregroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
       ),
       child: loading
           ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.ndcWhite,
-              ),
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.surface),
             )
           : Text(label, style: AppTextStyles.buttonText()),
     );
@@ -183,11 +163,15 @@ class _GhostButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.mist,
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (icon != null) ...[icon!, const SizedBox(width: 8)],
-          Text(label),
+          Text(label, style: AppTextStyles.buttonText(color: AppColors.mist)),
         ],
       ),
     );

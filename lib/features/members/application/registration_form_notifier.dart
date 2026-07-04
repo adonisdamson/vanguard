@@ -20,11 +20,15 @@ class RegistrationFormData {
   final String? pollingStationName;
   final String? ward;
   final String? branch;
+  final String? residentialAddress;
+  final String? residenceTown;
 
   // Step 3 — Membership
   final String? membershipType;
   final String? preferredRole;
   final String? profession;
+  final String? partyPosition;
+  final String? otherParty;
   final String? employmentStatus;
   final String? highestQualification;
   final List<String> skills;
@@ -50,9 +54,13 @@ class RegistrationFormData {
     this.pollingStationName,
     this.ward,
     this.branch,
+    this.residentialAddress,
+    this.residenceTown,
     this.membershipType,
     this.preferredRole,
     this.profession,
+    this.partyPosition,
+    this.otherParty,
     this.employmentStatus,
     this.highestQualification,
     this.skills = const [],
@@ -77,9 +85,13 @@ class RegistrationFormData {
     String? pollingStationName,
     String? ward,
     String? branch,
+    String? residentialAddress,
+    String? residenceTown,
     String? membershipType,
     String? preferredRole,
     String? profession,
+    String? partyPosition,
+    String? otherParty,
     String? employmentStatus,
     String? highestQualification,
     List<String>? skills,
@@ -113,9 +125,13 @@ class RegistrationFormData {
       pollingStationName: clearPollingStation ? null : (pollingStationName ?? this.pollingStationName),
       ward: ward ?? this.ward,
       branch: branch ?? this.branch,
+      residentialAddress: residentialAddress ?? this.residentialAddress,
+      residenceTown: residenceTown ?? this.residenceTown,
       membershipType: clearMembershipType ? null : (membershipType ?? this.membershipType),
       preferredRole: clearPreferredRole ? null : (preferredRole ?? this.preferredRole),
       profession: profession ?? this.profession,
+      partyPosition: partyPosition ?? this.partyPosition,
+      otherParty: otherParty ?? this.otherParty,
       employmentStatus: employmentStatus ?? this.employmentStatus,
       highestQualification: highestQualification ?? this.highestQualification,
       skills: skills ?? this.skills,
@@ -141,9 +157,13 @@ class RegistrationFormData {
       if (pollingStationId != null) 'polling_station_id': pollingStationId,
       if (ward != null && ward!.isNotEmpty) 'ward': ward,
       if (branch != null && branch!.isNotEmpty) 'branch': branch,
+      if (residentialAddress != null && residentialAddress!.isNotEmpty) 'residential_address': residentialAddress,
+      if (residenceTown != null && residenceTown!.isNotEmpty) 'residence_town': residenceTown,
       if (membershipType != null) 'membership_type': membershipType,
       if (preferredRole != null) 'preferred_role': preferredRole,
       if (profession != null && profession!.isNotEmpty) 'profession': profession,
+      if (partyPosition != null && partyPosition!.isNotEmpty) 'party_position': partyPosition,
+      if (otherParty != null && otherParty!.isNotEmpty) 'other_party': otherParty,
       if (employmentStatus != null) 'employment_status': employmentStatus,
       if (highestQualification != null) 'highest_academic_qualification': highestQualification,
       if (skills.isNotEmpty) 'skills': skills,
@@ -195,6 +215,8 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
     String? pollingStationName,
     String? ward,
     String? branch,
+    String? residentialAddress,
+    String? residenceTown,
   }) {
     state = state.copyWith(
       regionId: regionId,
@@ -207,6 +229,8 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
       pollingStationName: pollingStationName,
       ward: ward,
       branch: branch,
+      residentialAddress: residentialAddress,
+      residenceTown: residenceTown,
     );
   }
 
@@ -214,6 +238,8 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
     String? membershipType,
     String? preferredRole,
     String? profession,
+    String? partyPosition,
+    String? otherParty,
     String? employmentStatus,
     String? highestQualification,
     required List<String> skills,
@@ -222,6 +248,8 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
       membershipType: membershipType,
       preferredRole: preferredRole,
       profession: profession,
+      partyPosition: partyPosition,
+      otherParty: otherParty,
       employmentStatus: employmentStatus,
       highestQualification: highestQualification,
       skills: skills,

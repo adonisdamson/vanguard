@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/operator_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 class CreateOperatorScreen extends StatefulWidget {
@@ -46,10 +48,10 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
       HapticFeedback.mediumImpact();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.ndcGreen,
+          backgroundColor: AppColors.canopyGreen,
           content: Text(
             'Operator account created. A temporary password will be sent to ${_emailCtrl.text.trim()}.',
-            style: AppTextStyles.body(color: AppColors.ndcWhite),
+            style: AppTextStyles.body(color: AppColors.surface),
           ),
           duration: const Duration(seconds: 5),
         ));
@@ -59,8 +61,8 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.ndcRed,
-          content: Text('Failed to create operator: $e', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+          backgroundColor: AppColors.umbrellaRed,
+          content: Text('Failed to create operator: $e', style: AppTextStyles.body(color: AppColors.surface)),
         ));
       }
     }
@@ -69,18 +71,18 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcBlack,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Create Operator', style: AppTextStyles.appBarTitle()),
+        title: Text('Create operator', style: AppTextStyles.appBarTitle()),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       body: SingleChildScrollView(
@@ -92,29 +94,29 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
             children: [
               // Notice banner
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(AppSpacing.base),
                 decoration: BoxDecoration(
-                  color: AppColors.greenLight,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.ndcGreen.withValues(alpha: 0.3)),
+                  color: AppColors.greenTint,
+                  borderRadius: AppRadii.borderMd,
+                  border: Border.all(color: AppColors.canopyGreen.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const PhosphorIcon(PhosphorIconsFill.info, size: 18, color: AppColors.ndcGreen),
-                    const SizedBox(width: 10),
+                    const PhosphorIcon(PhosphorIconsRegular.info, size: 18, color: AppColors.canopyGreen),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         'A Supabase Auth account will be created and the operator will receive a password reset email. No operator can self-register.',
-                        style: AppTextStyles.small(color: AppColors.ndcGreen),
+                        style: AppTextStyles.small(color: AppColors.canopyGreen),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
 
-              Text('Personal Details', style: AppTextStyles.h3()),
+              Text('Personal details', style: AppTextStyles.h3()),
               const SizedBox(height: 14),
 
               NdcTextField(
@@ -161,27 +163,27 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                 title: 'Personnel',
                 subtitle: 'Register and manage own member submissions',
                 icon: PhosphorIconsFill.userCircle,
-                color: AppColors.ndcGreen,
+                color: AppColors.canopyGreen,
                 onChanged: (v) => setState(() => _selectedRole = v!),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
               _RoleOption(
                 value: 'higher_authority',
                 groupValue: _selectedRole,
                 title: 'Higher Authority (Coordinator)',
                 subtitle: 'Review pending registrations, view all members, export data',
                 icon: PhosphorIconsFill.userCircleCheck,
-                color: AppColors.ndcGold,
+                color: AppColors.statusPending,
                 onChanged: (v) => setState(() => _selectedRole = v!),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.sm),
               _RoleOption(
                 value: 'admin',
                 groupValue: _selectedRole,
                 title: 'Administrator',
                 subtitle: 'Full system access including operator management',
                 icon: PhosphorIconsFill.shieldStar,
-                color: AppColors.ndcRed,
+                color: AppColors.umbrellaRed,
                 onChanged: (v) => setState(() => _selectedRole = v!),
               ),
               const SizedBox(height: 32),
@@ -225,12 +227,12 @@ class _RoleOption extends StatelessWidget {
       onTap: () => onChanged(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
           color: selected ? color.withValues(alpha: 0.06) : AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: AppRadii.borderMd,
           border: Border.all(
-            color: selected ? color : AppColors.border,
+            color: selected ? color : AppColors.hairline,
             width: selected ? 1.5 : 1,
           ),
         ),
@@ -241,7 +243,7 @@ class _RoleOption extends StatelessWidget {
               height: 40,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: selected ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadii.borderSm,
               ),
               child: PhosphorIcon(icon, size: 20, color: color),
             ),

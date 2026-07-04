@@ -8,7 +8,7 @@ import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -124,22 +124,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // NDC flag stripe header
-                const NdcFlagStripe(height: 5),
+                // Canopy arc — signature brand device
+                const CanopyArc(height: 5),
 
-                // Header block — NDC green, logo + title
+                // Header block — deepCanopy, circular logo + title
                 Container(
-                  color: AppColors.ndcGreen,
+                  color: AppColors.deepCanopy,
                   padding: const EdgeInsets.fromLTRB(24, 32, 24, 36),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Image.asset(
-                            Assets.ndcUmbrella,
-                            width: 44,
-                            height: 44,
+                          Container(
+                            width: 48, height: 48,
+                            decoration: const BoxDecoration(
+                              color: AppColors.surface,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(9),
+                              child: Image.asset(Assets.ndcUmbrella),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Column(
@@ -147,14 +153,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             children: [
                               Text(
                                 'VANGUARD',
-                                style: AppTextStyles.h1(
-                                  color: AppColors.ndcWhite,
-                                ).copyWith(letterSpacing: 3),
+                                style: AppTextStyles.h1(color: AppColors.surface)
+                                    .copyWith(letterSpacing: 3),
                               ),
                               Text(
-                                'NDC Member Registry',
+                                'Membership Registry',
                                 style: AppTextStyles.small(
-                                  color: AppColors.ndcWhite.withValues(alpha: 0.75),
+                                  color: AppColors.surface.withValues(alpha: 0.65),
                                 ),
                               ),
                             ],
@@ -164,15 +169,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 28),
                       Text(
                         'Welcome back.',
-                        style: AppTextStyles.displayLarge(
-                          color: AppColors.ndcWhite,
-                        ),
+                        style: AppTextStyles.displayLarge(color: AppColors.surface),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Sign in to access the member registry.',
                         style: AppTextStyles.bodyLarge(
-                          color: AppColors.ndcWhite.withValues(alpha: 0.8),
+                          color: AppColors.surface.withValues(alpha: 0.75),
                         ),
                       ),
                     ],
@@ -236,7 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: Text(
                               'Forgot password?',
                               style: AppTextStyles.bodyMedium(
-                                color: AppColors.ndcGreen,
+                                color: AppColors.canopyGreen,
                               ),
                             ),
                           ),
@@ -248,7 +251,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           label: 'Sign In',
                           onPressed: _signInWithEmail,
                           loading: _loading,
-                          icon: const PhosphorIcon(PhosphorIconsFill.signIn, size: 18, color: AppColors.ndcWhite),
+                          icon: const PhosphorIcon(PhosphorIconsFill.signIn, size: 18, color: AppColors.surface),
                         ),
                         const SizedBox(height: 16),
 
@@ -271,15 +274,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onPressed: _signInWithGoogle,
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
 
-                        // Footer note
-                        Center(
-                          child: Text(
-                            'Access is granted by an administrator.\nNo self-registration.',
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.small(),
-                          ),
+                        // Sign-up link
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('New here? ', style: AppTextStyles.small()),
+                            GestureDetector(
+                              onTap: () => context.push('/signup'),
+                              child: Text(
+                                'Request access →',
+                                style: AppTextStyles.small(color: AppColors.canopyGreen)
+                                    .copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -303,22 +313,22 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.redLight,
+        color: AppColors.redTint,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.ndcRed.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           const PhosphorIcon(
             PhosphorIconsFill.warningCircle,
             size: 18,
-            color: AppColors.ndcRed,
+            color: AppColors.umbrellaRed,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: AppTextStyles.body(color: AppColors.ndcRed),
+              style: AppTextStyles.body(color: AppColors.umbrellaRed),
             ),
           ),
         ],
@@ -340,7 +350,7 @@ class _GoogleSignInButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: loading ? null : onPressed,
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.border, width: 1.5),
+          side: const BorderSide(color: AppColors.hairline, width: 1.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           backgroundColor: AppColors.surface,
         ),

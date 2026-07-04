@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -53,30 +55,29 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const NdcFlagStripe(height: 5),
-            // Compact green header
+            const CanopyArc(height: 5),
             Container(
-              color: AppColors.ndcGreen,
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              color: AppColors.deepCanopy,
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screenH, AppSpacing.base, AppSpacing.screenH, AppSpacing.xl),
               child: Row(
                 children: [
                   GestureDetector(
                     onTap: () => context.pop(),
                     child: const PhosphorIcon(
                       PhosphorIconsRegular.arrowLeft,
-                      color: AppColors.ndcWhite,
+                      color: AppColors.surface,
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppSpacing.base),
                   Text(
-                    'Reset Password',
-                    style: AppTextStyles.h2(color: AppColors.ndcWhite),
+                    'Reset password',
+                    style: AppTextStyles.h2(color: AppColors.surface),
                   ),
                 ],
               ),
@@ -134,15 +135,15 @@ class _FormState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.redLight,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.ndcRed.withValues(alpha: 0.3)),
+                color: AppColors.redTint,
+                borderRadius: AppRadii.borderSm,
+                border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 18, color: AppColors.ndcRed),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(error!, style: AppTextStyles.body(color: AppColors.ndcRed))),
+                  const PhosphorIcon(PhosphorIconsRegular.warningCircle, size: 18, color: AppColors.umbrellaRed),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(child: Text(error!, style: AppTextStyles.body(color: AppColors.umbrellaRed))),
                 ],
               ),
             ),
@@ -169,7 +170,7 @@ class _FormState extends StatelessWidget {
             label: 'Send Reset Link',
             onPressed: onSubmit,
             loading: loading,
-            icon: const PhosphorIcon(PhosphorIconsFill.paperPlaneTilt, size: 18, color: AppColors.ndcWhite),
+            icon: const PhosphorIcon(PhosphorIconsFill.paperPlaneTilt, size: 18, color: AppColors.surface),
           ),
         ],
       ),
@@ -192,13 +193,13 @@ class _SuccessState extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.greenLight,
+              color: AppColors.greenTint,
               shape: BoxShape.circle,
             ),
             child: const PhosphorIcon(
               PhosphorIconsFill.checkCircle,
               size: 36,
-              color: AppColors.ndcGreen,
+              color: AppColors.canopyGreen,
             ),
           ),
         ),

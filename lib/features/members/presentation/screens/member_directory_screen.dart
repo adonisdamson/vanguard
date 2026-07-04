@@ -10,11 +10,16 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/filter_chip_bar.dart';
 import '../../../../shared/widgets/load_more_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
-import '../widgets/member_status_badge.dart';
+import '../../../../shared/widgets/status_pill.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
   const MemberDirectoryScreen({super.key});
@@ -121,10 +126,10 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.ndcGreen,
+          backgroundColor: AppColors.canopyGreen,
           content: Text(
             'Export saved (${(bytes.length / 1024).toStringAsFixed(1)} KB)',
-            style: AppTextStyles.body(color: AppColors.ndcWhite),
+            style: AppTextStyles.body(color: AppColors.surface),
           ),
           duration: const Duration(seconds: 5),
         ));
@@ -143,25 +148,25 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcGreen,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Member Directory', style: AppTextStyles.appBarTitle()),
+        title: Text('Member directory', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
             icon: _exporting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.ndcWhite))
-                : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.ndcWhite, size: 22),
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.surface, size: 22),
             onPressed: _exporting ? null : _triggerExport,
             tooltip: 'Export CSV',
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       body: Column(
@@ -212,7 +217,11 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
         ),
       );
     }
-    if (_items.isEmpty) return _EmptyDirectory(hasSearch: _searchCtrl.text.isNotEmpty);
+    if (_items.isEmpty) {
+      return _searchCtrl.text.isNotEmpty
+          ? const EmptyState.noSearchResults()
+          : const EmptyState.noMembers();
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -237,56 +246,54 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const filters = [('all', 'All'), ('pending', 'Pending'), ('active', 'Active'), ('rejected', 'Rejected')];
     return Container(
       color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenH, AppSpacing.sm,
+        AppSpacing.screenH, AppSpacing.sm,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             controller: controller,
             onChanged: onChanged,
             decoration: InputDecoration(
-              hintText: 'Search by name, phone, or member no.',
-              hintStyle: AppTextStyles.body(color: AppColors.textMuted),
+              hintText: 'Search by name, phone, or member ID',
+              hintStyle: AppTextStyles.body(color: AppColors.mist),
               prefixIcon: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
-                child: PhosphorIcon(PhosphorIconsRegular.magnifyingGlass, size: 20, color: AppColors.textMuted),
+                child: PhosphorIcon(PhosphorIconsRegular.magnifyingGlass, size: 20, color: AppColors.mist),
               ),
               prefixIconConstraints: const BoxConstraints(minWidth: 48),
               suffixIcon: controller.text.isNotEmpty
                   ? IconButton(
-                      icon: const PhosphorIcon(PhosphorIconsFill.x, size: 18, color: AppColors.textMuted),
+                      icon: const PhosphorIcon(PhosphorIconsRegular.x, size: 18, color: AppColors.mist),
                       onPressed: () { controller.clear(); onChanged(''); },
                     )
                   : null,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              filled: true,
+              fillColor: AppColors.fillMuted,
+              border: OutlineInputBorder(borderRadius: AppRadii.borderSm, borderSide: BorderSide.none),
+              enabledBorder: OutlineInputBorder(borderRadius: AppRadii.borderSm, borderSide: BorderSide.none),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppRadii.borderSm,
+                borderSide: const BorderSide(color: AppColors.canopyGreen, width: 2),
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: filters.map(((String value, String label) f) {
-                final selected = selectedFilter == f.$1;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8, bottom: 12),
-                  child: GestureDetector(
-                    onTap: () => onFilterChanged(f.$1),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: selected ? AppColors.ndcGreen : AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(f.$2, style: AppTextStyles.small(color: selected ? AppColors.ndcWhite : AppColors.textSecondary)),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+          const SizedBox(height: AppSpacing.sm),
+          FilterChipBar<String>(
+            chips: const [
+              (value: 'all',      label: 'All'),
+              (value: 'pending',  label: 'Pending'),
+              (value: 'active',   label: 'Active'),
+              (value: 'rejected', label: 'Rejected'),
+            ],
+            selected: selectedFilter,
+            onSelected: onFilterChanged,
           ),
         ],
       ),
@@ -303,68 +310,51 @@ class _DirectoryTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push('/member/${member.id}'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline, width: 1),
         ),
         child: Row(
           children: [
             Container(
               width: 44, height: 44,
-              decoration: const BoxDecoration(color: AppColors.greenLight, shape: BoxShape.circle),
-              child: const PhosphorIcon(PhosphorIconsFill.person, size: 22, color: AppColors.ndcGreen),
+              decoration: BoxDecoration(
+                color: AppColors.greenTint,
+                borderRadius: AppRadii.borderSm,
+              ),
+              child: const PhosphorIcon(PhosphorIconsRegular.person, size: 22, color: AppColors.canopyGreen),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(member.fullName, style: AppTextStyles.bodyMedium()),
+                  Text(
+                    member.fullName,
+                    style: AppTextStyles.title(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (member.memberNumber != null)
                     Text(member.memberNumber!, style: AppTextStyles.memberNumber())
                   else
                     Text(member.phone ?? '—', style: AppTextStyles.small()),
                   if (member.constituencyName != null)
-                    Text(member.constituencyName!, style: AppTextStyles.caption()),
+                    Text(
+                      member.constituencyName!,
+                      style: AppTextStyles.caption(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
-            MemberStatusBadge(status: member.status),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyDirectory extends StatelessWidget {
-  final bool hasSearch;
-  const _EmptyDirectory({required this.hasSearch});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const PhosphorIcon(PhosphorIconsRegular.magnifyingGlass, size: 48, color: AppColors.textMuted),
-            const SizedBox(height: 16),
-            Text(
-              hasSearch ? 'No members match your search' : 'No members found',
-              style: AppTextStyles.h3(),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              hasSearch ? 'Try a different name, phone, or member number.' : 'Members will appear here once registered.',
-              style: AppTextStyles.body(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
+            const SizedBox(width: AppSpacing.sm),
+            StatusPill.fromString(member.status),
           ],
         ),
       ),

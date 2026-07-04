@@ -53,8 +53,8 @@ class OperatorDetail {
       fullName: m['full_name'] as String,
       email: m['email'] as String,
       phone: m['phone'] as String?,
-      role: _parseRole(m['role'] as String),
-      isActive: m['is_active'] as bool,
+      role: _parseRole(m['role'] as String? ?? 'personnel'),
+      isActive: m['is_active'] as bool? ?? false,
       createdAt: DateTime.parse(m['created_at'] as String),
       lastLoginAt: m['last_login_at'] != null
           ? DateTime.parse(m['last_login_at'] as String)
@@ -76,14 +76,51 @@ class OperatorDetail {
   }
 }
 
+class PendingOperator {
+  final String id;
+  final String fullName;
+  final String email;
+  final String? requestedRole;
+  final DateTime createdAt;
+
+  const PendingOperator({
+    required this.id,
+    required this.fullName,
+    required this.email,
+    this.requestedRole,
+    required this.createdAt,
+  });
+
+  factory PendingOperator.fromMap(Map<String, dynamic> m) {
+    return PendingOperator(
+      id: m['id'] as String,
+      fullName: m['full_name'] as String,
+      email: m['email'] as String,
+      requestedRole: m['requested_role'] as String?,
+      createdAt: DateTime.parse(m['created_at'] as String),
+    );
+  }
+}
+
 class OperatorRepository {
   final _db = Supabase.instance.client;
   static const _pageSize = 20;
+
+  Future<List<PendingOperator>> listPendingOperators() async {
+    final data = await _db
+        .from('app_users')
+        .select('id, full_name, email, requested_role, created_at')
+        .is_('role', null)
+        .eq('is_active', false)
+        .order('created_at', ascending: true);
+    return (data as List).map((m) => PendingOperator.fromMap(m as Map<String, dynamic>)).toList();
+  }
 
   Future<List<OperatorDetail>> listOperators({int page = 0}) async {
     final data = await _db
         .from('app_users')
         .select('id, full_name, email, phone, role, is_active, created_at, last_login_at')
+        .not('role', 'is', null)  // exclude pending self-signups
         .order('created_at', ascending: false)
         .range(page * _pageSize, (page + 1) * _pageSize - 1);
     return (data as List).map((m) => OperatorDetail.fromMap(m as Map<String, dynamic>)).toList();
@@ -124,6 +161,14 @@ class OperatorRepository {
 
   Future<void> changeRole(String id, String role) async {
     await _railwayPost('/api/admin/operators/$id/role', {'role': role});
+  }
+
+  Future<void> approveOperator(String id, String role) async {
+    await _railwayPost('/api/admin/operators/$id/approve', {'role': role});
+  }
+
+  Future<void> declineOperator(String id) async {
+    await _railwayPost('/api/admin/operators/$id/decline', {});
   }
 
   Future<void> _railwayPost(String path, Map<String, dynamic> body) async {

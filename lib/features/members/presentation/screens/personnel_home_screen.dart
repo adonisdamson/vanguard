@@ -6,12 +6,15 @@ import '../../../../core/constants/assets.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
 import '../../application/member_providers.dart';
-import '../../data/member_repository.dart';
 import '../../application/offline_queue.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 
 class PersonnelHomeScreen extends ConsumerWidget {
@@ -33,41 +36,44 @@ class PersonnelHomeScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcGreen,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         title: Row(
           children: [
-            Image.asset(Assets.ndcUmbrella, width: 28, height: 28),
-            const SizedBox(width: 10),
+            Container(
+              width: 30, height: 30,
+              decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+              child: Padding(
+                padding: const EdgeInsets.all(5),
+                child: Image.asset(Assets.ndcUmbrella),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
             Text('VANGUARD', style: AppTextStyles.appBarTitle()),
           ],
         ),
         actions: [
           IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.bell, color: AppColors.ndcWhite, size: 22),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.userCircle, color: AppColors.ndcWhite, size: 22),
+            icon: const PhosphorIcon(PhosphorIconsRegular.bell, color: AppColors.surface, size: 22),
             onPressed: () {},
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.ndcGreen,
-        foregroundColor: AppColors.ndcWhite,
+        backgroundColor: AppColors.canopyGreen,
+        foregroundColor: AppColors.surface,
         icon: const PhosphorIcon(PhosphorIconsFill.userPlus, size: 20),
         label: Text('Register', style: AppTextStyles.bodyMedium(color: AppColors.ndcWhite)),
         onPressed: () => context.push('/register-member'),
       ),
       body: RefreshIndicator(
-        color: AppColors.ndcGreen,
+        color: AppColors.canopyGreen,
         onRefresh: () async {
           ref.invalidate(appUserProvider);
           ref.invalidate(myStatsProvider);
@@ -89,11 +95,17 @@ class PersonnelHomeScreen extends ConsumerWidget {
 
             // Stats row
             statsAsync.when(
-              data: (stats) => _StatsRow(stats: stats),
+              data: (stats) => Row(children: [
+                Expanded(child: StatCard(icon: PhosphorIconsRegular.users, value: '${stats.total}', label: 'Total', iconColor: AppColors.canopyGreen, iconBg: AppColors.greenTint)),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: StatCard(icon: PhosphorIconsRegular.clock, value: '${stats.pending}', label: 'Pending', iconColor: AppColors.statusPending, iconBg: AppColors.amberTint)),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: StatCard(icon: PhosphorIconsRegular.checkCircle, value: '${stats.active}', label: 'Approved', iconColor: AppColors.statusActive, iconBg: AppColors.greenTint)),
+              ]),
               loading: () => Row(children: [
                 for (int i = 0; i < 3; i++) ...[
-                  const Expanded(child: SkeletonLoader(height: 70, borderRadius: BorderRadius.all(Radius.circular(10)))),
-                  if (i < 2) const SizedBox(width: 10),
+                  const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
+                  if (i < 2) const SizedBox(width: AppSpacing.sm),
                 ],
               ]),
               error: (_, __) => const SizedBox.shrink(),
@@ -114,7 +126,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                 _ActionCard(
                   icon: PhosphorIconsFill.userPlus,
                   label: 'Register Member',
-                  color: AppColors.ndcGreen,
+                  color: AppColors.canopyGreen,
                   onTap: () => context.push('/register-member'),
                 ),
                 _ActionCard(
@@ -162,78 +174,32 @@ class _WelcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.deepCanopy,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: AppColors.greenLight,
+            width: 48, height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.umbrellaRed.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const PhosphorIcon(PhosphorIconsFill.userCircle, color: AppColors.ndcGreen, size: 26),
+            child: const PhosphorIcon(PhosphorIconsFill.userCircle, color: AppColors.surface, size: 26),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Good day, $name', style: AppTextStyles.h3()),
-                Text('Tema West • Personnel', style: AppTextStyles.small()),
+                Text('Good day, $name', style: AppTextStyles.h3(color: AppColors.surface), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text('Tema West • Personnel', style: AppTextStyles.small(color: AppColors.surface.withValues(alpha: 0.65))),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatsRow extends StatelessWidget {
-  final MemberStats stats;
-  const _StatsRow({required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _StatChip(label: 'Total', value: '${stats.total}', color: AppColors.ndcGreen)),
-        const SizedBox(width: 10),
-        Expanded(child: _StatChip(label: 'Pending', value: '${stats.pending}', color: AppColors.statusPending)),
-        const SizedBox(width: 10),
-        Expanded(child: _StatChip(label: 'Approved', value: '${stats.active}', color: AppColors.statusActive)),
-      ],
-    );
-  }
-}
-
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatChip({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value, style: AppTextStyles.h2(color: color)),
-          Text(label, style: AppTextStyles.caption()),
         ],
       ),
     );
@@ -287,11 +253,12 @@ class _ActionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

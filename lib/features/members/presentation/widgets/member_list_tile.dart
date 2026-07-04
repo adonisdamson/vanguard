@@ -5,8 +5,11 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/member_providers.dart';
 import '../../data/member_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import 'member_status_badge.dart';
+import '../../../../shared/widgets/status_pill.dart';
 
 class MemberListTile extends ConsumerWidget {
   final MemberSummary member;
@@ -16,40 +19,37 @@ class MemberListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
         ),
         child: Row(
           children: [
             _Avatar(photoPath: member.photoPath, ref: ref),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(member.fullName, style: AppTextStyles.bodyMedium()),
-                  const SizedBox(height: 3),
+                  Text(member.fullName, style: AppTextStyles.title(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
                   if (member.memberNumber != null && member.memberNumber!.isNotEmpty)
                     Text(member.memberNumber!, style: AppTextStyles.memberNumber())
                   else
                     Text(member.phone ?? '—', style: AppTextStyles.small()),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDate(member.createdAt),
-                    style: AppTextStyles.caption(),
-                  ),
+                  Text(_formatDate(member.createdAt), style: AppTextStyles.caption()),
                 ],
               ),
             ),
-            MemberStatusBadge(status: member.status),
+            const SizedBox(width: AppSpacing.sm),
+            StatusPill.fromString(member.status),
           ],
         ),
       ),
@@ -78,7 +78,7 @@ class _Avatar extends StatelessWidget {
     return urlAsync.when(
       data: (url) => url != null
           ? ClipRRect(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: AppRadii.borderSm,
               child: CachedNetworkImage(
                 imageUrl: url,
                 width: 44,
@@ -98,11 +98,11 @@ class _Avatar extends StatelessWidget {
     return Container(
       width: 44,
       height: 44,
-      decoration: const BoxDecoration(
-        color: AppColors.greenLight,
-        shape: BoxShape.circle,
+      decoration: BoxDecoration(
+        color: AppColors.greenTint,
+        borderRadius: AppRadii.borderSm,
       ),
-      child: const PhosphorIcon(PhosphorIconsFill.person, size: 22, color: AppColors.ndcGreen),
+      child: const PhosphorIcon(PhosphorIconsRegular.person, size: 22, color: AppColors.canopyGreen),
     );
   }
 }

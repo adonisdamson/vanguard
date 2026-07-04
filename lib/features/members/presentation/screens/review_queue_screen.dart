@@ -5,11 +5,15 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
-import '../widgets/member_status_badge.dart';
+import '../../../../shared/widgets/status_pill.dart';
 
 class ReviewQueueScreen extends ConsumerStatefulWidget {
   const ReviewQueueScreen({super.key});
@@ -59,28 +63,28 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcGreen,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Review Queue', style: AppTextStyles.appBarTitle()),
+        title: Text('Review queue', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.ndcWhite, size: 20),
+            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.surface, size: 20),
             onPressed: () => _loadPage(0),
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       body: RefreshIndicator(
-        color: AppColors.ndcGreen,
+        color: AppColors.canopyGreen,
         onRefresh: () => _loadPage(0),
         child: _buildBody(),
       ),
@@ -112,7 +116,7 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
         ),
       );
     }
-    if (_items.isEmpty) return const _EmptyQueue();
+    if (_items.isEmpty) return const EmptyState.reviewQueueEmpty();
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -141,12 +145,13 @@ class _ReviewTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.push('/member/${member.id}'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,27 +162,28 @@ class _ReviewTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(member.fullName, style: AppTextStyles.bodyMedium()),
+                      Text(member.fullName, style: AppTextStyles.title(), maxLines: 1, overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 3),
                       Text(member.phone ?? '—', style: AppTextStyles.small()),
                       if (member.constituencyName != null)
-                        Text(member.constituencyName!, style: AppTextStyles.caption()),
+                        Text(member.constituencyName!, style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
-                MemberStatusBadge(status: member.status),
+                const SizedBox(width: AppSpacing.sm),
+                StatusPill.fromString(member.status),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
             Text('Submitted ${_ago(member.createdAt)}', style: AppTextStyles.caption()),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                Expanded(child: _QuickAction(label: 'Approve', icon: PhosphorIconsFill.checkCircle, color: AppColors.ndcGreen, onTap: () => _confirmApprove(context, member, onChanged))),
-                const SizedBox(width: 10),
-                Expanded(child: _QuickAction(label: 'Reject', icon: PhosphorIconsFill.xCircle, color: AppColors.ndcRed, onTap: () => _showRejectDialog(context, member, onChanged))),
-                const SizedBox(width: 10),
-                _QuickAction(label: 'View', icon: PhosphorIconsFill.eye, color: AppColors.textSecondary, onTap: () => context.push('/member/${member.id}')),
+                Expanded(child: _QuickAction(label: 'Approve', icon: PhosphorIconsRegular.checkCircle, color: AppColors.canopyGreen, onTap: () => _confirmApprove(context, member, onChanged))),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: _QuickAction(label: 'Reject', icon: PhosphorIconsRegular.xCircle, color: AppColors.umbrellaRed, onTap: () => _showRejectDialog(context, member, onChanged))),
+                const SizedBox(width: AppSpacing.sm),
+                _QuickAction(label: 'View', icon: PhosphorIconsRegular.eye, color: AppColors.mist, onTap: () => context.push('/member/${member.id}')),
               ],
             ),
           ],
@@ -202,7 +208,7 @@ Future<void> _confirmApprove(BuildContext context, MemberDetail member, VoidCall
       content: Text('This will mark the member as active.', style: AppTextStyles.body()),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Approve', style: TextStyle(color: AppColors.ndcGreen))),
+        TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Approve', style: TextStyle(color: AppColors.canopyGreen))),
       ],
     ),
   );
@@ -213,8 +219,8 @@ Future<void> _confirmApprove(BuildContext context, MemberDetail member, VoidCall
     onChanged();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppColors.ndcGreen,
-        content: Text('${member.fullName} approved.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+        backgroundColor: AppColors.canopyGreen,
+        content: Text('${member.fullName} approved.', style: AppTextStyles.body(color: AppColors.surface)),
       ));
     }
   } catch (e) {
@@ -254,8 +260,8 @@ Future<void> _showRejectDialog(BuildContext context, MemberDetail member, VoidCa
     onChanged();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppColors.ndcRed,
-        content: Text('${member.fullName} rejected.', style: AppTextStyles.body(color: AppColors.ndcWhite)),
+        backgroundColor: AppColors.umbrellaRed,
+        content: Text('${member.fullName} rejected.', style: AppTextStyles.body(color: AppColors.surface)),
       ));
     }
   } catch (e) {
@@ -278,7 +284,7 @@ class _QuickAction extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadii.borderSm,
           border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
@@ -294,26 +300,3 @@ class _QuickAction extends StatelessWidget {
   }
 }
 
-class _EmptyQueue extends StatelessWidget {
-  const _EmptyQueue();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 72, height: 72,
-            decoration: const BoxDecoration(color: AppColors.greenLight, shape: BoxShape.circle),
-            child: const PhosphorIcon(PhosphorIconsFill.checks, size: 36, color: AppColors.ndcGreen),
-          ),
-          const SizedBox(height: 20),
-          Text('All caught up!', style: AppTextStyles.h2()),
-          const SizedBox(height: 8),
-          Text('No pending registrations to review.', style: AppTextStyles.body(color: AppColors.textSecondary)),
-        ],
-      ),
-    );
-  }
-}

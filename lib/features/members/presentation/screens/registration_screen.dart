@@ -13,9 +13,11 @@ import '../../data/member_repository.dart';
 import '../../data/capture_metadata_service.dart';
 import '../../data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 const _stepTitles = [
@@ -143,12 +145,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         backgroundColor: AppColors.statusPending,
         content: Row(
           children: [
-            const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.ndcWhite),
+            const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.surface),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Saved offline — will sync when you\'re back online.',
-                style: AppTextStyles.body(color: AppColors.ndcWhite),
+                style: AppTextStyles.body(color: AppColors.surface),
               ),
             ),
           ],
@@ -162,18 +164,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcGreen,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.x, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.x, color: AppColors.surface, size: 22),
           onPressed: () => _confirmExit(context),
         ),
-        title: Text('Register Member', style: AppTextStyles.appBarTitle()),
+        title: Text('Register member', style: AppTextStyles.appBarTitle()),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       body: Column(
@@ -223,7 +225,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               Navigator.pop(context, true);
               ref.read(registrationFormProvider.notifier).reset();
             },
-            child: Text('Discard', style: TextStyle(color: AppColors.ndcRed)),
+            child: Text('Discard', style: TextStyle(color: AppColors.umbrellaRed)),
           ),
         ],
       ),
@@ -253,7 +255,7 @@ class _StepProgress extends StatelessWidget {
                 margin: EdgeInsets.only(right: i < 3 ? 6 : 0),
                 height: 4,
                 decoration: BoxDecoration(
-                  color: i <= currentStep ? AppColors.ndcGreen : AppColors.divider,
+                  color: i <= currentStep ? AppColors.canopyGreen : AppColors.hairline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -303,7 +305,7 @@ class _BottomNav extends StatelessWidget {
                 color: AppColors.redLight,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(error!, style: AppTextStyles.small(color: AppColors.ndcRed)),
+              child: Text(error!, style: AppTextStyles.small(color: AppColors.umbrellaRed)),
             ),
             const SizedBox(height: 10),
           ],
@@ -314,7 +316,7 @@ class _BottomNav extends StatelessWidget {
                   height: 52,
                   child: OutlinedButton(
                     onPressed: onBack,
-                    child: const PhosphorIcon(PhosphorIconsFill.arrowLeft, size: 20, color: AppColors.ndcGreen),
+                    child: const PhosphorIcon(PhosphorIconsFill.arrowLeft, size: 20, color: AppColors.canopyGreen),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -325,8 +327,8 @@ class _BottomNav extends StatelessWidget {
                   onPressed: onNext,
                   loading: submitting,
                   icon: step < 3
-                      ? const PhosphorIcon(PhosphorIconsFill.arrowRight, size: 18, color: AppColors.ndcWhite)
-                      : const PhosphorIcon(PhosphorIconsFill.check, size: 18, color: AppColors.ndcWhite),
+                      ? const PhosphorIcon(PhosphorIconsFill.arrowRight, size: 18, color: AppColors.surface)
+                      : const PhosphorIcon(PhosphorIconsFill.check, size: 18, color: AppColors.surface),
                 ),
               ),
             ],
@@ -384,7 +386,7 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
       lastDate: DateTime.now().subtract(const Duration(days: 365 * 10)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.ndcGreen),
+          colorScheme: const ColorScheme.light(primary: AppColors.canopyGreen),
         ),
         child: child!,
       ),
@@ -444,8 +446,8 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
                   height: 52,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.hairline),
+                    borderRadius: AppRadii.borderSm,
                     color: AppColors.surface,
                   ),
                   child: Row(
@@ -466,18 +468,14 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
           ),
           const SizedBox(height: 16),
 
-          // Gender
+          // Gender — segmented control (male/female per gender_type enum)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Gender', style: AppTextStyles.label()),
               const SizedBox(height: 6),
-              _DropdownField<String>(
-                hint: 'Select gender',
+              _GenderSegment(
                 value: _gender,
-                icon: PhosphorIconsRegular.person,
-                items: const ['Male', 'Female', 'Other'],
-                itemLabel: (v) => v,
                 onChanged: (v) => setState(() => _gender = v),
               ),
             ],
@@ -548,6 +546,8 @@ class _Step2Location extends ConsumerStatefulWidget {
 class _Step2LocationState extends ConsumerState<_Step2Location> {
   late TextEditingController _ward;
   late TextEditingController _branch;
+  late TextEditingController _residentialAddress;
+  late TextEditingController _residenceTown;
 
   Region? _region;
   District? _district;
@@ -560,12 +560,16 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
     final d = ref.read(registrationFormProvider);
     _ward = TextEditingController(text: d.ward ?? '');
     _branch = TextEditingController(text: d.branch ?? '');
+    _residentialAddress = TextEditingController(text: d.residentialAddress ?? '');
+    _residenceTown = TextEditingController(text: d.residenceTown ?? '');
   }
 
   @override
   void dispose() {
     _ward.dispose();
     _branch.dispose();
+    _residentialAddress.dispose();
+    _residenceTown.dispose();
     super.dispose();
   }
 
@@ -680,6 +684,26 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
             hint: 'Optional',
             icon: PhosphorIconsRegular.tag,
             controller: _branch,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 16),
+
+          NdcTextField(
+            label: 'Residential Address',
+            hint: 'Optional — house number and street',
+            icon: PhosphorIconsRegular.house,
+            controller: _residentialAddress,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 16),
+
+          NdcTextField(
+            label: 'Town / City of Residence',
+            hint: 'Optional',
+            icon: PhosphorIconsRegular.city,
+            controller: _residenceTown,
             textInputAction: TextInputAction.done,
             onChanged: (_) {},
           ),
@@ -699,6 +723,8 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
                 pollingStationName: _pollingStation?.name,
                 ward: _ward.text.trim().isEmpty ? null : _ward.text.trim(),
                 branch: _branch.text.trim().isEmpty ? null : _branch.text.trim(),
+                residentialAddress: _residentialAddress.text.trim().isEmpty ? null : _residentialAddress.text.trim(),
+                residenceTown: _residenceTown.text.trim().isEmpty ? null : _residenceTown.text.trim(),
               );
               return null;
             },
@@ -721,6 +747,8 @@ class _Step3Membership extends ConsumerStatefulWidget {
 
 class _Step3MembershipState extends ConsumerState<_Step3Membership> {
   late TextEditingController _profession;
+  late TextEditingController _partyPosition;
+  late TextEditingController _otherParty;
   String? _membershipType;
   String? _preferredRole;
   String? _employmentStatus;
@@ -762,6 +790,8 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
     super.initState();
     final d = ref.read(registrationFormProvider);
     _profession = TextEditingController(text: d.profession ?? '');
+    _partyPosition = TextEditingController(text: d.partyPosition ?? '');
+    _otherParty = TextEditingController(text: d.otherParty ?? '');
     _membershipType = d.membershipType;
     _preferredRole = d.preferredRole;
     _employmentStatus = d.employmentStatus;
@@ -772,6 +802,8 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
   @override
   void dispose() {
     _profession.dispose();
+    _partyPosition.dispose();
+    _otherParty.dispose();
     super.dispose();
   }
 
@@ -828,6 +860,26 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
             icon: PhosphorIconsRegular.briefcase,
             controller: _profession,
             textInputAction: TextInputAction.next,
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 16),
+
+          NdcTextField(
+            label: 'Party Position Held',
+            hint: 'Optional — e.g. Branch Secretary',
+            icon: PhosphorIconsRegular.medal,
+            controller: _partyPosition,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) {},
+          ),
+          const SizedBox(height: 16),
+
+          NdcTextField(
+            label: 'Previously a Member of Another Party?',
+            hint: 'Optional — name of party',
+            icon: PhosphorIconsRegular.flag,
+            controller: _otherParty,
+            textInputAction: TextInputAction.done,
             onChanged: (_) {},
           ),
           const SizedBox(height: 16),
@@ -890,16 +942,16 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.ndcGreen : AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    color: selected ? AppColors.canopyGreen : AppColors.fillMuted,
+                    borderRadius: AppRadii.borderPill,
                     border: Border.all(
-                      color: selected ? AppColors.ndcGreen : AppColors.border,
+                      color: selected ? AppColors.canopyGreen : AppColors.hairline,
                     ),
                   ),
                   child: Text(
                     skill,
                     style: AppTextStyles.small(
-                      color: selected ? AppColors.ndcWhite : AppColors.textSecondary,
+                      color: selected ? AppColors.surface : AppColors.mist,
                     ),
                   ),
                 ),
@@ -915,6 +967,8 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
                 membershipType: _membershipType,
                 preferredRole: _preferredRole,
                 profession: _profession.text.trim().isEmpty ? null : _profession.text.trim(),
+                partyPosition: _partyPosition.text.trim().isEmpty ? null : _partyPosition.text.trim(),
+                otherParty: _otherParty.text.trim().isEmpty ? null : _otherParty.text.trim(),
                 employmentStatus: _employmentStatus,
                 highestQualification: _highestQualification,
                 skills: _skills,
@@ -1023,7 +1077,7 @@ class _PhotoPicker extends StatelessWidget {
           Stack(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadii.borderMd,
                 child: Image.file(
                   File(localPath!),
                   height: 180,
@@ -1040,10 +1094,10 @@ class _PhotoPicker extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.ndcBlack.withValues(alpha: 0.7),
+                      color: AppColors.ink.withValues(alpha: 0.7),
                       shape: BoxShape.circle,
                     ),
-                    child: const PhosphorIcon(PhosphorIconsFill.trash, size: 16, color: AppColors.ndcWhite),
+                    child: const PhosphorIcon(PhosphorIconsFill.trash, size: 16, color: AppColors.surface),
                   ),
                 ),
               ),
@@ -1059,7 +1113,7 @@ class _PhotoPicker extends StatelessWidget {
                 label: 'Camera',
                 variant: NdcButtonVariant.secondary,
                 loading: picking,
-                icon: const PhosphorIcon(PhosphorIconsFill.camera, size: 16, color: AppColors.ndcGreen),
+                icon: const PhosphorIcon(PhosphorIconsFill.camera, size: 16, color: AppColors.canopyGreen),
                 onPressed: onCamera,
               ),
             ),
@@ -1068,7 +1122,7 @@ class _PhotoPicker extends StatelessWidget {
               child: NdcButton(
                 label: 'Gallery',
                 variant: NdcButtonVariant.secondary,
-                icon: const PhosphorIcon(PhosphorIconsFill.image, size: 16, color: AppColors.ndcGreen),
+                icon: const PhosphorIcon(PhosphorIconsFill.image, size: 16, color: AppColors.canopyGreen),
                 onPressed: onGallery,
               ),
             ),
@@ -1082,9 +1136,9 @@ class _PhotoPicker extends StatelessWidget {
     return Container(
       height: 140,
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+        color: AppColors.fillMuted,
+        borderRadius: AppRadii.borderMd,
+        border: Border.all(color: AppColors.hairline, style: BorderStyle.solid),
       ),
       child: const Center(
         child: Column(
@@ -1112,8 +1166,8 @@ class _ReviewSummary extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadii.borderMd,
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1130,8 +1184,12 @@ class _ReviewSummary extends StatelessWidget {
           if (data.districtName != null) _Row('District', data.districtName!),
           if (data.constituencyName != null) _Row('Constituency', data.constituencyName!),
           if (data.pollingStationName != null) _Row('Polling Station', data.pollingStationName!),
+          if (data.residentialAddress != null) _Row('Address', data.residentialAddress!),
+          if (data.residenceTown != null) _Row('Town', data.residenceTown!),
           if (data.membershipType != null) _Row('Membership', data.membershipType!.replaceAll('_', ' ')),
           if (data.preferredRole != null) _Row('Preferred Role', data.preferredRole!),
+          if (data.partyPosition != null) _Row('Party Position', data.partyPosition!),
+          if (data.otherParty != null) _Row('Previous Party', data.otherParty!),
           if (data.skills.isNotEmpty) _Row('Skills', data.skills.join(', ')),
         ],
       ),
@@ -1263,16 +1321,75 @@ class _AsyncDropdown<T> extends ConsumerWidget {
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
-        color: AppColors.surfaceVariant,
+        border: Border.all(color: AppColors.hairline),
+        borderRadius: AppRadii.borderSm,
+        color: AppColors.fillMuted,
       ),
       child: Row(
         children: [
-          PhosphorIcon(icon, size: 20, color: AppColors.textMuted),
+          PhosphorIcon(icon, size: 20, color: AppColors.mist),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: AppTextStyles.bodyLarge(color: AppColors.textMuted))),
+          Expanded(child: Text(text, style: AppTextStyles.bodyLarge(color: AppColors.mist))),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Gender segmented control ─────────────────────────────────────────────────
+
+class _GenderSegment extends StatelessWidget {
+  final String? value;
+  final void Function(String) onChanged;
+  const _GenderSegment({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _GenderPill(
+          label: 'Male',
+          selected: value == 'male',
+          onTap: () => onChanged('male'),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        _GenderPill(
+          label: 'Female',
+          selected: value == 'female',
+          onTap: () => onChanged('female'),
+        ),
+      ],
+    );
+  }
+}
+
+class _GenderPill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _GenderPill({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.canopyGreen : AppColors.fillMuted,
+          borderRadius: AppRadii.borderPill,
+          border: Border.all(
+            color: selected ? AppColors.canopyGreen : AppColors.hairline,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.label(
+            color: selected ? AppColors.surface : AppColors.mist,
+          ),
+        ),
       ),
     );
   }

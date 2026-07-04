@@ -6,6 +6,7 @@ import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -18,30 +19,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _textController;
-  late AnimationController _stripeController;
+  late AnimationController _arcController;
 
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<Offset> _wordmarkSlide;
   late Animation<double> _wordmarkOpacity;
-  late Animation<double> _stripeWidth;
+  late Animation<double> _arcOpacity;
 
   @override
   void initState() {
     super.initState();
 
-    _logoController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _textController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _stripeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
+    _logoController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _textController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _arcController  = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
 
     _logoScale = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
@@ -49,27 +41,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
     );
-    _wordmarkSlide = Tween<Offset>(
-      begin: const Offset(0, 0.4),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
+    _wordmarkSlide = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero).animate(
+      CurvedAnimation(parent: _textController, curve: Curves.easeOut),
+    );
     _wordmarkOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _textController, curve: Curves.easeOut),
     );
-    _stripeWidth = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _stripeController, curve: Curves.easeOut),
+    _arcOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _arcController, curve: Curves.easeOut),
     );
 
     _runSequence();
   }
 
   Future<void> _runSequence() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 200));
+    _arcController.forward();
+    await Future.delayed(const Duration(milliseconds: 150));
     await _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 100));
     await _textController.forward();
-    await _stripeController.forward();
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 700));
     _navigate();
   }
 
@@ -79,13 +71,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) context.go('/login');
       return;
     }
-    // Session exists — invalidate so we get a fresh lookup, not cached null
     ref.invalidate(appUserProvider);
     ref.read(appUserProvider.future).then((user) {
       if (!mounted) return;
-      if (user == null) {
-        context.go('/pending-approval');
-      } else if (!user.isActive) {
+      if (user == null || !user.isActive) {
         context.go('/pending-approval');
       } else {
         switch (user.role) {
@@ -106,24 +95,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void dispose() {
     _logoController.dispose();
     _textController.dispose();
-    _stripeController.dispose();
+    _arcController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.ndcGreen,
+      backgroundColor: AppColors.canopyGreen,
       body: Stack(
         children: [
-          // Background texture — subtle Ghana flag brushstroke
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.04,
-              child: Image.asset(
-                Assets.ghanaFlag,
-                fit: BoxFit.cover,
-              ),
+          // Canopy arc at top — the signature brand device
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: FadeTransition(
+              opacity: _arcOpacity,
+              child: const CanopyArc(height: 6),
             ),
           ),
 
@@ -132,21 +119,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // NDC Umbrella logo
+                // NDC Umbrella in a white circle
                 ScaleTransition(
                   scale: _logoScale,
                   child: FadeTransition(
                     opacity: _logoOpacity,
-                    child: Image.asset(
-                      Assets.ndcUmbrella,
-                      width: 100,
-                      height: 100,
+                    child: Container(
+                      width: 108,
+                      height: 108,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Image.asset(Assets.ndcUmbrella),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-                // VANGUARD wordmark
+                // Wordmark
                 SlideTransition(
                   position: _wordmarkSlide,
                   child: FadeTransition(
@@ -155,15 +156,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       children: [
                         Text(
                           'VANGUARD',
-                          style: AppTextStyles.displayLarge(
-                            color: AppColors.ndcWhite,
-                          ).copyWith(letterSpacing: 6),
+                          style: AppTextStyles.displayLarge(color: AppColors.surface)
+                              .copyWith(letterSpacing: 6),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          'NDC Member Registry',
-                          style: AppTextStyles.bodyMedium(
-                            color: AppColors.ndcWhite.withValues(alpha: 0.75),
+                          'Membership Registry',
+                          style: AppTextStyles.body(
+                            color: AppColors.surface.withValues(alpha: 0.70),
                           ),
                         ),
                       ],
@@ -173,42 +173,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ],
             ),
           ),
-
-          // NDC flag stripe at the bottom
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedBuilder(
-              animation: _stripeWidth,
-              builder: (_, __) => Align(
-                alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: _stripeWidth.value,
-                  child: const _FlagStripeBar(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FlagStripeBar extends StatelessWidget {
-  const _FlagStripeBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 6,
-      child: Row(
-        children: [
-          Expanded(child: ColoredBox(color: AppColors.ndcBlack)),
-          Expanded(child: ColoredBox(color: AppColors.ndcRed)),
-          Expanded(child: ColoredBox(color: AppColors.ndcWhite)),
-          Expanded(child: ColoredBox(color: AppColors.ndcGreen.withValues(alpha: 0.5))),
         ],
       ),
     );

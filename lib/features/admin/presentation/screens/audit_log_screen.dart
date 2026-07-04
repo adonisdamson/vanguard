@@ -4,9 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../data/audit_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 
 const _kActions = [
@@ -67,24 +71,24 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcBlack,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Audit Log', style: AppTextStyles.appBarTitle()),
+        title: Text('Audit log', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.ndcWhite, size: 20),
+            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.surface, size: 20),
             onPressed: () => _loadPage(0),
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       body: Column(
@@ -115,7 +119,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              color: AppColors.ndcGreen,
+              color: AppColors.canopyGreen,
               onRefresh: () => _loadPage(0),
               child: _buildBody(),
             ),
@@ -150,7 +154,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
         ),
       );
     }
-    if (_items.isEmpty) return const _EmptyLog();
+    if (_items.isEmpty) return const EmptyState(icon: PhosphorIconsRegular.scroll, title: 'No audit events', subtitle: 'System activity will appear here as operators use the app.');
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -179,10 +183,10 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppColors.ndcGreen : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? AppColors.canopyGreen : AppColors.fillMuted,
+          borderRadius: AppRadii.borderPill,
         ),
-        child: Text(label, style: AppTextStyles.small(color: selected ? AppColors.ndcWhite : AppColors.textSecondary)),
+        child: Text(label, style: AppTextStyles.small(color: selected ? AppColors.surface : AppColors.mist)),
       ),
     );
   }
@@ -196,19 +200,20 @@ class _AuditTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, color) = _iconForAction(entry.action);
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 36, height: 36,
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: AppRadii.borderSm),
             child: PhosphorIcon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 12),
@@ -247,13 +252,13 @@ class _AuditTile extends StatelessWidget {
 
   (IconData, Color) _iconForAction(String action) {
     switch (action) {
-      case 'member_created': return (PhosphorIconsFill.userPlus, AppColors.ndcGreen);
-      case 'member_status_changed': return (PhosphorIconsFill.arrowsLeftRight, AppColors.ndcGold);
-      case 'member_updated': return (PhosphorIconsFill.pencilSimple, AppColors.textSecondary);
-      case 'operator_created': return (PhosphorIconsFill.userCirclePlus, AppColors.ndcGreen);
-      case 'role_changed': return (PhosphorIconsFill.shieldStar, AppColors.ndcGold);
-      case 'account_status_changed': return (PhosphorIconsFill.prohibit, AppColors.ndcRed);
-      default: return (PhosphorIconsFill.clockCounterClockwise, AppColors.textMuted);
+      case 'member_created': return (PhosphorIconsRegular.userPlus, AppColors.canopyGreen);
+      case 'member_status_changed': return (PhosphorIconsRegular.arrowsLeftRight, AppColors.statusPending);
+      case 'member_updated': return (PhosphorIconsRegular.pencilSimple, AppColors.mist);
+      case 'operator_created': return (PhosphorIconsRegular.userCirclePlus, AppColors.canopyGreen);
+      case 'role_changed': return (PhosphorIconsRegular.shieldStar, AppColors.statusPending);
+      case 'account_status_changed': return (PhosphorIconsRegular.prohibit, AppColors.umbrellaRed);
+      default: return (PhosphorIconsRegular.clockCounterClockwise, AppColors.mist);
     }
   }
 }
@@ -276,26 +281,6 @@ class _MetadataLine extends StatelessWidget {
   }
 }
 
-class _EmptyLog extends StatelessWidget {
-  const _EmptyLog();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const PhosphorIcon(PhosphorIconsRegular.scroll, size: 48, color: AppColors.textMuted),
-          const SizedBox(height: 16),
-          Text('No audit events', style: AppTextStyles.h3()),
-          const SizedBox(height: 8),
-          Text('System activity will appear here as operators use the app.',
-              style: AppTextStyles.body(color: AppColors.textSecondary), textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-}
 
 String _actionLabel(String action) {
   switch (action) {

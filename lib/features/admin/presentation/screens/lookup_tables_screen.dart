@@ -6,8 +6,13 @@ import '../../application/lookup_admin_providers.dart';
 import '../../data/lookup_admin_repository.dart';
 import '../../../../features/members/data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
+import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../../shared/widgets/app_tab_bar.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 
 class LookupTablesScreen extends ConsumerStatefulWidget {
@@ -36,32 +41,24 @@ class _LookupTablesScreenState extends ConsumerState<LookupTablesScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcBlack,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Lookup Tables', style: AppTextStyles.appBarTitle()),
+        title: Text('Lookup tables', style: AppTextStyles.appBarTitle()),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const NdcFlagStripe(height: 4),
-              TabBar(
+              const CanopyStripe(height: 4),
+              AppTabBar(
                 controller: _tabs,
-                indicatorColor: AppColors.ndcGold,
-                labelColor: AppColors.ndcWhite,
-                unselectedLabelColor: AppColors.ndcWhite.withValues(alpha: 0.5),
-                labelStyle: AppTextStyles.small(color: AppColors.ndcWhite),
-                tabs: const [
-                  Tab(text: 'Regions'),
-                  Tab(text: 'Districts'),
-                  Tab(text: 'Const.'),
-                  Tab(text: 'Polling'),
-                ],
+                tabs: const ['Regions', 'Districts', 'Const.', 'Polling'],
               ),
             ],
           ),
@@ -90,13 +87,14 @@ class _RegionsTab extends ConsumerWidget {
     final regionsAsync = ref.watch(allRegionsProvider);
     return _LookupList<Region>(
       title: 'Region',
+      emptyState: const EmptyState.noRegions(),
       itemsAsync: regionsAsync,
       nameOf: (r) => r.name,
-      onAdd: () => _showDialog(context, 'Add Region', null, (name) async {
+      onAdd: () => _showDialog(context, 'Add region', null, (name) async {
         await LookupAdminRepository().createRegion(name);
         ref.invalidate(allRegionsProvider);
       }),
-      onEdit: (r) => _showDialog(context, 'Edit Region', r.name, (name) async {
+      onEdit: (r) => _showDialog(context, 'Edit region', r.name, (name) async {
         await LookupAdminRepository().updateRegion(r.id, name);
         ref.invalidate(allRegionsProvider);
       }),
@@ -122,7 +120,7 @@ class _DistrictsTab extends ConsumerWidget {
     return Column(
       children: [
         _ParentFilter<Region>(
-          label: 'Filter by Region',
+          label: 'Filter by region',
           itemsAsync: regionsAsync,
           selectedId: selectedRegionId,
           nameOf: (r) => r.name,
@@ -135,15 +133,18 @@ class _DistrictsTab extends ConsumerWidget {
         Expanded(
           child: _LookupList<District>(
             title: 'District',
+            emptyState: const EmptyState(
+              icon: PhosphorIconsRegular.buildings,
+              title: 'No districts',
+              subtitle: 'Select a region above, then add districts beneath it.',
+            ),
             itemsAsync: districtsAsync,
             nameOf: (d) => d.name,
-            onAdd: selectedRegionId == null
-                ? null
-                : () => _showDialog(context, 'Add District', null, (name) async {
-                      await LookupAdminRepository().createDistrict(selectedRegionId, name);
-                      ref.invalidate(adminDistrictsProvider);
-                    }),
-            onEdit: (d) => _showDialog(context, 'Edit District', d.name, (name) async {
+            onAdd: selectedRegionId == null ? null : () => _showDialog(context, 'Add district', null, (name) async {
+              await LookupAdminRepository().createDistrict(selectedRegionId, name);
+              ref.invalidate(adminDistrictsProvider);
+            }),
+            onEdit: (d) => _showDialog(context, 'Edit district', d.name, (name) async {
               await LookupAdminRepository().updateDistrict(d.id, name);
               ref.invalidate(adminDistrictsProvider);
             }),
@@ -151,7 +152,6 @@ class _DistrictsTab extends ConsumerWidget {
               await LookupAdminRepository().deleteDistrict(d.id);
               ref.invalidate(adminDistrictsProvider);
             }),
-            emptyHint: selectedRegionId == null ? 'Select a region above first.' : null,
           ),
         ),
       ],
@@ -173,7 +173,7 @@ class _ConstituenciesTab extends ConsumerWidget {
     return Column(
       children: [
         _ParentFilter<District>(
-          label: 'Filter by District',
+          label: 'Filter by district',
           itemsAsync: districtsAsync,
           selectedId: selectedDistrictId,
           nameOf: (d) => d.name,
@@ -186,15 +186,18 @@ class _ConstituenciesTab extends ConsumerWidget {
         Expanded(
           child: _LookupList<Constituency>(
             title: 'Constituency',
+            emptyState: const EmptyState(
+              icon: PhosphorIconsRegular.mapPin,
+              title: 'No constituencies',
+              subtitle: 'Select a district above, then add constituencies beneath it.',
+            ),
             itemsAsync: constituenciesAsync,
             nameOf: (c) => c.name,
-            onAdd: selectedDistrictId == null
-                ? null
-                : () => _showDialog(context, 'Add Constituency', null, (name) async {
-                      await LookupAdminRepository().createConstituency(selectedDistrictId, name);
-                      ref.invalidate(adminConstituenciesProvider);
-                    }),
-            onEdit: (c) => _showDialog(context, 'Edit Constituency', c.name, (name) async {
+            onAdd: selectedDistrictId == null ? null : () => _showDialog(context, 'Add constituency', null, (name) async {
+              await LookupAdminRepository().createConstituency(selectedDistrictId, name);
+              ref.invalidate(adminConstituenciesProvider);
+            }),
+            onEdit: (c) => _showDialog(context, 'Edit constituency', c.name, (name) async {
               await LookupAdminRepository().updateConstituency(c.id, name);
               ref.invalidate(adminConstituenciesProvider);
             }),
@@ -202,7 +205,6 @@ class _ConstituenciesTab extends ConsumerWidget {
               await LookupAdminRepository().deleteConstituency(c.id);
               ref.invalidate(adminConstituenciesProvider);
             }),
-            emptyHint: selectedDistrictId == null ? 'Select a district above first.' : null,
           ),
         ),
       ],
@@ -224,7 +226,7 @@ class _PollingStationsTab extends ConsumerWidget {
     return Column(
       children: [
         _ParentFilter<Constituency>(
-          label: 'Filter by Constituency',
+          label: 'Filter by constituency',
           itemsAsync: constituenciesAsync,
           selectedId: selectedConstituencyId,
           nameOf: (c) => c.name,
@@ -236,16 +238,15 @@ class _PollingStationsTab extends ConsumerWidget {
         ),
         Expanded(
           child: _LookupList<PollingStation>(
-            title: 'Polling Station',
+            title: 'Polling station',
+            emptyState: const EmptyState.chooseConstituency(),
             itemsAsync: stationsAsync,
             nameOf: (p) => p.name,
-            onAdd: selectedConstituencyId == null
-                ? null
-                : () => _showDialog(context, 'Add Polling Station', null, (name) async {
-                      await LookupAdminRepository().createPollingStation(selectedConstituencyId, name);
-                      ref.invalidate(adminPollingStationsProvider);
-                    }),
-            onEdit: (p) => _showDialog(context, 'Edit Polling Station', p.name, (name) async {
+            onAdd: selectedConstituencyId == null ? null : () => _showDialog(context, 'Add polling station', null, (name) async {
+              await LookupAdminRepository().createPollingStation(selectedConstituencyId, name);
+              ref.invalidate(adminPollingStationsProvider);
+            }),
+            onEdit: (p) => _showDialog(context, 'Edit polling station', p.name, (name) async {
               await LookupAdminRepository().updatePollingStation(p.id, name);
               ref.invalidate(adminPollingStationsProvider);
             }),
@@ -253,7 +254,6 @@ class _PollingStationsTab extends ConsumerWidget {
               await LookupAdminRepository().deletePollingStation(p.id);
               ref.invalidate(adminPollingStationsProvider);
             }),
-            emptyHint: selectedConstituencyId == null ? 'Select a constituency above first.' : null,
           ),
         ),
       ],
@@ -261,7 +261,7 @@ class _PollingStationsTab extends ConsumerWidget {
   }
 }
 
-// ─── Shared Widgets ───────────────────────────────────────────────────────────
+// ─── Shared widgets ───────────────────────────────────────────────────────────
 
 class _ParentFilter<T> extends StatelessWidget {
   final String label;
@@ -284,12 +284,21 @@ class _ParentFilter<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH, vertical: AppSpacing.sm),
       child: itemsAsync.when(
         data: (items) => DropdownButtonFormField<int>(
           value: selectedId,
-          hint: Text(label, style: AppTextStyles.body(color: AppColors.textMuted)),
-          decoration: const InputDecoration(isDense: true),
+          hint: Text(label, style: AppTextStyles.body(color: AppColors.mist)),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.fillMuted,
+            border: OutlineInputBorder(
+              borderRadius: AppRadii.borderSm,
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
           items: [
             const DropdownMenuItem<int>(value: null, child: Text('All')),
             ...items.map((item) => DropdownMenuItem<int>(
@@ -299,7 +308,7 @@ class _ParentFilter<T> extends StatelessWidget {
           ],
           onChanged: onChanged,
         ),
-        loading: () => const LinearProgressIndicator(color: AppColors.ndcGreen),
+        loading: () => const LinearProgressIndicator(color: AppColors.canopyGreen),
         error: (_, __) => Text('Failed to load', style: AppTextStyles.small()),
       ),
     );
@@ -308,53 +317,43 @@ class _ParentFilter<T> extends StatelessWidget {
 
 class _LookupList<T> extends StatelessWidget {
   final String title;
+  final EmptyState emptyState;
   final AsyncValue<List<T>> itemsAsync;
   final String Function(T) nameOf;
   final VoidCallback? onAdd;
   final void Function(T) onEdit;
   final void Function(T) onDelete;
-  final String? emptyHint;
 
   const _LookupList({
     required this.title,
+    required this.emptyState,
     required this.itemsAsync,
     required this.nameOf,
-    required this.onAdd,
+    this.onAdd,
     required this.onEdit,
     required this.onDelete,
-    this.emptyHint,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       floatingActionButton: onAdd != null
           ? FloatingActionButton(
               mini: true,
-              backgroundColor: AppColors.ndcGreen,
+              backgroundColor: AppColors.canopyGreen,
               onPressed: onAdd,
-              child: const PhosphorIcon(PhosphorIconsFill.plus, color: AppColors.ndcWhite, size: 20),
+              child: const PhosphorIcon(PhosphorIconsRegular.plus, color: AppColors.surface, size: 20),
             )
           : null,
       body: itemsAsync.when(
         data: (items) => items.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const PhosphorIcon(PhosphorIconsRegular.mapPin, size: 40, color: AppColors.textMuted),
-                    const SizedBox(height: 12),
-                    Text('No ${title}s', style: AppTextStyles.h3()),
-                    if (emptyHint != null) ...[
-                      const SizedBox(height: 8),
-                      Text(emptyHint!, style: AppTextStyles.body(color: AppColors.textSecondary), textAlign: TextAlign.center),
-                    ],
-                  ],
-                ),
-              )
+            ? emptyState
             : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenH, AppSpacing.base,
+                  AppSpacing.screenH, 100,
+                ),
                 itemCount: items.length,
                 itemBuilder: (_, i) => _LookupTile(
                   name: nameOf(items[i]),
@@ -363,14 +362,16 @@ class _LookupList<T> extends StatelessWidget {
                 ),
               ),
         loading: () => ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.base),
           itemCount: 5,
           itemBuilder: (_, __) => const Padding(
-            padding: EdgeInsets.only(bottom: 8),
-            child: SkeletonLoader(height: 52, borderRadius: BorderRadius.all(Radius.circular(8))),
+            padding: EdgeInsets.only(bottom: AppSpacing.sm),
+            child: SkeletonLoader(height: 52, borderRadius: AppRadii.borderSm),
           ),
         ),
-        error: (e, _) => Center(child: Text('Error: $e', style: AppTextStyles.body(color: AppColors.ndcRed))),
+        error: (e, _) => Center(
+          child: Text('Error: $e', style: AppTextStyles.body(color: AppColors.umbrellaRed)),
+        ),
       ),
     );
   }
@@ -386,31 +387,32 @@ class _LookupTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline, width: 1),
       ),
-      child: ListTile(
-        dense: true,
-        leading: const PhosphorIcon(PhosphorIconsFill.mapPin, size: 18, color: AppColors.ndcGreen),
-        title: Text(name, style: AppTextStyles.body()),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.sm),
+        child: Row(
           children: [
+            const PhosphorIcon(PhosphorIconsRegular.mapPin, size: 18, color: AppColors.canopyGreen),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: Text(name, style: AppTextStyles.body())),
             IconButton(
-              icon: const PhosphorIcon(PhosphorIconsFill.pencilSimple, size: 16, color: AppColors.textSecondary),
+              icon: const PhosphorIcon(PhosphorIconsRegular.pencilSimple, size: 16, color: AppColors.mist),
               onPressed: onEdit,
               tooltip: 'Edit',
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
             ),
             IconButton(
-              icon: const PhosphorIcon(PhosphorIconsFill.trash, size: 16, color: AppColors.ndcRed),
+              icon: const PhosphorIcon(PhosphorIconsRegular.trash, size: 16, color: AppColors.umbrellaRed),
               onPressed: onDelete,
               tooltip: 'Delete',
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
             ),
           ],
@@ -435,6 +437,7 @@ Future<void> _showDialog(
     context: context,
     builder: (_) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
         title: Text(title, style: AppTextStyles.h3()),
         content: TextField(
           controller: ctrl,
@@ -445,24 +448,20 @@ Future<void> _showDialog(
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
-            onPressed: saving
-                ? null
-                : () async {
-                    if (ctrl.text.trim().isEmpty) return;
-                    setState(() => saving = true);
-                    try {
-                      await onSave(ctrl.text.trim());
-                      if (ctx.mounted) Navigator.pop(ctx);
-                    } catch (e) {
-                      setState(() => saving = false);
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
-                      }
-                    }
-                  },
+            onPressed: saving ? null : () async {
+              if (ctrl.text.trim().isEmpty) return;
+              setState(() => saving = true);
+              try {
+                await onSave(ctrl.text.trim());
+                if (ctx.mounted) Navigator.pop(ctx);
+              } catch (e) {
+                setState(() => saving = false);
+                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
             child: saving
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Save'),
+                : Text('Save', style: TextStyle(color: AppColors.canopyGreen)),
           ),
         ],
       ),
@@ -471,31 +470,33 @@ Future<void> _showDialog(
   ctrl.dispose();
 }
 
-Future<void> _confirmDelete(BuildContext context, String name, Future<void> Function() onConfirm) async {
+Future<void> _confirmDelete(
+  BuildContext context,
+  String name,
+  Future<void> Function() onConfirm,
+) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
       title: Text('Delete "$name"?', style: AppTextStyles.h3()),
       content: Text(
-        'This will fail if any members are linked to this location. Unlink them first.',
+        'This will fail if members are linked to this location. Unlink them first.',
         style: AppTextStyles.body(),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          child: Text('Delete', style: TextStyle(color: AppColors.ndcRed)),
+          child: Text('Delete', style: const TextStyle(color: AppColors.umbrellaRed)),
         ),
       ],
     ),
   );
-
   if (confirmed != true || !context.mounted) return;
   try {
     await onConfirm();
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
   }
 }

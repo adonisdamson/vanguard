@@ -7,9 +7,11 @@ import '../../application/offline_queue.dart';
 import '../../data/member_repository.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/canopy_arc.dart';
+import '../../../../shared/widgets/filter_chip_bar.dart';
 import '../../../../shared/widgets/load_more_button.dart';
-import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../widgets/member_list_tile.dart';
 
@@ -82,10 +84,10 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
     ref.invalidate(myStatsProvider);
     await _refresh();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: AppColors.ndcGreen,
+      backgroundColor: AppColors.canopyGreen,
       content: Text(
         synced > 0 ? 'Synced $synced registration${synced == 1 ? '' : 's'}.' : 'Sync failed — check connection.',
-        style: AppTextStyles.body(color: AppColors.ndcWhite),
+        style: AppTextStyles.body(color: AppColors.surface),
       ),
     ));
   }
@@ -98,32 +100,32 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
     ref.listen(submissionsFilterProvider, (_, __) => _loadPage(0));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.ndcGreen,
+        backgroundColor: AppColors.deepCanopy,
         elevation: 0,
         leading: IconButton(
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.ndcWhite, size: 22),
+          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('My Submissions', style: AppTextStyles.appBarTitle()),
+        title: Text('My submissions', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.ndcWhite, size: 20),
+            icon: const PhosphorIcon(PhosphorIconsRegular.cloudArrowUp, color: AppColors.surface, size: 20),
             onPressed: _syncOfflineQueue,
             tooltip: 'Sync offline',
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(4),
-          child: NdcFlagStripe(height: 4),
+          child: CanopyStripe(height: 4),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.ndcGreen,
-        foregroundColor: AppColors.ndcWhite,
+        backgroundColor: AppColors.canopyGreen,
+        foregroundColor: AppColors.surface,
         icon: const PhosphorIcon(PhosphorIconsFill.userPlus, size: 20),
-        label: Text('Register', style: AppTextStyles.bodyMedium(color: AppColors.ndcWhite)),
+        label: Text('Register', style: AppTextStyles.bodyMedium(color: AppColors.surface)),
         onPressed: () => context.push('/register-member'),
       ),
       body: Column(
@@ -132,7 +134,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
           _FilterTabs(selectedFilter: filter),
           Expanded(
             child: RefreshIndicator(
-              color: AppColors.ndcGreen,
+              color: AppColors.canopyGreen,
               onRefresh: _refresh,
               child: _buildBody(),
             ),
@@ -181,36 +183,18 @@ class _FilterTabs extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const filters = [('all', 'All'), ('pending', 'Pending'), ('active', 'Approved'), ('rejected', 'Rejected')];
-
     return Container(
       color: AppColors.surface,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: filters.map(((String value, String label) tab) {
-            final isSelected = selectedFilter == tab.$1;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => ref.read(submissionsFilterProvider.notifier).state = tab.$1,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.ndcGreen : AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    tab.$2,
-                    style: AppTextStyles.small(color: isSelected ? AppColors.ndcWhite : AppColors.textSecondary),
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH, vertical: AppSpacing.sm),
+      child: FilterChipBar<String>(
+        chips: const [
+          (value: 'all',      label: 'All'),
+          (value: 'pending',  label: 'Pending'),
+          (value: 'active',   label: 'Approved'),
+          (value: 'rejected', label: 'Rejected'),
+        ],
+        selected: selectedFilter,
+        onSelected: (v) => ref.read(submissionsFilterProvider.notifier).state = v,
       ),
     );
   }

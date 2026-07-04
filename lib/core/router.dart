@@ -5,6 +5,7 @@ import '../features/auth/application/auth_provider.dart';
 import '../features/auth/application/user_role_provider.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/pending_approval_screen.dart';
 import '../features/members/presentation/screens/personnel_home_screen.dart';
@@ -32,7 +33,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (location == '/') return null;
 
-      const publicRoutes = {'/login', '/forgot-password'};
+      const publicRoutes = {'/login', '/signup', '/forgot-password'};
 
       if (session == null) {
         if (publicRoutes.contains(location)) return null;
@@ -51,6 +52,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/signup', builder: (_, __) => const SignUpScreen()),
       GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/pending-approval', builder: (_, __) => const PendingApprovalScreen()),
 

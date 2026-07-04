@@ -26,6 +26,24 @@ class AuthService {
     await _supabase.auth.signInWithPassword(email: email, password: password);
   }
 
+  Future<void> signUp({
+    required String fullName,
+    required String email,
+    required String password,
+    String? requestedRole,
+  }) async {
+    final res = await _supabase.auth.signUp(
+      email: email,
+      password: password,
+      data: {
+        'full_name': fullName,
+        if (requestedRole != null) 'requested_role': requestedRole,
+      },
+    );
+    if (res.user == null) throw Exception('Sign-up failed. Please try again.');
+    // handle_new_user trigger auto-creates the app_users row (pending, roleless)
+  }
+
   Future<void> signInWithGoogle() async {
     final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) throw Exception('Google sign-in cancelled');

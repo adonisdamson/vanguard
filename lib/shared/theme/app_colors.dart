@@ -1,47 +1,59 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // NDC brand
-  static const ndcGreen = Color(0xFF006B3F);
-  static const ndcRed = Color(0xFFCE1126);
-  static const ndcBlack = Color(0xFF1A1A1A);
-  static const ndcWhite = Color(0xFFFFFFFF);
-  static const ndcGold = Color(0xFFFFCC00);
+  // ── Primary palette (PRD token names) ─────────────────────────────────────
+  static const canopyGreen = Color(0xFF006B3F); // primary actions, brand
+  static const deepCanopy  = Color(0xFF00341E); // app bars, dark surfaces
+  static const umbrellaRed = Color(0xFFCE1126); // destructive, alerts (sparing)
+  static const paper       = Color(0xFFFBFBF8); // warm app background
+  static const ink         = Color(0xFF12211A); // primary text (green-tinted near-black)
+  static const mist        = Color(0xFF647169); // secondary text, labels
 
-  // Tints
-  static const greenLight = Color(0xFFE6F4EE);
-  static const greenMid = Color(0xFF338C65);
-  static const redLight = Color(0xFFFCE8EB);
+  // ── Surface & structural neutrals ─────────────────────────────────────────
+  static const surface      = Color(0xFFFFFFFF); // card backgrounds
+  static const hairline     = Color(0xFFE7EAE8); // dividers, rest borders
+  static const fillMuted    = Color(0xFFF1F3F1); // chip/idle fills
 
-  // Surfaces
-  static const background = Color(0xFFF4F6F5);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceVariant = Color(0xFFEFF3F1);
+  // ── Status tints ──────────────────────────────────────────────────────────
+  static const greenTint = Color(0xFFE8F2EC);
+  static const redTint   = Color(0xFFFBE9EB);
+  static const amberTint = Color(0xFFFCF3E2);
 
-  // Text
-  static const textPrimary = Color(0xFF1A1A1A);
-  static const textSecondary = Color(0xFF4A5568);
-  static const textMuted = Color(0xFF718096);
-  static const textOnGreen = Color(0xFFFFFFFF);
+  // ── Status semantic colors ─────────────────────────────────────────────────
+  static const statusPending   = Color(0xFFB7791F); // amber
+  static const statusActive    = canopyGreen;
+  static const statusRejected  = umbrellaRed;
+  static const statusSuspended = mist;
 
-  // Borders & dividers
-  static const border = Color(0xFFD1D9D5);
-  static const divider = Color(0xFFE8EDEA);
+  static const pendingBg   = amberTint;
+  static const activeBg    = greenTint;
+  static const rejectedBg  = redTint;
+  static const suspendedBg = fillMuted;
 
-  // Status
-  static const statusPending = Color(0xFFF5A623);
-  static const statusActive = Color(0xFF006B3F);
-  static const statusRejected = Color(0xFFCE1126);
-  static const statusSuspended = Color(0xFF718096);
-
-  static const pendingBg = Color(0xFFFFF8EC);
-  static const activeBg = Color(0xFFE6F4EE);
-  static const rejectedBg = Color(0xFFFCE8EB);
-  static const suspendedBg = Color(0xFFF2F4F7);
-
-  // NDC flag stripe colors (top-to-bottom order)
+  // ── NDC flag stripe colors ─────────────────────────────────────────────────
   static const stripeBlack = Color(0xFF1A1A1A);
-  static const stripeRed = Color(0xFFCE1126);
-  static const stripeWhite = Color(0xFFFFFFFF);
-  static const stripeGreen = Color(0xFF006B3F);
+  static const stripeRed   = umbrellaRed;
+  static const stripeWhite = surface;
+  static const stripeGreen = canopyGreen;
+
+  // ── Legacy aliases (kept for files not yet migrated) ──────────────────────
+  static const ndcGreen     = canopyGreen;
+  static const ndcRed       = umbrellaRed;
+  static const ndcBlack     = Color(0xFF1A1A1A);
+  static const ndcWhite     = Color(0xFFFFFFFF);
+  static const ndcGold      = Color(0xFFFFCC00);
+
+  static const background      = paper;
+  static const surfaceVariant  = fillMuted;
+  static const border          = hairline;
+  static const divider         = hairline;
+
+  static const textPrimary   = ink;
+  static const textSecondary = mist;
+  static const textMuted     = mist;
+  static const textOnGreen   = Color(0xFFFFFFFF);
+
+  static const greenLight = greenTint;
+  static const greenMid   = Color(0xFF338C65);
+  static const redLight   = redTint;
 }

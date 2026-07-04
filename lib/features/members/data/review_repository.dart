@@ -24,6 +24,10 @@ class MemberDetail {
   final String? photoPath;
   final String status;
   final String? rejectionReason;
+  final String? residentialAddress;
+  final String? residenceTown;
+  final String? partyPosition;
+  final String? otherParty;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -51,6 +55,10 @@ class MemberDetail {
     this.photoPath,
     required this.status,
     this.rejectionReason,
+    this.residentialAddress,
+    this.residenceTown,
+    this.partyPosition,
+    this.otherParty,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -82,6 +90,10 @@ class MemberDetail {
       photoPath: m['photo_path'] as String?,
       status: m['status'] as String,
       rejectionReason: m['rejection_reason'] as String?,
+      residentialAddress: m['residential_address'] as String?,
+      residenceTown: m['residence_town'] as String?,
+      partyPosition: m['party_position'] as String?,
+      otherParty: m['other_party'] as String?,
       createdAt: DateTime.parse(m['created_at'] as String),
       updatedAt: DateTime.parse(m['updated_at'] as String),
     );

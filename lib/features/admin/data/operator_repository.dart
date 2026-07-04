@@ -110,7 +110,7 @@ class OperatorRepository {
     final data = await _db
         .from('app_users')
         .select('id, full_name, email, requested_role, created_at')
-        .is_('role', null)
+        .isFilter('role', null)
         .eq('is_active', false)
         .order('created_at', ascending: true);
     return (data as List).map((m) => PendingOperator.fromMap(m as Map<String, dynamic>)).toList();

@@ -85,4 +85,43 @@ router.post('/:id/role', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/admin/operators/:id/approve — approve a self-signup: set role + activate
+router.post('/:id/approve', async (req, res) => {
+  const ctx = await requireRole(req, res, ['admin']);
+  if (!ctx) return;
+
+  const { role } = req.body;
+  if (!role) return res.status(400).json({ error: 'role is required' });
+
+  const { error } = await serviceClient()
+    .from('app_users')
+    .update({ role, is_active: true })
+    .eq('id', req.params.id)
+    .is('role', null); // only approve pending (role-less) users
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// POST /api/admin/operators/:id/decline — reject a self-signup: delete auth user + row
+router.post('/:id/decline', async (req, res) => {
+  const ctx = await requireRole(req, res, ['admin']);
+  if (!ctx) return;
+
+  // Delete app_users row first (FK cascade would handle this too, but be explicit)
+  const { error: rowError } = await serviceClient()
+    .from('app_users')
+    .delete()
+    .eq('id', req.params.id)
+    .is('role', null); // safety: only decline pending users
+
+  if (rowError) return res.status(500).json({ error: rowError.message });
+
+  // Delete the auth user so they can re-register with the same email later
+  const { error: authError } = await serviceClient().auth.admin.deleteUser(req.params.id);
+  if (authError) console.warn('Could not delete auth user:', authError.message);
+
+  res.json({ ok: true });
+});
+
 module.exports = router;

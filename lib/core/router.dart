@@ -8,14 +8,14 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/pending_approval_screen.dart';
-import '../features/members/presentation/screens/personnel_home_screen.dart';
+import '../features/members/presentation/screens/personnel_shell.dart';
 import '../features/members/presentation/screens/registration_screen.dart';
 import '../features/members/presentation/screens/my_submissions_screen.dart';
 import '../features/members/presentation/screens/review_queue_screen.dart';
 import '../features/members/presentation/screens/member_detail_screen.dart';
 import '../features/members/presentation/screens/member_directory_screen.dart';
-import '../features/dashboard/presentation/screens/higher_authority_home_screen.dart';
-import '../features/admin/presentation/screens/admin_home_screen.dart';
+import '../features/dashboard/presentation/screens/higher_authority_shell.dart';
+import '../features/admin/presentation/screens/admin_shell.dart';
 import '../features/admin/presentation/screens/operator_list_screen.dart';
 import '../features/admin/presentation/screens/create_operator_screen.dart';
 import '../features/admin/presentation/screens/lookup_tables_screen.dart';
@@ -57,13 +57,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(path: '/pending-approval', builder: (_, __) => const PendingApprovalScreen()),
 
-      // Personnel
-      GoRoute(path: '/home', builder: (_, __) => const PersonnelHomeScreen()),
+      // Personnel (shell provides bottom nav + IndexedStack)
+      GoRoute(path: '/home', builder: (_, __) => const PersonnelShell()),
       GoRoute(path: '/register-member', builder: (_, __) => const RegistrationScreen()),
       GoRoute(path: '/my-submissions', builder: (_, __) => const MySubmissionsScreen()),
 
-      // Higher Authority
-      GoRoute(path: '/dashboard', builder: (_, __) => const HigherAuthorityHomeScreen()),
+      // Higher Authority (shell provides bottom nav + IndexedStack)
+      GoRoute(path: '/dashboard', builder: (_, __) => const HigherAuthorityShell()),
       GoRoute(path: '/review-queue', builder: (_, __) => const ReviewQueueScreen()),
       GoRoute(
         path: '/member/:id',
@@ -71,8 +71,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/member-directory', builder: (_, __) => const MemberDirectoryScreen()),
 
-      // Admin
-      GoRoute(path: '/admin', builder: (_, __) => const AdminHomeScreen()),
+      // Admin (shell provides bottom nav + IndexedStack)
+      GoRoute(path: '/admin', builder: (_, __) => const AdminShell()),
       GoRoute(path: '/admin/operators', builder: (_, __) => const OperatorListScreen()),
       GoRoute(path: '/admin/operators/create', builder: (_, __) => const CreateOperatorScreen()),
       GoRoute(path: '/admin/lookups', builder: (_, __) => const LookupTablesScreen()),

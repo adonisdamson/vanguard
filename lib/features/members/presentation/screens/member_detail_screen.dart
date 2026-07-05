@@ -8,6 +8,7 @@ import '../../application/review_providers.dart';
 import '../../application/member_providers.dart';
 import '../../data/review_repository.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -132,36 +133,48 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final reason = await showDialog<String>(
       context: context,
       builder: (_) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text('Reject Member', style: AppTextStyles.h3()),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Provide a reason for rejection:', style: AppTextStyles.body()),
-              const SizedBox(height: 10),
-              TextField(
-                controller: ctrl,
-                maxLines: 3,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Incomplete information, duplicate entry...',
-                  hintStyle: AppTextStyles.body(color: AppColors.textMuted),
-                ),
+        builder: (ctx, setDialogState) {
+          bool showError = false;
+          return StatefulBuilder(
+            builder: (ctx2, setInner) => AlertDialog(
+              title: Text('Reject Member', style: AppTextStyles.h3()),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Provide a reason for rejection:', style: AppTextStyles.body()),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: ctrl,
+                    maxLines: 3,
+                    autofocus: true,
+                    onChanged: (_) {
+                      if (showError) setInner(() => showError = false);
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Incomplete information, duplicate entry...',
+                      hintStyle: AppTextStyles.body(color: AppColors.textMuted),
+                      errorText: showError ? 'A reason is required to reject.' : null,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                if (ctrl.text.trim().isEmpty) return;
-                Navigator.pop(context, ctrl.text.trim());
-              },
-              child: Text('Reject', style: TextStyle(color: AppColors.umbrellaRed)),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx2), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () {
+                    if (ctrl.text.trim().isEmpty) {
+                      setInner(() => showError = true);
+                      return;
+                    }
+                    Navigator.pop(ctx2, ctrl.text.trim());
+                  },
+                  child: Text('Reject', style: AppTextStyles.bodyMedium(color: AppColors.umbrellaRed)),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
 
@@ -202,7 +215,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(action, style: TextStyle(color: color)),
+            child: Text(action, style: AppTextStyles.bodyMedium(color: color)),
           ),
         ],
       ),
@@ -213,6 +226,9 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
   @override
   Widget build(BuildContext context) {
     final member = widget.member;
+    final appUser = ref.watch(appUserProvider).valueOrNull;
+    final canReview = appUser?.role == AppUserRole.higherAuthority ||
+        appUser?.role == AppUserRole.admin;
     return ListView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screenH, AppSpacing.base, AppSpacing.screenH, AppSpacing.h1),
       children: [
@@ -220,8 +236,8 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
         _HeaderCard(member: member),
         const SizedBox(height: AppSpacing.base),
 
-        // Approve/Reject actions (only if pending)
-        if (member.status == 'pending') ...[
+        // Approve/Reject actions (only for reviewers, only if pending)
+        if (member.status == 'pending' && canReview) ...[
           Row(
             children: [
               Expanded(

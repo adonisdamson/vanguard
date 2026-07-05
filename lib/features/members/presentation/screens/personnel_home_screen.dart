@@ -309,7 +309,7 @@ class _InlineStat extends StatelessWidget {
       children: [
         Text(
           value,
-          style: AppTextStyles.statNumber(color: color).copyWith(fontSize: 20),
+          style: AppTextStyles.statNumberLg(color: color),
         ),
         Text(
           label,
@@ -336,7 +336,7 @@ class _QuickRegisterCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.canopyGreen, Color(0xFF008B52)],
+            colors: [AppColors.canopyGreen, AppColors.canopyMid],
           ),
           borderRadius: AppRadii.borderMd,
           boxShadow: [

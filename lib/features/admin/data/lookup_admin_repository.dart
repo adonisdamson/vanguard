@@ -7,7 +7,7 @@ class LookupAdminRepository {
   // ── Regions ────────────────────────────────────────────────────────────────
 
   Future<List<Region>> fetchAllRegions() async {
-    final data = await _db.from('regions').select('id, name').order('name');
+    final data = await _db.from('regions').select('id, name').order('name').limit(500);
     return (data as List).map((m) => Region.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -28,7 +28,7 @@ class LookupAdminRepository {
   Future<List<District>> fetchDistricts({int? regionId}) async {
     var q = _db.from('districts').select('id, region_id, name');
     if (regionId != null) q = q.eq('region_id', regionId);
-    final data = await q.order('name');
+    final data = await q.order('name').limit(500);
     return (data as List).map((m) => District.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -49,7 +49,7 @@ class LookupAdminRepository {
   Future<List<Constituency>> fetchConstituencies({int? districtId}) async {
     var q = _db.from('constituencies').select('id, district_id, name');
     if (districtId != null) q = q.eq('district_id', districtId);
-    final data = await q.order('name');
+    final data = await q.order('name').limit(500);
     return (data as List).map((m) => Constituency.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -70,7 +70,7 @@ class LookupAdminRepository {
   Future<List<PollingStation>> fetchPollingStations({int? constituencyId}) async {
     var q = _db.from('polling_stations').select('id, constituency_id, name');
     if (constituencyId != null) q = q.eq('constituency_id', constituencyId);
-    final data = await q.order('name');
+    final data = await q.order('name').limit(1000);
     return (data as List).map((m) => PollingStation.fromMap(m as Map<String, dynamic>)).toList();
   }
 

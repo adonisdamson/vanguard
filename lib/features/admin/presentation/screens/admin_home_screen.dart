@@ -83,6 +83,14 @@ class AdminHomeScreen extends ConsumerWidget {
                     ]),
                     error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(dashboardStatsProvider)),
                   ),
+                  const SizedBox(height: AppSpacing.base),
+
+                  // Approval progress
+                  memberStatsAsync.when(
+                    data: (s) => _ProgressCard(active: s.active, total: s.total),
+                    loading: () => const SkeletonLoader(height: 90, borderRadius: AppRadii.borderMd),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
                   const SizedBox(height: AppSpacing.xl),
 
                   // Operator stats
@@ -305,7 +313,7 @@ class _InlineStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: AppTextStyles.statNumber(color: color).copyWith(fontSize: 20)),
+        Text(value, style: AppTextStyles.statNumberLg(color: color)),
         Text(label, style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.55))),
       ],
     );
@@ -569,6 +577,74 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Text('Could not load data.', style: AppTextStyles.body())),
           TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Progress card ─────────────────────────────────────────────────────────────
+class _ProgressCard extends StatelessWidget {
+  final int active;
+  final int total;
+  const _ProgressCard({required this.active, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = total == 0 ? 0.0 : (active / total).clamp(0.0, 1.0);
+    final pct = (ratio * 100).round();
+    final statusText = pct >= 75 ? 'Excellent' : pct >= 40 ? 'On track' : 'Getting started';
+    final statusColor = pct >= 75
+        ? AppColors.canopyGreen
+        : pct >= 40
+            ? AppColors.gold
+            : AppColors.mist;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('Approval rate', style: AppTextStyles.bodyMedium())),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: AppRadii.borderPill,
+                ),
+                child: Text(statusText,
+                    style: AppTextStyles.caption(color: statusColor)
+                        .copyWith(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          RichText(
+            text: TextSpan(children: [
+              TextSpan(text: '$pct%', style: AppTextStyles.h1(color: AppColors.canopyGreen)),
+              TextSpan(
+                  text: '  $active of $total approved',
+                  style: AppTextStyles.caption()),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: AppColors.fillMuted,
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+            ),
+          ),
         ],
       ),
     );

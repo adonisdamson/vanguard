@@ -136,7 +136,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
                 child: Text('Register anyway',
-                    style: TextStyle(color: AppColors.umbrellaRed)),
+                    style: AppTextStyles.bodyMedium(color: AppColors.umbrellaRed)),
               ),
             ],
           ),
@@ -305,7 +305,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
               Navigator.pop(context, true);
               ref.read(registrationFormProvider.notifier).reset();
             },
-            child: Text('Discard', style: TextStyle(color: AppColors.umbrellaRed)),
+            child: Text('Discard', style: AppTextStyles.bodyMedium(color: AppColors.umbrellaRed)),
           ),
         ],
       ),

@@ -150,7 +150,15 @@ class AppTextStyles {
         color: color,
         letterSpacing: -0.5,
         height: 1.1,
-        // tabular figures via fontFeatures when supported
+      );
+
+  static TextStyle statNumberLg({Color color = AppColors.ink}) =>
+      GoogleFonts.bricolageGrotesque(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: color,
+        letterSpacing: -0.5,
+        height: 1.1,
       );
 
   // ── App bar & buttons ─────────────────────────────────────────────────────

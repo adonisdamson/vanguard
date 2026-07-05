@@ -11,6 +11,7 @@ import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_tab_bar.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
@@ -464,12 +465,15 @@ Future<void> _showDialog(
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (e) {
                 setState(() => saving = false);
-                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                  backgroundColor: AppColors.umbrellaRed,
+                  content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+                ));
               }
             },
             child: saving
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('Save', style: TextStyle(color: AppColors.canopyGreen)),
+                : Text('Save', style: AppTextStyles.bodyMedium(color: AppColors.canopyGreen)),
           ),
         ],
       ),
@@ -496,7 +500,7 @@ Future<void> _confirmDelete(
         TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          child: Text('Delete', style: const TextStyle(color: AppColors.umbrellaRed)),
+          child: Text('Delete', style: AppTextStyles.bodyMedium(color: AppColors.umbrellaRed)),
         ),
       ],
     ),
@@ -505,6 +509,9 @@ Future<void> _confirmDelete(
   try {
     await onConfirm();
   } catch (e) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: AppColors.umbrellaRed,
+      content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+    ));
   }
 }

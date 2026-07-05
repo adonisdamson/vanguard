@@ -121,19 +121,19 @@ class MemberRepository {
         .toList();
   }
 
-  // Stats for own submissions
+  // Stats for own submissions — parallel HEAD count queries; no row data transferred
   Future<MemberStats> fetchMyStats(String userId) async {
-    final data = await _db
-        .from('members')
-        .select('status')
-        .eq('registered_by', userId);
-
-    final list = (data as List).map((m) => (m as Map<String, dynamic>)['status'] as String).toList();
+    final results = await Future.wait([
+      _db.from('members').select().eq('registered_by', userId).count(CountOption.exact),
+      _db.from('members').select().eq('registered_by', userId).eq('status', 'pending').count(CountOption.exact),
+      _db.from('members').select().eq('registered_by', userId).eq('status', 'active').count(CountOption.exact),
+      _db.from('members').select().eq('registered_by', userId).eq('status', 'rejected').count(CountOption.exact),
+    ]);
     return MemberStats(
-      total: list.length,
-      pending: list.where((s) => s == 'pending').length,
-      active: list.where((s) => s == 'active').length,
-      rejected: list.where((s) => s == 'rejected').length,
+      total: results[0].count,
+      pending: results[1].count,
+      active: results[2].count,
+      rejected: results[3].count,
     );
   }
 }

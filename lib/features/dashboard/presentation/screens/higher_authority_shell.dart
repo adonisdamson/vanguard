@@ -9,33 +9,33 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_bottom_nav.dart';
-import 'personnel_home_screen.dart';
-import 'my_submissions_screen.dart';
-import 'member_directory_screen.dart';
+import 'higher_authority_home_screen.dart';
+import '../../../../features/members/presentation/screens/member_directory_screen.dart';
+import '../../../../features/reports/presentation/screens/reports_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 
-class PersonnelShell extends ConsumerStatefulWidget {
-  const PersonnelShell({super.key});
+class HigherAuthorityShell extends ConsumerStatefulWidget {
+  const HigherAuthorityShell({super.key});
 
   @override
-  ConsumerState<PersonnelShell> createState() => _PersonnelShellState();
+  ConsumerState<HigherAuthorityShell> createState() => _HigherAuthorityShellState();
 }
 
-class _PersonnelShellState extends ConsumerState<PersonnelShell> {
+class _HigherAuthorityShellState extends ConsumerState<HigherAuthorityShell> {
   int _tabIndex = 0;
 
   static const _tabs = [
-    NavItem(icon: PhosphorIconsRegular.house,           activeIcon: PhosphorIconsFill.house,           label: 'Home'),
-    NavItem(icon: PhosphorIconsRegular.userPlus,        activeIcon: PhosphorIconsFill.userPlus,        label: 'Register'),
-    NavItem(icon: PhosphorIconsRegular.listChecks,      activeIcon: PhosphorIconsFill.listChecks,      label: 'My Members'),
-    NavItem(icon: PhosphorIconsRegular.magnifyingGlass, activeIcon: PhosphorIconsFill.magnifyingGlass, label: 'Search'),
-    NavItem(icon: PhosphorIconsRegular.userCircle,      activeIcon: PhosphorIconsFill.userCircle,      label: 'Profile'),
+    NavItem(icon: PhosphorIconsRegular.house,       activeIcon: PhosphorIconsFill.house,       label: 'Home'),
+    NavItem(icon: PhosphorIconsRegular.listChecks,  activeIcon: PhosphorIconsFill.listChecks,  label: 'Review'),
+    NavItem(icon: PhosphorIconsRegular.users,       activeIcon: PhosphorIconsFill.users,       label: 'Directory'),
+    NavItem(icon: PhosphorIconsRegular.chartBar,    activeIcon: PhosphorIconsFill.chartBar,    label: 'Reports'),
+    NavItem(icon: PhosphorIconsRegular.userCircle,  activeIcon: PhosphorIconsFill.userCircle,  label: 'Profile'),
   ];
 
   static final _screens = [
-    const PersonnelHomeScreen(),
-    const MySubmissionsScreen(showAppBar: false),
+    const HigherAuthorityHomeScreen(),
     const MemberDirectoryScreen(showAppBar: false),
+    const ReportsScreen(),
     const ProfileScreen(),
   ];
 
@@ -44,7 +44,7 @@ class _PersonnelShellState extends ConsumerState<PersonnelShell> {
   void _onTap(int i) {
     HapticFeedback.selectionClick();
     if (i == 1) {
-      context.push('/register-member');
+      context.push('/review-queue');
       return;
     }
     setState(() => _tabIndex = i);
@@ -57,11 +57,7 @@ class _PersonnelShellState extends ConsumerState<PersonnelShell> {
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: _VanguardAppBar(
-        firstName: firstName,
-        roleLabel: 'Personnel',
-        onNotificationTap: () {},
-      ),
+      appBar: _HaAppBar(firstName: firstName),
       body: IndexedStack(
         index: _stackIndex(_tabIndex),
         children: _screens,
@@ -75,25 +71,15 @@ class _PersonnelShellState extends ConsumerState<PersonnelShell> {
   }
 }
 
-// ── Shared premium app bar used by all shells ─────────────────────────────────
-class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
+class _HaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String firstName;
-  final String roleLabel;
-  final VoidCallback onNotificationTap;
-
-  const _VanguardAppBar({
-    required this.firstName,
-    required this.roleLabel,
-    required this.onNotificationTap,
-  });
+  const _HaAppBar({required this.firstName});
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 3);
 
   @override
   Widget build(BuildContext context) {
-    const rColor = AppColors.canopyGreen;
-
     return AppBar(
       backgroundColor: AppColors.deepCanopy,
       elevation: 0,
@@ -103,12 +89,9 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             width: 32,
             height: 32,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
             child: Padding(
-              padding: const EdgeInsets.all(5), // intentional: pixel-perfect icon fit in 32×32 circle
+              padding: const EdgeInsets.all(5),
               child: Image.asset(Assets.ndcUmbrella),
             ),
           ),
@@ -129,18 +112,14 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         Container(
-          margin: const EdgeInsets.only(right: 4),
+          margin: const EdgeInsets.only(right: 12),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: rColor.withValues(alpha: 0.18),
+            color: AppColors.gold.withValues(alpha: 0.18),
             borderRadius: AppRadii.borderPill,
-            border: Border.all(color: rColor.withValues(alpha: 0.4), width: 1),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.5), width: 1),
           ),
-          child: Text(roleLabel.toUpperCase(), style: AppTextStyles.badge(color: AppColors.surface)),
-        ),
-        IconButton(
-          icon: const Icon(PhosphorIconsRegular.bell, color: AppColors.surface, size: 20),
-          onPressed: onNotificationTap,
+          child: Text('COORDINATOR', style: AppTextStyles.badge(color: AppColors.surface)),
         ),
       ],
       bottom: const PreferredSize(

@@ -9,7 +9,6 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
@@ -263,9 +262,14 @@ class _Header extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const CanopyArc(height: 5),
         Container(
-          color: AppColors.deepCanopy,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.deepCanopy, AppColors.canopyMid],
+            ),
+          ),
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.screenH, AppSpacing.xl,
               AppSpacing.screenH, AppSpacing.xxl),
@@ -492,7 +496,7 @@ class _ErrorBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.only(top: 1),
+            padding: EdgeInsets.only(top: 1), // intentional: optical icon baseline nudge
             child: PhosphorIcon(PhosphorIconsFill.warningCircle,
                 size: 16, color: AppColors.umbrellaRed),
           ),

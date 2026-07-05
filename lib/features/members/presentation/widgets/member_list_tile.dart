@@ -52,7 +52,7 @@ class MemberListTile extends ConsumerWidget {
                   if (member.memberNumber != null && member.memberNumber!.isNotEmpty)
                     Text(member.memberNumber!, style: AppTextStyles.memberNumber())
                   else
-                    Text(member.phone ?? '—', style: AppTextStyles.small()),
+                    Text(member.phone ?? '—', style: AppTextStyles.small(), maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(_formatDate(member.createdAt), style: AppTextStyles.caption()),
                 ],
               ),

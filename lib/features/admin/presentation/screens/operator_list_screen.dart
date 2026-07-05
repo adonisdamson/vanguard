@@ -339,7 +339,10 @@ class _PendingTile extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  backgroundColor: AppColors.umbrellaRed,
+  content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
+));
       }
     }
   }
@@ -375,7 +378,10 @@ class _PendingTile extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  backgroundColor: AppColors.umbrellaRed,
+  content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
+));
       }
     }
   }
@@ -458,7 +464,7 @@ class _ActionChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // intentional: pill badge sizing
         decoration: BoxDecoration(color: bg, borderRadius: AppRadii.borderPill),
         child: Text(label, style: AppTextStyles.badge(color: color)),
       ),
@@ -593,7 +599,10 @@ class _OperatorTile extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  backgroundColor: AppColors.umbrellaRed,
+  content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
+));
       }
     }
   }
@@ -633,7 +642,10 @@ class _OperatorTile extends StatelessWidget {
       onChanged();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  backgroundColor: AppColors.umbrellaRed,
+  content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
+));
       }
     }
   }

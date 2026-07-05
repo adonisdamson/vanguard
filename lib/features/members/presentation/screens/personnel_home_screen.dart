@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/constants/assets.dart';
-import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
+import '../../../../features/dashboard/application/dashboard_providers.dart';
 import '../../application/member_providers.dart';
 import '../../application/offline_queue.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -12,10 +12,8 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
+import '../../../../shared/widgets/stat_card.dart';
 
 class PersonnelHomeScreen extends ConsumerWidget {
   const PersonnelHomeScreen({super.key});
@@ -24,8 +22,8 @@ class PersonnelHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(appUserProvider);
     final statsAsync = ref.watch(myStatsProvider);
+    final activityAsync = ref.watch(recentActivityProvider);
 
-    // Flush offline queue silently on load
     if (OfflineQueue.hasItems) {
       OfflineQueue.flush().then((synced) {
         if (synced > 0) {
@@ -37,128 +35,110 @@ class PersonnelHomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepCanopy,
-        elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 30, height: 30,
-              decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Image.asset(Assets.ndcUmbrella),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text('VANGUARD', style: AppTextStyles.appBarTitle()),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.bell, color: AppColors.surface, size: 22),
-            onPressed: () {},
-          ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.canopyGreen,
-        foregroundColor: AppColors.surface,
-        icon: const PhosphorIcon(PhosphorIconsFill.userPlus, size: 20),
-        label: Text('Register', style: AppTextStyles.bodyMedium(color: AppColors.surface)),
-        onPressed: () => context.push('/register-member'),
-      ),
       body: RefreshIndicator(
         color: AppColors.canopyGreen,
         onRefresh: () async {
           ref.invalidate(appUserProvider);
           ref.invalidate(myStatsProvider);
+          ref.invalidate(recentActivityProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          children: [
-            // Welcome card
-            userAsync.when(
-              data: (user) => _WelcomeCard(name: user?.fullName ?? 'Officer'),
-              loading: () => const SkeletonLoader(height: 80, borderRadius: BorderRadius.all(Radius.circular(12))),
-              error: (_, __) => const SizedBox.shrink(),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _GreetingHero(userAsync: userAsync, statsAsync: statsAsync),
             ),
-            const SizedBox(height: 20),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenH, AppSpacing.lg,
+                AppSpacing.screenH, AppSpacing.h1,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Offline sync banner
+                  if (OfflineQueue.hasItems) ...[
+                    _OfflineBanner(count: OfflineQueue.count),
+                    const SizedBox(height: AppSpacing.base),
+                  ],
 
-            // Offline queue banner
-            if (OfflineQueue.hasItems) _OfflineBanner(count: OfflineQueue.count),
-            if (OfflineQueue.hasItems) const SizedBox(height: 16),
+                  // Quick register action
+                  _QuickRegisterCard(onTap: () => context.push('/register-member')),
+                  const SizedBox(height: AppSpacing.xl),
 
-            // Stats row
-            statsAsync.when(
-              data: (stats) => Row(children: [
-                Expanded(child: StatCard(icon: PhosphorIconsRegular.users, value: '${stats.total}', label: 'Total', iconColor: AppColors.canopyGreen, iconBg: AppColors.greenTint)),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(child: StatCard(icon: PhosphorIconsRegular.clock, value: '${stats.pending}', label: 'Pending', iconColor: AppColors.statusPending, iconBg: AppColors.amberTint)),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(child: StatCard(icon: PhosphorIconsRegular.checkCircle, value: '${stats.active}', label: 'Approved', iconColor: AppColors.statusActive, iconBg: AppColors.greenTint)),
-              ]),
-              loading: () => Row(children: [
-                for (int i = 0; i < 3; i++) ...[
-                  const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
-                  if (i < 2) const SizedBox(width: AppSpacing.sm),
-                ],
-              ]),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-            const SizedBox(height: 24),
+                  // Stat cards
+                  _StatsLabel(),
+                  const SizedBox(height: AppSpacing.md),
+                  statsAsync.when(
+                    data: (stats) => Row(children: [
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.users,
+                        value: '${stats.total}',
+                        label: 'Registered',
+                        iconColor: AppColors.canopyGreen,
+                        iconBg: AppColors.greenTint,
+                      )),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.hourglass,
+                        value: '${stats.pending}',
+                        label: 'Pending',
+                        iconColor: AppColors.gold,
+                        iconBg: AppColors.goldTint,
+                      )),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.sealCheck,
+                        value: '${stats.active}',
+                        label: 'Approved',
+                        iconColor: AppColors.canopyGreen,
+                        iconBg: AppColors.greenTint,
+                      )),
+                    ]),
+                    loading: () => Row(children: [
+                      for (int i = 0; i < 3; i++) ...[
+                        const Expanded(child: SkeletonLoader(height: 100, borderRadius: AppRadii.borderMd)),
+                        if (i < 2) const SizedBox(width: AppSpacing.sm),
+                      ],
+                    ]),
+                    error: (_, __) => _RetryCard(onRetry: () => ref.invalidate(myStatsProvider)),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
 
-            // Quick actions
-            Text('Quick Actions', style: AppTextStyles.h3()),
-            const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.5,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _ActionCard(
-                  icon: PhosphorIconsFill.userPlus,
-                  label: 'Register Member',
-                  color: AppColors.canopyGreen,
-                  onTap: () => context.push('/register-member'),
-                ),
-                _ActionCard(
-                  icon: PhosphorIconsFill.listChecks,
-                  label: 'My Submissions',
-                  color: AppColors.ink,
-                  onTap: () => context.go('/my-submissions'),
-                ),
-                _ActionCard(
-                  icon: PhosphorIconsFill.clockCounterClockwise,
-                  label: 'Recent Records',
-                  color: AppColors.textSecondary,
-                  onTap: () => context.go('/my-submissions'),
-                ),
-                _ActionCard(
-                  icon: PhosphorIconsFill.magnifyingGlass,
-                  label: 'Search',
-                  color: AppColors.statusPending,
-                  onTap: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+                  // Progress card
+                  statsAsync.when(
+                    data: (stats) => _ProgressCard(active: stats.active, total: stats.total),
+                    loading: () => const SkeletonLoader(height: 88, borderRadius: AppRadii.borderMd),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
 
-            NdcButton(
-              label: 'Sign Out',
-              variant: NdcButtonVariant.ghost,
-              icon: const PhosphorIcon(PhosphorIconsFill.signOut, size: 16, color: AppColors.textSecondary),
-              onPressed: () async {
-                await ref.read(authServiceProvider).signOut();
-                if (context.mounted) context.go('/login');
-              },
+                  // Activity feed
+                  Row(
+                    children: [
+                      Expanded(child: Text('Recent activity', style: AppTextStyles.h3())),
+                      GestureDetector(
+                        onTap: () {},
+                        child: Text('View all', style: AppTextStyles.label(color: AppColors.canopyGreen)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  activityAsync.when(
+                    data: (entries) => entries.isEmpty
+                        ? const _EmptyActivity()
+                        : Column(children: entries.map((e) => _ActivityItem(entry: e)).toList()),
+                    loading: () => Column(
+                      children: List.generate(
+                        3,
+                        (_) => const Padding(
+                          padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: SkeletonLoader(height: 56, borderRadius: AppRadii.borderMd),
+                        ),
+                      ),
+                    ),
+                    error: (_, __) => _RetryCard(onRetry: () => ref.invalidate(recentActivityProvider)),
+                  ),
+                ]),
+              ),
             ),
           ],
         ),
@@ -167,37 +147,320 @@ class PersonnelHomeScreen extends ConsumerWidget {
   }
 }
 
-class _WelcomeCard extends StatelessWidget {
-  final String name;
-  const _WelcomeCard({required this.name});
+// ── Greeting hero ─────────────────────────────────────────────────────────────
+class _GreetingHero extends StatelessWidget {
+  final AsyncValue<AppUser?> userAsync;
+  final AsyncValue<dynamic> statsAsync;
+
+  const _GreetingHero({required this.userAsync, required this.statsAsync});
+
+  static String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.deepCanopy, AppColors.canopyMid],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenH, AppSpacing.xl,
+        AppSpacing.screenH, AppSpacing.xxl,
+      ),
+      child: userAsync.when(
+        data: (user) {
+          final name = user?.fullName ?? 'Officer';
+          final firstName = name.split(' ').first;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Eyebrow
+              Text(
+                _greeting().toUpperCase(),
+                style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
+              ),
+              const SizedBox(height: 4),
+              // Name
+              Text(
+                firstName,
+                style: AppTextStyles.display(color: AppColors.surface),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              // Role + constituency chips
+              Row(
+                children: [
+                  _HeroPill(
+                    icon: PhosphorIconsRegular.identificationBadge,
+                    label: 'Personnel',
+                    color: AppColors.canopyGreen,
+                  ),
+                  const SizedBox(width: 8),
+                  _HeroPill(
+                    icon: PhosphorIconsRegular.mapPin,
+                    label: 'Tema West',
+                    color: AppColors.surface.withValues(alpha: 0.25),
+                    textColor: AppColors.surface.withValues(alpha: 0.75),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // Today summary inline
+              statsAsync.when(
+                data: (s) => _TodaySummary(total: s.total, pending: s.pending),
+                loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          );
+        },
+        loading: () => const SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
+        error: (_, __) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color? textColor;
+
+  const _HeroPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tc = textColor ?? AppColors.surface;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // intentional: pill badge sizing
       decoration: BoxDecoration(
-        color: AppColors.deepCanopy,
-        borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
+        color: color,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PhosphorIcon(icon, size: 12, color: tc),
+          const SizedBox(width: 5),
+          Text(label, style: AppTextStyles.caption(color: tc)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodaySummary extends StatelessWidget {
+  final int total;
+  final int pending;
+
+  const _TodaySummary({required this.total, required this.pending});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.umbrellaRed.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const PhosphorIcon(PhosphorIconsFill.userCircle, color: AppColors.surface, size: 26),
+          _InlineStat(value: '$total', label: 'Total registered'),
+          Container(width: 1, height: 28, color: AppColors.surface.withValues(alpha: 0.15),
+              margin: const EdgeInsets.symmetric(horizontal: 14)),
+          _InlineStat(value: '$pending', label: 'Awaiting review', color: AppColors.gold),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+
+  const _InlineStat({
+    required this.value,
+    required this.label,
+    this.color = AppColors.surface,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: AppTextStyles.statNumber(color: color).copyWith(fontSize: 20),
+        ),
+        Text(
+          label,
+          style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.55)),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Quick register card ───────────────────────────────────────────────────────
+class _QuickRegisterCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _QuickRegisterCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.canopyGreen, Color(0xFF008B52)],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          borderRadius: AppRadii.borderMd,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.canopyGreen.withValues(alpha: 0.30),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.15),
+                borderRadius: AppRadii.borderSm,
+              ),
+              child: const Icon(PhosphorIconsRegular.userPlus, color: AppColors.surface, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.base),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Register a member', style: AppTextStyles.title(color: AppColors.surface)),
+                  Text(
+                    'Tap to open the registration form',
+                    style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.65)),
+                  ),
+                ],
+              ),
+            ),
+            const PhosphorIcon(PhosphorIconsRegular.arrowRight, color: AppColors.surface, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatsLabel extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(width: 3, height: 14, color: AppColors.canopyGreen,
+            margin: const EdgeInsets.only(right: 8)),
+        Text('My registrations', style: AppTextStyles.h3()),
+      ],
+    );
+  }
+}
+
+// ── Progress card ─────────────────────────────────────────────────────────────
+class _ProgressCard extends StatelessWidget {
+  final int active;
+  final int total;
+
+  const _ProgressCard({required this.active, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = total == 0 ? 0.0 : (active / total).clamp(0.0, 1.0);
+    final pct = (ratio * 100).round();
+    final statusText = pct >= 75
+        ? 'Excellent momentum'
+        : pct >= 40
+            ? 'On track'
+            : 'Getting started';
+    final statusColor = pct >= 75
+        ? AppColors.canopyGreen
+        : pct >= 40
+            ? AppColors.gold
+            : AppColors.mist;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Approval rate', style: AppTextStyles.bodyMedium()),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: AppRadii.borderPill,
+                ),
+                child: Text(statusText,
+                    style: AppTextStyles.caption(color: statusColor).copyWith(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          RichText(
+            text: TextSpan(
               children: [
-                Text('Good day, $name', style: AppTextStyles.h3(color: AppColors.surface), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text('Tema West • Personnel', style: AppTextStyles.small(color: AppColors.surface.withValues(alpha: 0.65))),
+                TextSpan(text: '$pct%', style: AppTextStyles.h1(color: AppColors.canopyGreen)),
+                TextSpan(
+                  text: '  $active of $total approved',
+                  style: AppTextStyles.caption(),
+                ),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: AppColors.fillMuted,
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ),
         ],
@@ -206,6 +469,7 @@ class _WelcomeCard extends StatelessWidget {
   }
 }
 
+// ── Offline banner ────────────────────────────────────────────────────────────
 class _OfflineBanner extends StatelessWidget {
   final int count;
   const _OfflineBanner({required this.count});
@@ -215,18 +479,18 @@ class _OfflineBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.statusPending.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.statusPending.withValues(alpha: 0.4)),
+        color: AppColors.goldTint,
+        borderRadius: BorderRadius.circular(AppRadii.sm),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
-          const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.statusPending),
+          const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.gold),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               '$count registration${count == 1 ? '' : 's'} saved offline. Connect to sync.',
-              style: AppTextStyles.small(color: AppColors.statusPending),
+              style: AppTextStyles.small(color: AppColors.gold),
             ),
           ),
         ],
@@ -235,39 +499,157 @@ class _OfflineBanner extends StatelessWidget {
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
+// ── Activity feed ─────────────────────────────────────────────────────────────
+class _ActivityItem extends StatelessWidget {
+  final dynamic entry;
+  const _ActivityItem({required this.entry});
 
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  static String _humanAction(String action, Map<String, dynamic> meta) {
+    return switch (action) {
+      'member_created' => 'New member registered',
+      'member_status_changed' => () {
+          final s = meta['new_status'] as String? ?? '';
+          return s == 'active' ? 'Member approved' : 'Member rejected';
+        }(),
+      'member_updated' => 'Member record updated',
+      'operator_created' => 'Operator account created',
+      'role_changed' => 'Operator role changed',
+      'account_status_changed' => 'Account status updated',
+      _ => action.replaceAll('_', ' '),
+    };
+  }
+
+  static IconData _icon(String action) {
+    return switch (action) {
+      'member_created' => PhosphorIconsRegular.userPlus,
+      'member_status_changed' => PhosphorIconsRegular.sealCheck,
+      'operator_created' => PhosphorIconsRegular.usersThree,
+      'role_changed' => PhosphorIconsRegular.shieldStar,
+      _ => PhosphorIconsRegular.clockCounterClockwise,
+    };
+  }
+
+  static Color _color(String action, Map<String, dynamic> meta) {
+    if (action == 'member_status_changed') {
+      return (meta['new_status'] as String? ?? '') == 'active'
+          ? AppColors.canopyGreen
+          : AppColors.umbrellaRed;
+    }
+    return AppColors.canopyGreen;
+  }
+
+  static Color _bg(String action, Map<String, dynamic> meta) {
+    if (action == 'member_status_changed') {
+      return (meta['new_status'] as String? ?? '') == 'active'
+          ? AppColors.greenTint
+          : AppColors.redTint;
+    }
+    return AppColors.greenTint;
+  }
+
+  static String _rel(DateTime dt) {
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    if (d.inDays < 7) return '${d.inDays}d ago';
+    return '${dt.day}/${dt.month}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.base),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadii.borderMd,
-          boxShadow: AppShadows.e1,
-          border: Border.all(color: AppColors.hairline),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            PhosphorIcon(icon, color: color, size: 26),
-            Text(label, style: AppTextStyles.bodyMedium()),
-          ],
-        ),
+    final action = entry.action as String;
+    final meta = entry.metadata as Map<String, dynamic>;
+    final actor = entry.actorName as String? ?? 'System';
+    final color = _color(action, meta);
+    final bg = _bg(action, meta);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: bg, borderRadius: AppRadii.borderSm),
+            child: Icon(_icon(action), color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_humanAction(action, meta),
+                    style: AppTextStyles.bodyMedium(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(actor,
+                    style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(_rel(entry.createdAt as DateTime), style: AppTextStyles.timestamp()),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyActivity extends StatelessWidget {
+  const _EmptyActivity();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(color: AppColors.fillMuted, shape: BoxShape.circle),
+            child: const Icon(PhosphorIconsRegular.clockCounterClockwise, size: 24, color: AppColors.mist),
+          ),
+          const SizedBox(height: 12),
+          Text('No activity yet', style: AppTextStyles.h3()),
+          const SizedBox(height: 4),
+          Text(
+            'Register your first member to get started.',
+            style: AppTextStyles.caption(),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RetryCard extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _RetryCard({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: AppColors.redTint,
+        borderRadius: AppRadii.borderMd,
+        border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 20, color: AppColors.umbrellaRed),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Could not load data.', style: AppTextStyles.body())),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
       ),
     );
   }

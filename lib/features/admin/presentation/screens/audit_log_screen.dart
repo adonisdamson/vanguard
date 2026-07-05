@@ -223,7 +223,7 @@ class _AuditTile extends StatelessWidget {
                 if (entry.actorName != null) Text('By ${entry.actorName}', style: AppTextStyles.small()),
                 if (entry.targetId != null)
                   Text('Target: ${entry.targetTable ?? ''} #${_shortId(entry.targetId!)}', style: AppTextStyles.caption()),
-                if (entry.metadata.isNotEmpty) _MetadataLine(metadata: entry.metadata),
+                if (entry.metadata.isNotEmpty) _MetadataLine(action: entry.action, metadata: entry.metadata),
               ],
             ),
           ),
@@ -256,32 +256,75 @@ class _AuditTile extends StatelessWidget {
 }
 
 class _MetadataLine extends StatelessWidget {
+  final String action;
   final Map<String, dynamic> metadata;
-  const _MetadataLine({required this.metadata});
+  const _MetadataLine({required this.action, required this.metadata});
+
+  String? _toHuman() {
+    switch (action) {
+      case 'member_status_changed':
+        final oldS = metadata['old_status'] as String? ?? '';
+        final newS = metadata['new_status'] as String? ?? '';
+        final reason = metadata['reason'] as String?;
+        if (newS == 'active') return '${_statusLabel(oldS)} → Approved';
+        if (newS == 'rejected') {
+          final base = '${_statusLabel(oldS)} → Rejected';
+          return reason != null && reason.isNotEmpty ? '$base: $reason' : base;
+        }
+        return '${_statusLabel(oldS)} → ${_statusLabel(newS)}';
+      case 'role_changed':
+        final old = metadata['old_role'] as String?;
+        final next = metadata['new_role'] as String?;
+        if (old != null && next != null) return '${_roleLabel(old)} → ${_roleLabel(next)}';
+        return null;
+      case 'account_status_changed':
+        final active = metadata['is_active'];
+        if (active == true) return 'Account reactivated';
+        if (active == false) return 'Account suspended';
+        return null;
+      case 'operator_created':
+        final role = metadata['role'] as String?;
+        return role != null ? 'Assigned as ${_roleLabel(role)}' : null;
+      default:
+        return null;
+    }
+  }
+
+  static String _statusLabel(String s) => switch (s) {
+    'active' => 'Approved',
+    'pending' => 'Pending',
+    'rejected' => 'Rejected',
+    'suspended' => 'Suspended',
+    _ => s,
+  };
+
+  static String _roleLabel(String r) => switch (r) {
+    'admin' => 'Administrator',
+    'higher_authority' => 'Coordinator',
+    'personnel' => 'Personnel',
+    _ => r,
+  };
 
   @override
   Widget build(BuildContext context) {
-    final parts = metadata.entries
-        .where((e) => e.value != null && e.value.toString().isNotEmpty)
-        .map((e) => '${e.key}: ${e.value}')
-        .join(' · ');
-    if (parts.isEmpty) return const SizedBox.shrink();
+    final text = _toHuman();
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(top: 3),
-      child: Text(parts, style: AppTextStyles.caption()),
+      padding: const EdgeInsets.only(top: 3), // intentional: tight metadata label nudge
+      child: Text(text, style: AppTextStyles.caption(color: AppColors.mist)),
     );
   }
 }
 
 
 String _actionLabel(String action) {
-  switch (action) {
-    case 'member_created': return 'Member Created';
-    case 'member_status_changed': return 'Status Changed';
-    case 'member_updated': return 'Member Updated';
-    case 'operator_created': return 'Operator Created';
-    case 'role_changed': return 'Role Changed';
-    case 'account_status_changed': return 'Account Status Changed';
-    default: return action.replaceAll('_', ' ').toUpperCase();
-  }
+  return switch (action) {
+    'member_created' => 'Member registered',
+    'member_status_changed' => 'Status changed',
+    'member_updated' => 'Member updated',
+    'operator_created' => 'Operator created',
+    'role_changed' => 'Role changed',
+    'account_status_changed' => 'Account status changed',
+    _ => action.replaceAll('_', ' '),
+  };
 }

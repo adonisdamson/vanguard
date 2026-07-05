@@ -347,7 +347,7 @@ class _HeaderCard extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.deepCanopy, Color(0xFF00552F)],
+          colors: [AppColors.deepCanopy, AppColors.canopyMid],
         ),
         borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
       ),

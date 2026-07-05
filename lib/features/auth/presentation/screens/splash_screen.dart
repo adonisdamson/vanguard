@@ -140,7 +140,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         ],
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(22),
+                        padding: const EdgeInsets.all(24),
                         child: Image.asset(Assets.ndcUmbrella),
                       ),
                     ),

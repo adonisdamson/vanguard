@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/constants/assets.dart';
-import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../features/dashboard/application/dashboard_providers.dart';
 import '../../application/operator_providers.dart';
@@ -12,10 +11,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/app_list_tile.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/section_header.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
 
@@ -27,237 +22,144 @@ class AdminHomeScreen extends ConsumerWidget {
     final userAsync = ref.watch(appUserProvider);
     final memberStatsAsync = ref.watch(dashboardStatsProvider);
     final operatorStatsAsync = ref.watch(operatorStatsProvider);
+    final activityAsync = ref.watch(recentActivityProvider);
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepCanopy,
-        elevation: 0,
-        titleSpacing: AppSpacing.base,
-        title: Row(
-          children: [
-            // Circular logo mark
-            Container(
-              width: 30,
-              height: 30,
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Image.asset(Assets.ndcUmbrella),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text('VANGUARD', style: AppTextStyles.appBarTitle()),
-            const SizedBox(width: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.umbrellaRed,
-                borderRadius: AppRadii.borderPill,
-              ),
-              child: Text('ADMIN', style: AppTextStyles.badge()),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const PhosphorIcon(
-              PhosphorIconsRegular.arrowCounterClockwise,
-              color: AppColors.surface,
-              size: 20,
-            ),
-            onPressed: () {
-              ref.invalidate(dashboardStatsProvider);
-              ref.invalidate(operatorStatsProvider);
-            },
-            tooltip: 'Refresh',
-          ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
-      ),
       body: RefreshIndicator(
         color: AppColors.canopyGreen,
         onRefresh: () async {
           ref.invalidate(dashboardStatsProvider);
           ref.invalidate(operatorStatsProvider);
+          ref.invalidate(recentActivityProvider);
           ref.invalidate(appUserProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screenH, AppSpacing.xl,
-            AppSpacing.screenH, AppSpacing.h1,
-          ),
-          children: [
-            // Profile card
-            userAsync.when(
-              data: (user) => _ProfileCard(name: user?.fullName ?? 'Administrator'),
-              loading: () => const SkeletonLoader(
-                height: 88,
-                borderRadius: AppRadii.borderMd,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _AdminGreetingHero(userAsync: userAsync, statsAsync: memberStatsAsync),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenH, AppSpacing.lg,
+                AppSpacing.screenH, AppSpacing.h1,
               ),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Member stats
+                  _SectionLabel(label: 'Member registry'),
+                  const SizedBox(height: AppSpacing.md),
+                  memberStatsAsync.when(
+                    data: (s) => Row(children: [
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.users,
+                        value: '${s.total}',
+                        label: 'Total',
+                        iconColor: AppColors.canopyGreen,
+                        iconBg: AppColors.greenTint,
+                      )),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.hourglass,
+                        value: '${s.pending}',
+                        label: 'Pending',
+                        iconColor: AppColors.gold,
+                        iconBg: AppColors.goldTint,
+                      )),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.sealCheck,
+                        value: '${s.active}',
+                        label: 'Active',
+                        iconColor: AppColors.canopyGreen,
+                        iconBg: AppColors.greenTint,
+                      )),
+                    ]),
+                    loading: () => Row(children: [
+                      for (var i = 0; i < 3; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSpacing.sm),
+                        const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
+                      ]
+                    ]),
+                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(dashboardStatsProvider)),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
 
-            // Member stats
-            const SectionHeader(title: 'Member registry'),
-            memberStatsAsync.when(
-              data: (stats) => Row(children: [
-                Expanded(
-                  child: StatCard(
-                    icon: PhosphorIconsRegular.users,
-                    value: '${stats.total}',
-                    label: 'Total',
-                    iconColor: AppColors.canopyGreen,
-                    iconBg: AppColors.greenTint,
+                  // Operator stats
+                  _SectionLabel(label: 'Operators'),
+                  const SizedBox(height: AppSpacing.md),
+                  operatorStatsAsync.when(
+                    data: (counts) => Row(children: [
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.usersThree,
+                        value: '${counts['total'] ?? 0}',
+                        label: 'Total',
+                        iconColor: AppColors.ink,
+                        iconBg: AppColors.fillMuted,
+                      )),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.shieldStar,
+                        value: '${counts['admin'] ?? 0}',
+                        label: 'Admins',
+                        iconColor: AppColors.umbrellaRed,
+                        iconBg: AppColors.redTint,
+                      )),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: StatCard(
+                        icon: PhosphorIconsRegular.identificationCard,
+                        value: '${counts['personnel'] ?? 0}',
+                        label: 'Personnel',
+                        iconColor: AppColors.canopyGreen,
+                        iconBg: AppColors.greenTint,
+                      )),
+                    ]),
+                    loading: () => Row(children: [
+                      for (var i = 0; i < 3; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSpacing.sm),
+                        const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
+                      ]
+                    ]),
+                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(operatorStatsProvider)),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: StatCard(
-                    icon: PhosphorIconsRegular.clock,
-                    value: '${stats.pending}',
-                    label: 'Pending',
-                    iconColor: AppColors.statusPending,
-                    iconBg: AppColors.amberTint,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: StatCard(
-                    icon: PhosphorIconsRegular.checkCircle,
-                    value: '${stats.active}',
-                    label: 'Active',
-                    iconColor: AppColors.canopyGreen,
-                    iconBg: AppColors.greenTint,
-                  ),
-                ),
-              ]),
-              loading: () => Row(children: [
-                for (var i = 0; i < 3; i++) ...[
-                  if (i > 0) const SizedBox(width: AppSpacing.sm),
-                  const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
-                ]
-              ]),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+                  const SizedBox(height: AppSpacing.xl),
 
-            // Operator stats
-            const SectionHeader(title: 'Operators'),
-            operatorStatsAsync.when(
-              data: (counts) => Row(children: [
-                Expanded(
-                  child: StatCard(
-                    icon: PhosphorIconsRegular.usersThree,
-                    value: '${counts['total'] ?? 0}',
-                    label: 'Total',
-                    iconColor: AppColors.ink,
-                    iconBg: AppColors.fillMuted,
+                  // System management action grid
+                  _SectionLabel(label: 'System management'),
+                  const SizedBox(height: AppSpacing.md),
+                  _SystemActionsGrid(
+                    pendingCount: memberStatsAsync.valueOrNull?.pending,
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: StatCard(
-                    icon: PhosphorIconsRegular.shieldStar,
-                    value: '${counts['admin'] ?? 0}',
-                    label: 'Admin',
-                    iconColor: AppColors.umbrellaRed,
-                    iconBg: AppColors.redTint,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: StatCard(
-                    icon: PhosphorIconsRegular.identificationCard,
-                    value: '${counts['personnel'] ?? 0}',
-                    label: 'Personnel',
-                    iconColor: AppColors.canopyGreen,
-                    iconBg: AppColors.greenTint,
-                  ),
-                ),
-              ]),
-              loading: () => Row(children: [
-                for (var i = 0; i < 3; i++) ...[
-                  if (i > 0) const SizedBox(width: AppSpacing.sm),
-                  const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
-                ]
-              ]),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+                  const SizedBox(height: AppSpacing.xxl),
 
-            // System management
-            const SectionHeader(title: 'System management'),
-
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.usersThree,
-              title: 'Operator accounts',
-              subtitle: 'Create and manage personnel & coordinators',
-              onTap: () => context.push('/admin/operators'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.users,
-              title: 'Member directory',
-              subtitle: 'Full access to all member records',
-              onTap: () => context.push('/member-directory'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.listChecks,
-              title: 'Review queue',
-              subtitle: 'Approve or reject pending registrations',
-              trailing: memberStatsAsync.valueOrNull?.pending != null &&
-                      memberStatsAsync.valueOrNull!.pending > 0
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: const BoxDecoration(
-                        color: AppColors.statusPending,
-                        borderRadius: AppRadii.borderPill,
+                  // Recent activity
+                  Row(
+                    children: [
+                      Expanded(child: Text('Recent activity', style: AppTextStyles.h3())),
+                      GestureDetector(
+                        onTap: () => context.push('/admin/audit'),
+                        child: Text('View all', style: AppTextStyles.label(color: AppColors.canopyGreen)),
                       ),
-                      child: Text(
-                        '${memberStatsAsync.valueOrNull!.pending}',
-                        style: AppTextStyles.badge(color: AppColors.surface),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  activityAsync.when(
+                    data: (entries) => entries.isEmpty
+                        ? const SizedBox.shrink()
+                        : Column(children: entries.map((e) => _ActivityRow(entry: e)).toList()),
+                    loading: () => Column(
+                      children: List.generate(
+                        3,
+                        (_) => const Padding(
+                          padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: SkeletonLoader(height: 56, borderRadius: AppRadii.borderMd),
+                        ),
                       ),
-                    )
-                  : null,
-              onTap: () => context.push('/review-queue'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.mapPin,
-              title: 'Lookup tables',
-              subtitle: 'Regions, districts, constituencies, polling stations',
-              onTap: () => context.push('/admin/lookups'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.scroll,
-              title: 'Audit log',
-              subtitle: 'Full system activity and change history',
-              onTap: () => context.push('/admin/audit'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.download,
-              title: 'Data exports',
-              subtitle: 'Export member data as CSV',
-              onTap: () => context.push('/member-directory'),
-            ),
-
-            const SizedBox(height: AppSpacing.xl),
-
-            NdcButton(
-              label: 'Sign out',
-              variant: NdcButtonVariant.ghost,
-              icon: const PhosphorIcon(
-                PhosphorIconsRegular.signOut,
-                size: 16,
-                color: AppColors.mist,
+                    ),
+                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(recentActivityProvider)),
+                  ),
+                ]),
               ),
-              onPressed: () async {
-                await ref.read(authServiceProvider).signOut();
-                if (context.mounted) context.go('/login');
-              },
             ),
           ],
         ),
@@ -266,57 +168,407 @@ class AdminHomeScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileCard extends StatelessWidget {
-  final String name;
-  const _ProfileCard({required this.name});
+// ── Greeting hero ─────────────────────────────────────────────────────────────
+class _AdminGreetingHero extends StatelessWidget {
+  final AsyncValue<AppUser?> userAsync;
+  final AsyncValue<dynamic> statsAsync;
+
+  const _AdminGreetingHero({required this.userAsync, required this.statsAsync});
+
+  static String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.deepCanopy, AppColors.canopyMid],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenH, AppSpacing.xl,
+        AppSpacing.screenH, AppSpacing.xxl,
+      ),
+      child: userAsync.when(
+        data: (user) {
+          final firstName = user?.fullName.split(' ').first ?? 'Admin';
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _greeting().toUpperCase(),
+                style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                firstName,
+                style: AppTextStyles.display(color: AppColors.surface),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // intentional: pill badge sizing
+                  decoration: BoxDecoration(
+                    color: AppColors.umbrellaRed.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                    border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const PhosphorIcon(PhosphorIconsRegular.shieldStar, size: 12, color: AppColors.umbrellaRed),
+                      const SizedBox(width: 5),
+                      Text('Administrator', style: AppTextStyles.caption(color: AppColors.umbrellaRed)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // intentional: pill badge sizing
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PhosphorIcon(PhosphorIconsRegular.mapPin, size: 12, color: AppColors.surface.withValues(alpha: 0.7)),
+                      const SizedBox(width: 5),
+                      Text('Tema West', style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.7))),
+                    ],
+                  ),
+                ),
+              ]),
+              const SizedBox(height: AppSpacing.xl),
+              statsAsync.when(
+                data: (s) => _AdminHeroSummary(total: s.total, pending: s.pending),
+                loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          );
+        },
+        loading: () => const SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
+        error: (_, __) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+class _AdminHeroSummary extends StatelessWidget {
+  final int total;
+  final int pending;
+  const _AdminHeroSummary({required this.total, required this.pending});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          _InlineStat(value: '$total', label: 'Total members'),
+          Container(width: 1, height: 28, color: AppColors.surface.withValues(alpha: 0.15),
+              margin: const EdgeInsets.symmetric(horizontal: 14)),
+          _InlineStat(
+            value: '$pending',
+            label: 'Need review',
+            color: pending > 0 ? AppColors.gold : AppColors.surface,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+  const _InlineStat({required this.value, required this.label, this.color = AppColors.surface});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: AppTextStyles.statNumber(color: color).copyWith(fontSize: 20)),
+        Text(label, style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.55))),
+      ],
+    );
+  }
+}
+
+// ── Section label ─────────────────────────────────────────────────────────────
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(width: 3, height: 14, color: AppColors.canopyGreen, margin: const EdgeInsets.only(right: 8)),
+        Text(label, style: AppTextStyles.h3()),
+      ],
+    );
+  }
+}
+
+// ── System actions grid ───────────────────────────────────────────────────────
+class _SystemActionsGrid extends StatelessWidget {
+  final int? pendingCount;
+  const _SystemActionsGrid({this.pendingCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(children: [
+          Expanded(
+            child: _SystemActionTile(
+              icon: PhosphorIconsRegular.usersThree,
+              iconColor: AppColors.canopyGreen,
+              iconBg: AppColors.greenTint,
+              label: 'Operators',
+              subtitle: 'Manage accounts',
+              onTap: () => context.push('/admin/operators'),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _SystemActionTile(
+              icon: PhosphorIconsRegular.listChecks,
+              iconColor: AppColors.gold,
+              iconBg: AppColors.goldTint,
+              label: 'Review queue',
+              subtitle: pendingCount != null && pendingCount! > 0
+                  ? '$pendingCount pending'
+                  : 'No pending',
+              badge: pendingCount,
+              onTap: () => context.push('/review-queue'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: AppSpacing.sm),
+        Row(children: [
+          Expanded(
+            child: _SystemActionTile(
+              icon: PhosphorIconsRegular.mapPin,
+              iconColor: AppColors.mist,
+              iconBg: AppColors.fillMuted,
+              label: 'Lookup tables',
+              subtitle: 'Regions & stations',
+              onTap: () => context.push('/admin/lookups'),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _SystemActionTile(
+              icon: PhosphorIconsRegular.scroll,
+              iconColor: AppColors.ink,
+              iconBg: AppColors.fillMuted,
+              label: 'Audit log',
+              subtitle: 'Full history',
+              onTap: () => context.push('/admin/audit'),
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+}
+
+class _SystemActionTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBg;
+  final String label;
+  final String subtitle;
+  final int? badge;
+  final VoidCallback onTap;
+
+  const _SystemActionTile({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBg,
+    required this.label,
+    required this.subtitle,
+    this.badge,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34, height: 34,
+                  decoration: BoxDecoration(color: iconBg, borderRadius: AppRadii.borderSm),
+                  child: Icon(icon, size: 17, color: iconColor),
+                ),
+                const Spacer(),
+                if (badge != null && badge! > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: const BoxDecoration(
+                      color: AppColors.gold,
+                      borderRadius: AppRadii.borderPill,
+                    ),
+                    child: Text('$badge', style: AppTextStyles.badge(color: AppColors.surface)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(label, style: AppTextStyles.bodyMedium()),
+            Text(subtitle, style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Activity row ──────────────────────────────────────────────────────────────
+class _ActivityRow extends StatelessWidget {
+  final dynamic entry;
+  const _ActivityRow({required this.entry});
+
+  static String _humanAction(String action, Map<String, dynamic> meta) {
+    return switch (action) {
+      'member_created' => 'New member registered',
+      'member_status_changed' => () {
+          final s = meta['new_status'] as String? ?? '';
+          return s == 'active' ? 'Member approved' : 'Member rejected';
+        }(),
+      'member_updated' => 'Member record updated',
+      'operator_created' => 'New operator account created',
+      'role_changed' => 'Operator role changed',
+      'account_status_changed' => 'Account status updated',
+      _ => action.replaceAll('_', ' '),
+    };
+  }
+
+  static IconData _icon(String action) {
+    return switch (action) {
+      'member_created' => PhosphorIconsRegular.userPlus,
+      'member_status_changed' => PhosphorIconsRegular.sealCheck,
+      'operator_created' => PhosphorIconsRegular.usersThree,
+      'role_changed' => PhosphorIconsRegular.shieldStar,
+      _ => PhosphorIconsRegular.clockCounterClockwise,
+    };
+  }
+
+  static (Color, Color) _colors(String action, Map<String, dynamic> meta) {
+    return switch (action) {
+      'member_status_changed' when (meta['new_status'] as String?) == 'active' =>
+        (AppColors.canopyGreen, AppColors.greenTint),
+      'member_status_changed' => (AppColors.umbrellaRed, AppColors.redTint),
+      'operator_created' || 'role_changed' => (AppColors.umbrellaRed, AppColors.redTint),
+      _ => (AppColors.canopyGreen, AppColors.greenTint),
+    };
+  }
+
+  static String _relTime(DateTime dt) {
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    if (d.inDays < 7) return '${d.inDays}d ago';
+    return '${dt.day}/${dt.month}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final action = entry.action as String;
+    final meta = entry.metadata as Map<String, dynamic>;
+    final actor = entry.actorName as String? ?? 'System';
+    final (color, bg) = _colors(action, meta);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: bg, borderRadius: AppRadii.borderSm),
+            child: Icon(_icon(action), color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_humanAction(action, meta), style: AppTextStyles.bodyMedium(),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(actor, style: AppTextStyles.caption(),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(_relTime(entry.createdAt as DateTime), style: AppTextStyles.timestamp()),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ErrorCard({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: AppColors.deepCanopy,
+        color: AppColors.redTint,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.umbrellaRed.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: const PhosphorIcon(
-              PhosphorIconsFill.shieldStar,
-              color: AppColors.umbrellaRed,
-              size: 26,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: AppTextStyles.h3(color: AppColors.surface),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'System administrator',
-                  style: AppTextStyles.label(color: AppColors.surface.withValues(alpha: 0.65)),
-                ),
-                Text(
-                  'Tema West Constituency',
-                  style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.45)),
-                ),
-              ],
-            ),
-          ),
+          const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 20, color: AppColors.umbrellaRed),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Could not load data.', style: AppTextStyles.body())),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );

@@ -21,38 +21,38 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.paper,
       textTheme: GoogleFonts.interTextTheme().copyWith(
-        displayLarge: GoogleFonts.bricolageGrotesque(
-          fontSize: 42,
+        displayLarge: GoogleFonts.plusJakartaSans(
+          fontSize: 36,
           fontWeight: FontWeight.w800,
           color: AppColors.ink,
         ),
-        headlineLarge: GoogleFonts.bricolageGrotesque(
-          fontSize: 24,
+        headlineLarge: GoogleFonts.plusJakartaSans(
+          fontSize: 22,
           fontWeight: FontWeight.w700,
           color: AppColors.ink,
         ),
-        headlineMedium: GoogleFonts.bricolageGrotesque(
-          fontSize: 20,
+        headlineMedium: GoogleFonts.plusJakartaSans(
+          fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
         ),
         titleLarge: GoogleFonts.inter(
-          fontSize: 17,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
         ),
         bodyLarge: GoogleFonts.inter(
-          fontSize: 15,
+          fontSize: 14.5,
           color: AppColors.ink,
-          height: 1.5,
+          height: 1.55,
         ),
         bodyMedium: GoogleFonts.inter(
-          fontSize: 15,
+          fontSize: 14.5,
           color: AppColors.ink,
-          height: 1.5,
+          height: 1.55,
         ),
         labelLarge: GoogleFonts.inter(
-          fontSize: 15,
+          fontSize: 14.5,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
         ),
@@ -62,11 +62,11 @@ class AppTheme {
         foregroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.bricolageGrotesque(
-          fontSize: 18,
+        titleTextStyle: GoogleFonts.plusJakartaSans(
+          fontSize: 17,
           fontWeight: FontWeight.w700,
           color: AppColors.surface,
-          letterSpacing: 0.5,
+          letterSpacing: 0.3,
         ),
         iconTheme: const IconThemeData(color: AppColors.surface),
         systemOverlayStyle: const SystemUiOverlayStyle(
@@ -149,7 +149,7 @@ class AppTheme {
           borderRadius: AppRadii.borderPill,
         ),
         side: BorderSide.none,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.deepCanopy,

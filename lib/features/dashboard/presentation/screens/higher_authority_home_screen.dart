@@ -1,10 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/constants/assets.dart';
-import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
 import '../../application/dashboard_providers.dart';
 import '../../data/dashboard_repository.dart';
@@ -13,12 +12,8 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/app_list_tile.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
-import '../../../../shared/widgets/section_header.dart';
-import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
+import '../../../../shared/widgets/stat_card.dart';
 
 class HigherAuthorityHomeScreen extends ConsumerWidget {
   const HigherAuthorityHomeScreen({super.key});
@@ -27,126 +22,152 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(appUserProvider);
     final statsAsync = ref.watch(dashboardStatsProvider);
+    final activityAsync = ref.watch(recentActivityProvider);
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepCanopy,
-        elevation: 0,
-        titleSpacing: AppSpacing.base,
-        title: Row(
-          children: [
-            Container(
-              width: 30, height: 30,
-              decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
-              child: Padding(
-                padding: const EdgeInsets.all(5),
-                child: Image.asset(Assets.ndcUmbrella),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text('VANGUARD', style: AppTextStyles.appBarTitle()),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.arrowCounterClockwise, color: AppColors.surface, size: 20),
-            onPressed: () => ref.invalidate(dashboardStatsProvider),
-            tooltip: 'Refresh',
-          ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
-      ),
       body: RefreshIndicator(
         color: AppColors.canopyGreen,
         onRefresh: () async {
           ref.invalidate(dashboardStatsProvider);
+          ref.invalidate(recentActivityProvider);
           ref.invalidate(appUserProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.screenH, AppSpacing.xl, AppSpacing.screenH, AppSpacing.h1),
-          children: [
-            // Welcome header
-            userAsync.when(
-              data: (user) => _DashboardHeader(name: user?.fullName ?? 'Coordinator'),
-              loading: () => const SkeletonLoader(height: 90, borderRadius: AppRadii.borderMd),
-              error: (_, __) => const SizedBox.shrink(),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: _GreetingHero(userAsync: userAsync, statsAsync: statsAsync),
             ),
-            const SizedBox(height: AppSpacing.base),
-
-            // Stats grid
-            const SectionHeader(title: 'Registry overview'),
-            statsAsync.when(
-              data: (stats) => Column(children: [
-                Row(children: [
-                  Expanded(child: StatCard(icon: PhosphorIconsRegular.users, value: '${stats.total}', label: 'Total', iconColor: AppColors.canopyGreen, iconBg: AppColors.greenTint)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: StatCard(icon: PhosphorIconsRegular.clock, value: '${stats.pending}', label: 'Pending', iconColor: AppColors.statusPending, iconBg: AppColors.amberTint)),
-                ]),
-                const SizedBox(height: AppSpacing.sm),
-                Row(children: [
-                  Expanded(child: StatCard(icon: PhosphorIconsRegular.checkCircle, value: '${stats.active}', label: 'Approved', iconColor: AppColors.statusActive, iconBg: AppColors.greenTint)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(child: StatCard(icon: PhosphorIconsRegular.calendarBlank, value: '${stats.thisMonth}', label: 'This month', iconColor: AppColors.mist, iconBg: AppColors.fillMuted)),
-                ]),
-              ]),
-              loading: () => _StatsGridSkeleton(),
-              error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(dashboardStatsProvider)),
-            ),
-
-            // Trend chart
-            statsAsync.when(
-              data: (stats) => stats.trend.isNotEmpty ? Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.base),
-                child: _TrendChart(trend: stats.trend),
-              ) : const SizedBox.shrink(),
-              loading: () => const Padding(
-                padding: EdgeInsets.only(top: AppSpacing.base),
-                child: SkeletonLoader(height: 180, borderRadius: AppRadii.borderMd),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenH, AppSpacing.lg,
+                AppSpacing.screenH, AppSpacing.h1,
               ),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Review queue urgency card (shown when pending > 0)
+                  statsAsync.when(
+                    data: (s) => s.pending > 0
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.base),
+                            child: _ReviewUrgencyCard(pending: s.pending),
+                          )
+                        : const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
 
-            // Action menu
-            const SectionHeader(title: 'Actions'),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.listChecks,
-              title: 'Review queue',
-              subtitle: 'Approve or reject pending registrations',
-              trailing: statsAsync.valueOrNull?.pending != null && statsAsync.valueOrNull!.pending > 0
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: const BoxDecoration(color: AppColors.statusPending, borderRadius: AppRadii.borderPill),
-                      child: Text('${statsAsync.valueOrNull!.pending}', style: AppTextStyles.badge(color: AppColors.surface)),
-                    )
-                  : null,
-              onTap: () => context.push('/review-queue'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.users,
-              title: 'Member directory',
-              subtitle: 'Search and browse all members',
-              onTap: () => context.push('/member-directory'),
-            ),
-            AppListTile(
-              leadingIcon: PhosphorIconsRegular.download,
-              title: 'Export register',
-              subtitle: 'Download member data as CSV',
-              onTap: () => context.push('/member-directory'),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+                  // Stat cards 2x2
+                  Row(
+                    children: [
+                      Container(width: 3, height: 14, color: AppColors.canopyGreen,
+                          margin: const EdgeInsets.only(right: 8)),
+                      Text('Overview', style: AppTextStyles.h3()),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  statsAsync.when(
+                    data: (s) => Column(children: [
+                      Row(children: [
+                        Expanded(child: StatCard(
+                          icon: PhosphorIconsRegular.users,
+                          value: '${s.total}',
+                          label: 'Total members',
+                          iconColor: AppColors.canopyGreen,
+                          iconBg: AppColors.greenTint,
+                        )),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: StatCard(
+                          icon: PhosphorIconsRegular.hourglass,
+                          value: '${s.pending}',
+                          label: 'Pending review',
+                          iconColor: AppColors.gold,
+                          iconBg: AppColors.goldTint,
+                        )),
+                      ]),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(children: [
+                        Expanded(child: StatCard(
+                          icon: PhosphorIconsRegular.sealCheck,
+                          value: '${s.active}',
+                          label: 'Approved',
+                          iconColor: AppColors.canopyGreen,
+                          iconBg: AppColors.greenTint,
+                        )),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(child: StatCard(
+                          icon: PhosphorIconsRegular.calendarBlank,
+                          value: '${s.thisMonth}',
+                          label: 'This month',
+                          iconColor: AppColors.mist,
+                          iconBg: AppColors.fillMuted,
+                        )),
+                      ]),
+                    ]),
+                    loading: () => _StatsGridSkeleton(),
+                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(dashboardStatsProvider)),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
 
-            NdcButton(
-              label: 'Sign Out',
-              variant: NdcButtonVariant.ghost,
-              icon: const PhosphorIcon(PhosphorIconsFill.signOut, size: 16, color: AppColors.textSecondary),
-              onPressed: () async {
-                await ref.read(authServiceProvider).signOut();
-                if (context.mounted) context.go('/login');
-              },
+                  // Quick actions
+                  Row(children: [
+                    Expanded(child: _ActionCard(
+                      icon: PhosphorIconsFill.listChecks,
+                      label: 'Review queue',
+                      badge: statsAsync.valueOrNull?.pending,
+                      color: AppColors.canopyGreen,
+                      bg: AppColors.greenTint,
+                      onTap: () => context.push('/review-queue'),
+                    )),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(child: _ActionCard(
+                      icon: PhosphorIconsFill.users,
+                      label: 'Directory',
+                      color: AppColors.mist,
+                      bg: AppColors.fillMuted,
+                      onTap: () => context.push('/member-directory'),
+                    )),
+                  ]),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Trend chart
+                  statsAsync.when(
+                    data: (s) => s.trend.isNotEmpty
+                        ? _TrendChart(trend: s.trend)
+                        : const SizedBox.shrink(),
+                    loading: () => const SkeletonLoader(height: 180, borderRadius: AppRadii.borderMd),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Activity feed
+                  Row(
+                    children: [
+                      Expanded(child: Text('Recent activity', style: AppTextStyles.h3())),
+                      GestureDetector(
+                        onTap: () => context.push('/admin/audit'),
+                        child: Text('View all', style: AppTextStyles.label(color: AppColors.canopyGreen)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  activityAsync.when(
+                    data: (entries) => entries.isEmpty
+                        ? _EmptyActivity()
+                        : Column(children: entries.map((e) => _ActivityItem(entry: e)).toList()),
+                    loading: () => Column(
+                      children: List.generate(
+                        4,
+                        (_) => const Padding(
+                          padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: SkeletonLoader(height: 56, borderRadius: AppRadii.borderMd),
+                        ),
+                      ),
+                    ),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ]),
+              ),
             ),
           ],
         ),
@@ -155,47 +176,301 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
   }
 }
 
-class _DashboardHeader extends StatelessWidget {
-  final String name;
-  const _DashboardHeader({required this.name});
+// ── Greeting hero ─────────────────────────────────────────────────────────────
+class _GreetingHero extends StatelessWidget {
+  final AsyncValue<AppUser?> userAsync;
+  final AsyncValue<DashboardStats> statsAsync;
+
+  const _GreetingHero({required this.userAsync, required this.statsAsync});
+
+  static String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.deepCanopy, AppColors.canopyMid],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenH, AppSpacing.xl,
+        AppSpacing.screenH, AppSpacing.xxl,
+      ),
+      child: userAsync.when(
+        data: (user) {
+          final firstName = user?.fullName.split(' ').first ?? 'Coordinator';
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _greeting().toUpperCase(),
+                style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                firstName,
+                style: AppTextStyles.display(color: AppColors.surface),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _HeroPill(
+                    icon: PhosphorIconsRegular.star,
+                    label: 'Coordinator',
+                    color: AppColors.gold.withValues(alpha: 0.22),
+                    textColor: AppColors.gold,
+                  ),
+                  const SizedBox(width: 8),
+                  _HeroPill(
+                    icon: PhosphorIconsRegular.mapPin,
+                    label: 'Tema West',
+                    color: AppColors.surface.withValues(alpha: 0.12),
+                    textColor: AppColors.surface.withValues(alpha: 0.7),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // Inline stats
+              statsAsync.when(
+                data: (s) => _HeroStatsRow(total: s.total, pending: s.pending, active: s.active),
+                loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          );
+        },
+        loading: () => const SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
+        error: (_, __) => const SizedBox.shrink(),
+      ),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color textColor;
+
+  const _HeroPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // intentional: pill badge sizing
       decoration: BoxDecoration(
-        color: AppColors.deepCanopy,
-        borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
+        color: color,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: textColor.withValues(alpha: 0.25)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.canopyGreen.withValues(alpha: 0.25),
-              shape: BoxShape.circle,
-            ),
-            child: const PhosphorIcon(PhosphorIconsFill.userCircleCheck, color: AppColors.surface, size: 26),
-          ),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Welcome, $name', style: AppTextStyles.h3(color: AppColors.surface), maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text('Higher authority', style: AppTextStyles.label(color: AppColors.surface.withValues(alpha: 0.65))),
-                Text('Tema West Constituency', style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.45))),
-              ],
-            ),
-          ),
+          PhosphorIcon(icon, size: 12, color: textColor),
+          const SizedBox(width: 5),
+          Text(label, style: AppTextStyles.caption(color: textColor)),
         ],
       ),
     );
   }
 }
 
+class _HeroStatsRow extends StatelessWidget {
+  final int total;
+  final int pending;
+  final int active;
+
+  const _HeroStatsRow({required this.total, required this.pending, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          _InlineStat(value: '$total', label: 'Total'),
+          _Divider(),
+          _InlineStat(
+            value: '$pending',
+            label: 'Pending',
+            color: pending > 0 ? AppColors.gold : AppColors.surface,
+          ),
+          _Divider(),
+          _InlineStat(value: '$active', label: 'Approved'),
+        ],
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 28,
+      color: AppColors.surface.withValues(alpha: 0.15),
+      margin: const EdgeInsets.symmetric(horizontal: 14),
+    );
+  }
+}
+
+class _InlineStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final Color color;
+
+  const _InlineStat({
+    required this.value,
+    required this.label,
+    this.color = AppColors.surface,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: AppTextStyles.statNumber(color: color).copyWith(fontSize: 20)),
+        Text(label, style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.55))),
+      ],
+    );
+  }
+}
+
+// ── Review urgency card ───────────────────────────────────────────────────────
+class _ReviewUrgencyCard extends StatelessWidget {
+  final int pending;
+  const _ReviewUrgencyCard({required this.pending});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        context.push('/review-queue');
+      },
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          color: AppColors.goldTint,
+          borderRadius: AppRadii.borderMd,
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.gold.withValues(alpha: 0.10),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.18), borderRadius: AppRadii.borderSm),
+              child: const Icon(PhosphorIconsFill.bell, size: 20, color: AppColors.gold),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$pending member${pending == 1 ? '' : 's'} awaiting review',
+                    style: AppTextStyles.bodyMedium(color: AppColors.ink),
+                  ),
+                  Text(
+                    'Tap to open review queue',
+                    style: AppTextStyles.caption(color: AppColors.mist),
+                  ),
+                ],
+              ),
+            ),
+            const PhosphorIcon(PhosphorIconsRegular.arrowRight, size: 18, color: AppColors.gold),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Action cards ─────────────────────────────────────────────────────────────
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int? badge;
+  final Color color;
+  final Color bg;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    this.badge,
+    required this.color,
+    required this.bg,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(color: bg, borderRadius: AppRadii.borderSm),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(label, style: AppTextStyles.bodyMedium())),
+            if (badge != null && badge! > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: const BoxDecoration(color: AppColors.gold, borderRadius: AppRadii.borderPill),
+                child: Text('$badge', style: AppTextStyles.badge(color: AppColors.surface)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Trend chart ───────────────────────────────────────────────────────────────
 class _TrendChart extends StatefulWidget {
   final List<MonthlyCount> trend;
   const _TrendChart({required this.trend});
@@ -223,16 +498,13 @@ class _TrendChartState extends State<_TrendChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const PhosphorIcon(PhosphorIconsRegular.chartBar, size: 16, color: AppColors.canopyGreen),
-              const SizedBox(width: 8),
-              Text('Registrations — Last 6 Months', style: AppTextStyles.h3()),
-            ],
-          ),
+          Row(children: [
+            Container(width: 3, height: 14, color: AppColors.canopyGreen, margin: const EdgeInsets.only(right: 8)),
+            Text('Registrations — last 6 months', style: AppTextStyles.h3()),
+          ]),
           const SizedBox(height: 20),
           SizedBox(
-            height: 160,
+            height: 150,
             child: BarChart(
               BarChartData(
                 maxY: adjustedMax,
@@ -257,25 +529,23 @@ class _TrendChartState extends State<_TrendChart> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      getTitlesWidget: (value, meta) {
+                      getTitlesWidget: (value, _) {
                         final i = value.toInt();
                         if (i < 0 || i >= widget.trend.length) return const SizedBox.shrink();
                         return Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.only(top: 4),
                           child: Text(widget.trend[i].month, style: AppTextStyles.caption()),
                         );
                       },
-                      reservedSize: 28,
+                      reservedSize: 24,
                     ),
                   ),
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 36,
-                      getTitlesWidget: (value, _) => Text(
-                        value.toInt().toString(),
-                        style: AppTextStyles.caption(),
-                      ),
+                      reservedSize: 32,
+                      getTitlesWidget: (value, _) =>
+                          Text(value.toInt().toString(), style: AppTextStyles.caption()),
                     ),
                   ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -285,10 +555,8 @@ class _TrendChartState extends State<_TrendChart> {
                   show: true,
                   drawVerticalLine: false,
                   horizontalInterval: adjustedMax / 4,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: AppColors.divider,
-                    strokeWidth: 1,
-                  ),
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: AppColors.hairline, strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
                 barGroups: List.generate(widget.trend.length, (i) {
@@ -298,13 +566,15 @@ class _TrendChartState extends State<_TrendChart> {
                     barRods: [
                       BarChartRodData(
                         toY: widget.trend[i].count.toDouble(),
-                        width: 18,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-                        color: touched ? AppColors.canopyGreen : AppColors.canopyGreen.withValues(alpha: 0.7),
+                        width: 16,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+                        color: touched
+                            ? AppColors.canopyGreen
+                            : AppColors.canopyGreen.withValues(alpha: 0.65),
                         backDrawRodData: BackgroundBarChartRodData(
                           show: true,
                           toY: adjustedMax,
-                          color: AppColors.surfaceVariant,
+                          color: AppColors.fillMuted,
                         ),
                       ),
                     ],
@@ -319,6 +589,7 @@ class _TrendChartState extends State<_TrendChart> {
   }
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 class _StatsGridSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -347,10 +618,10 @@ class _ErrorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: AppColors.redLight,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.redTint,
+        borderRadius: AppRadii.borderMd,
         border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.2)),
       ),
       child: Row(
@@ -365,3 +636,123 @@ class _ErrorCard extends StatelessWidget {
   }
 }
 
+class _ActivityItem extends StatelessWidget {
+  final dynamic entry;
+  const _ActivityItem({required this.entry});
+
+  static String _humanAction(String action, Map<String, dynamic> meta) {
+    return switch (action) {
+      'member_created' => 'New member registered',
+      'member_status_changed' => () {
+          final s = meta['new_status'] as String? ?? '';
+          return s == 'active' ? 'Member approved' : 'Member rejected';
+        }(),
+      'member_updated' => 'Member record updated',
+      'operator_created' => 'New operator account created',
+      'role_changed' => 'Operator role changed',
+      'account_status_changed' => 'Account status updated',
+      _ => action.replaceAll('_', ' '),
+    };
+  }
+
+  static IconData _icon(String action) {
+    return switch (action) {
+      'member_created' => PhosphorIconsRegular.userPlus,
+      'member_status_changed' => PhosphorIconsRegular.sealCheck,
+      'operator_created' => PhosphorIconsRegular.usersThree,
+      'role_changed' => PhosphorIconsRegular.shieldStar,
+      _ => PhosphorIconsRegular.clockCounterClockwise,
+    };
+  }
+
+  static Color _color(String action, Map<String, dynamic> meta) {
+    if (action == 'member_status_changed') {
+      return (meta['new_status'] as String?) == 'active'
+          ? AppColors.canopyGreen
+          : AppColors.umbrellaRed;
+    }
+    return AppColors.canopyGreen;
+  }
+
+  static Color _bg(String action, Map<String, dynamic> meta) {
+    if (action == 'member_status_changed') {
+      return (meta['new_status'] as String?) == 'active'
+          ? AppColors.greenTint
+          : AppColors.redTint;
+    }
+    return AppColors.greenTint;
+  }
+
+  static String _relTime(DateTime dt) {
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    if (d.inDays < 7) return '${d.inDays}d ago';
+    return '${dt.day}/${dt.month}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final action = entry.action as String;
+    final meta = entry.metadata as Map<String, dynamic>;
+    final actor = entry.actorName as String? ?? 'System';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: _bg(action, meta), borderRadius: AppRadii.borderSm),
+            child: Icon(_icon(action), color: _color(action, meta), size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_humanAction(action, meta), style: AppTextStyles.bodyMedium(),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(actor, style: AppTextStyles.caption(),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(_relTime(entry.createdAt as DateTime), style: AppTextStyles.timestamp()),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyActivity extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      child: Column(
+        children: [
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(color: AppColors.fillMuted, shape: BoxShape.circle),
+            child: const Icon(PhosphorIconsRegular.clockCounterClockwise, size: 24, color: AppColors.mist),
+          ),
+          const SizedBox(height: 12),
+          Text('No activity yet', style: AppTextStyles.h3()),
+          const SizedBox(height: 4),
+          Text('Actions will appear here once members are registered.',
+              style: AppTextStyles.caption(), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}

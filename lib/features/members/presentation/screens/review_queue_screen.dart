@@ -100,7 +100,7 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
         padding: const EdgeInsets.all(16),
         itemCount: 6,
         itemBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.only(bottom: AppSpacing.sm),
           child: MemberTileSkeleton(),
         ),
       );
@@ -216,7 +216,12 @@ Future<void> _confirmApprove(BuildContext context, MemberDetail member, VoidCall
       ));
     }
   } catch (e) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.umbrellaRed,
+        content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+      ));
+    }
   }
 }
 
@@ -257,7 +262,12 @@ Future<void> _showRejectDialog(BuildContext context, MemberDetail member, VoidCa
       ));
     }
   } catch (e) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.umbrellaRed,
+        content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+      ));
+    }
   }
 }
 

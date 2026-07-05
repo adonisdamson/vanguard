@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   // ── Primary palette (PRD token names) ─────────────────────────────────────
   static const canopyGreen = Color(0xFF006B3F); // primary actions, brand
+  static const canopyMid   = Color(0xFF00552F); // gradient endpoint between deepCanopy and canopyGreen
   static const deepCanopy  = Color(0xFF00341E); // app bars, dark surfaces
   static const umbrellaRed = Color(0xFFCE1126); // destructive, alerts (sparing)
   static const paper       = Color(0xFFFBFBF8); // warm app background
@@ -19,8 +20,12 @@ class AppColors {
   static const redTint   = Color(0xFFFBE9EB);
   static const amberTint = Color(0xFFFCF3E2);
 
+  // ── Gold accent (pending / in-progress) ──────────────────────────────────
+  static const gold     = Color(0xFFE8A317); // pending stat accent
+  static const goldTint = Color(0xFFFCF3E2); // pending bg tint
+
   // ── Status semantic colors ─────────────────────────────────────────────────
-  static const statusPending   = Color(0xFFB7791F); // amber
+  static const statusPending   = gold;        // amber/gold — matches PRD token
   static const statusActive    = canopyGreen;
   static const statusRejected  = umbrellaRed;
   static const statusSuspended = mist;

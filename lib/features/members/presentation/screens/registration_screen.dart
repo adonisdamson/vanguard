@@ -407,7 +407,7 @@ class _TabStrip extends StatelessWidget {
               child: Container(
                 height: 2,
                 color: completed ? AppColors.canopyGreen : AppColors.hairline,
-                margin: const EdgeInsets.symmetric(horizontal: 6),
+                margin: const EdgeInsets.symmetric(horizontal: 6), // intentional: step connector gap
               ),
             );
           }
@@ -1417,7 +1417,7 @@ class _PhotoPicker extends StatelessWidget {
                 child: GestureDetector(
                   onTap: onRemove,
                   child: Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(6), // intentional: tight circle remove-button
                     decoration: BoxDecoration(
                       color: AppColors.ink.withValues(alpha: 0.7),
                       shape: BoxShape.circle,

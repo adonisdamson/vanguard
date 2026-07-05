@@ -19,7 +19,8 @@ import '../../../../shared/widgets/skeleton_loader.dart';
 import '../widgets/member_list_tile.dart';
 
 class MySubmissionsScreen extends ConsumerStatefulWidget {
-  const MySubmissionsScreen({super.key});
+  final bool showAppBar;
+  const MySubmissionsScreen({super.key, this.showAppBar = true});
 
   @override
   ConsumerState<MySubmissionsScreen> createState() => _MySubmissionsScreenState();
@@ -105,27 +106,29 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepCanopy,
-        elevation: 0,
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('My submissions', style: AppTextStyles.appBarTitle()),
-        actions: [
-          IconButton(
-            icon: const PhosphorIcon(PhosphorIconsRegular.cloudArrowUp, color: AppColors.surface, size: 20),
-            onPressed: _syncOfflineQueue,
-            tooltip: 'Sync offline',
-          ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: AppColors.deepCanopy,
+              elevation: 0,
+              leading: IconButton(
+                tooltip: 'Back',
+                icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
+                onPressed: () => context.pop(),
+              ),
+              title: Text('My submissions', style: AppTextStyles.appBarTitle()),
+              actions: [
+                IconButton(
+                  icon: const PhosphorIcon(PhosphorIconsRegular.cloudArrowUp, color: AppColors.surface, size: 20),
+                  onPressed: _syncOfflineQueue,
+                  tooltip: 'Sync offline',
+                ),
+              ],
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(4),
+                child: CanopyStripe(height: 4),
+              ),
+            )
+          : null,
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.canopyGreen,
         foregroundColor: AppColors.surface,
@@ -155,7 +158,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
         padding: const EdgeInsets.all(16),
         itemCount: 6,
         itemBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.only(bottom: AppSpacing.sm),
           child: MemberTileSkeleton(),
         ),
       );
@@ -214,7 +217,7 @@ class _OfflineBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: AppColors.statusPending,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.sm),
       child: Row(
         children: [
           const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 16, color: AppColors.surface),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/theme/app_colors.dart';
+import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 
 class MemberStatusBadge extends StatelessWidget {
@@ -13,7 +14,7 @@ class MemberStatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadii.borderPill,
       ),
       child: Text(label, style: AppTextStyles.badge(color: fg)),
     );

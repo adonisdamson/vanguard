@@ -843,7 +843,6 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
   District? _district;
   Constituency? _constituency;
   PollingStation? _pollingStation;
-  String? _electoralArea;
 
   @override
   void initState() {
@@ -853,11 +852,6 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
     _branch = TextEditingController(text: d.branch ?? '');
     _residentialAddress = TextEditingController(text: d.residentialAddress ?? '');
     _residenceTown = TextEditingController(text: d.residenceTown ?? '');
-
-    final retention = ref.read(locationRetentionProvider);
-    if (retention?.electoralArea != null) {
-      _electoralArea = retention!.electoralArea;
-    }
 
     if (d.regionId != null) {
       WidgetsBinding.instance
@@ -901,7 +895,6 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
     final regionsAsync = ref.watch(regionsProvider);
     final districtsAsync = ref.watch(districtsProvider);
     final constituenciesAsync = ref.watch(constituenciesProvider);
-    final electoralAreasAsync = ref.watch(electoralAreasProvider);
     final pollingStationsAsync = ref.watch(pollingStationsProvider);
 
     return Form(
@@ -927,7 +920,6 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
                 _region = r;
                 _district = null;
                 _constituency = null;
-                _electoralArea = null;
                 _pollingStation = null;
               });
               ref.read(selectedRegionIdProvider.notifier).state = r?.id;
@@ -951,7 +943,6 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
               setState(() {
                 _district = d;
                 _constituency = null;
-                _electoralArea = null;
                 _pollingStation = null;
               });
               ref.read(selectedDistrictIdProvider.notifier).state = d?.id;
@@ -974,7 +965,6 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
             onChanged: (c) {
               setState(() {
                 _constituency = c;
-                _electoralArea = null;
                 _pollingStation = null;
               });
               ref.read(selectedConstituencyIdProvider.notifier).state = c?.id;
@@ -986,35 +976,10 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
           ),
           const SizedBox(height: 16),
 
-          if (_constituency != null) ...[
-            _AsyncDropdown<String>(
-              label: 'Electoral Area',
-              icon: PhosphorIconsRegular.mapPin,
-              hint: 'Filter by electoral area (optional)',
-              asyncData: electoralAreasAsync,
-              selected: _electoralArea,
-              itemLabel: (ea) => ea,
-              onChanged: (ea) {
-                setState(() {
-                  _electoralArea = ea;
-                  _pollingStation = null;
-                });
-                ref.read(selectedElectoralAreaProvider.notifier).state = ea;
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          _AsyncDropdown<PollingStation>(
-            label: 'Polling Station *',
-            icon: PhosphorIconsRegular.buildings,
-            hint: _constituency == null
-                ? 'Select constituency first'
-                : 'Select polling station',
+          _PollingStationField(
             asyncData: pollingStationsAsync,
             selected: _pollingStation,
             enabled: _constituency != null,
-            itemLabel: (p) => p.stationCode != null ? '${p.stationCode} — ${p.name}' : p.name,
             onChanged: (p) => setState(() => _pollingStation = p),
             validator: () => _pollingStation == null && _constituency != null
                 ? 'Please select a polling station'
@@ -1614,6 +1579,241 @@ class _AsyncDropdown<T> extends ConsumerWidget {
               child: Text(text,
                   style: AppTextStyles.bodyLarge(color: AppColors.mist))),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Polling station: searchable picker ──────────────────────────────────────
+
+class _PollingStationField extends StatelessWidget {
+  final AsyncValue<List<PollingStation>> asyncData;
+  final PollingStation? selected;
+  final bool enabled;
+  final void Function(PollingStation?) onChanged;
+  final String? Function() validator;
+
+  const _PollingStationField({
+    required this.asyncData,
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+    required this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Polling Station *', style: AppTextStyles.label()),
+        const SizedBox(height: 6),
+        FormField<PollingStation>(
+          validator: (_) => validator(),
+          builder: (field) => asyncData.when(
+            data: (stations) {
+              final label = selected == null
+                  ? (enabled ? 'Search polling station' : 'Select constituency first')
+                  : (selected!.stationCode != null
+                      ? '${selected!.stationCode} — ${selected!.name}'
+                      : selected!.name);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: enabled && stations.isNotEmpty
+                        ? () async {
+                            final picked = await showModalBottomSheet<PollingStation>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: AppColors.surface,
+                              shape: const RoundedRectangleBorder(borderRadius: AppRadii.sheetTop),
+                              builder: (_) => _StationSearchSheet(stations: stations, selected: selected),
+                            );
+                            if (picked != null) {
+                              onChanged(picked);
+                              field.didChange(picked);
+                            }
+                          }
+                        : null,
+                    child: Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: field.hasError ? AppColors.umbrellaRed : AppColors.hairline,
+                        ),
+                        borderRadius: AppRadii.borderSm,
+                        color: enabled ? AppColors.surface : AppColors.fillMuted,
+                      ),
+                      child: Row(
+                        children: [
+                          const PhosphorIcon(PhosphorIconsRegular.buildings,
+                              size: 20, color: AppColors.textMuted),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: selected == null
+                                  ? AppTextStyles.bodyLarge(color: AppColors.textMuted)
+                                  : AppTextStyles.bodyLarge(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (enabled)
+                            const PhosphorIcon(PhosphorIconsRegular.magnifyingGlass,
+                                size: 18, color: AppColors.mist),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (field.hasError) ...[
+                    const SizedBox(height: 6),
+                    Text(field.errorText!, style: AppTextStyles.small(color: AppColors.umbrellaRed)),
+                  ],
+                ],
+              );
+            },
+            loading: () => _stationField('Loading polling stations…'),
+            error: (_, _) => _stationField('Error loading options'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _stationField(String text) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.hairline),
+        borderRadius: AppRadii.borderSm,
+        color: AppColors.fillMuted,
+      ),
+      child: Row(
+        children: [
+          const PhosphorIcon(PhosphorIconsRegular.buildings, size: 20, color: AppColors.mist),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: AppTextStyles.bodyLarge(color: AppColors.mist))),
+        ],
+      ),
+    );
+  }
+}
+
+class _StationSearchSheet extends StatefulWidget {
+  final List<PollingStation> stations;
+  final PollingStation? selected;
+  const _StationSearchSheet({required this.stations, required this.selected});
+
+  @override
+  State<_StationSearchSheet> createState() => _StationSearchSheetState();
+}
+
+class _StationSearchSheetState extends State<_StationSearchSheet> {
+  final _searchCtrl = TextEditingController();
+  late List<PollingStation> _filtered;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.stations;
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearch(String q) {
+    final query = q.trim().toLowerCase();
+    setState(() {
+      _filtered = query.isEmpty
+          ? widget.stations
+          : widget.stations
+              .where((s) =>
+                  s.name.toLowerCase().contains(query) ||
+                  (s.stationCode?.toLowerCase().contains(query) ?? false))
+              .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.hairline, borderRadius: BorderRadius.circular(2)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Polling station', style: AppTextStyles.h2())),
+                  Text('${_filtered.length}', style: AppTextStyles.caption()),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                onChanged: _onSearch,
+                decoration: const InputDecoration(
+                  hintText: 'Search by name or code (e.g. COMM.2 or C240101)',
+                  prefixIcon: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: PhosphorIcon(PhosphorIconsRegular.magnifyingGlass,
+                        size: 20, color: AppColors.mist),
+                  ),
+                  prefixIconConstraints: BoxConstraints(minWidth: 44),
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: _filtered.isEmpty
+                  ? Center(
+                      child: Text('No matching station',
+                          style: AppTextStyles.body(color: AppColors.mist)))
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) {
+                        final s = _filtered[i];
+                        final isSel = s.id == widget.selected?.id;
+                        return ListTile(
+                          onTap: () => Navigator.pop(context, s),
+                          leading: PhosphorIcon(
+                            isSel ? PhosphorIconsFill.checkCircle : PhosphorIconsRegular.mapPin,
+                            color: isSel ? AppColors.canopyGreen : AppColors.mist,
+                            size: 22,
+                          ),
+                          title: Text(s.name, style: AppTextStyles.bodyMedium()),
+                          subtitle: s.stationCode != null
+                              ? Text(s.stationCode!, style: AppTextStyles.memberNumber())
+                              : null,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

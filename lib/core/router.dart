@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/application/auth_provider.dart';
 import '../features/auth/application/user_role_provider.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
@@ -29,7 +30,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: notifier,
     redirect: (context, state) async {
-      final session = ref.read(currentSessionProvider);
+      // Read the SYNCHRONOUS session, not currentSessionProvider (which is
+      // derived from the async onAuthStateChange stream and lags a tick behind
+      // signInWithPassword). Using the stream value here caused a just-logged-in
+      // user to be bounced back to /login until an app restart.
+      final session = Supabase.instance.client.auth.currentSession;
       final location = state.matchedLocation;
 
       if (location == '/') return null;

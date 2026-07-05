@@ -107,10 +107,50 @@ class AppErrorMapper {
 
   static String forAdminAction(Object e, [StackTrace? st]) {
     _log('AdminAction', e, st);
-    if (_isNetwork(e.toString())) {
+    final s = e.toString();
+
+    if (_isNetwork(s)) {
       return "No connection. Check your network and try again.";
     }
+
+    // Duplicate email — the operator (or a pending self-signup) already exists.
+    if (s.contains('already been registered') ||
+        s.contains('already registered') ||
+        s.contains('user_already_exists') ||
+        s.contains('duplicate key')) {
+      return 'That email already has an account. Approve or remove the existing one first.';
+    }
+
+    // Supabase invite/confirmation emails hit the built-in SMTP rate limit.
+    // This is the usual cause of operator-creation failing after a few tries.
+    if (s.contains('rate limit') ||
+        s.contains('rate_limit') ||
+        s.contains('over_email_send_rate_limit') ||
+        s.contains('Too many requests')) {
+      return 'Email limit reached on Supabase. Wait an hour, or set up a custom SMTP provider to send invites at volume.';
+    }
+
+    if (s.contains('not authorized') || s.contains('403') || s.contains('not allowed')) {
+      return 'You do not have permission to do that.';
+    }
+
+    // Surface the real server-provided message rather than a blank generic —
+    // the Railway backend already sanitizes errors to a plain `{error: ...}`.
+    final msg = _serverMessage(s);
+    if (msg != null) return msg;
+
     return "Action failed. Please try again.";
+  }
+
+  /// Extracts the human message from `Exception: <message>` thrown after a
+  /// non-2xx Railway response, so admins see what actually failed.
+  static String? _serverMessage(String s) {
+    final m = RegExp(r'Exception:\s*(.+)$').firstMatch(s.trim());
+    final captured = m?.group(1)?.trim();
+    if (captured == null || captured.isEmpty) return null;
+    if (captured.startsWith('Instance of')) return null; // not a readable message
+    // Keep it short and reasonable for a snackbar.
+    return captured.length > 160 ? '${captured.substring(0, 157)}…' : captured;
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

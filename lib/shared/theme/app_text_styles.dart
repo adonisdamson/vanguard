@@ -30,6 +30,16 @@ class AppTextStyles {
         height: 1.1,
       );
 
+  // ── Eyebrow (small all-caps label above display headings) ────────────────
+  static TextStyle eyebrow({Color color = AppColors.mist}) =>
+      GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: color,
+        letterSpacing: 1.5,
+        height: 1.4,
+      );
+
   // ── Headings ──────────────────────────────────────────────────────────────
   static TextStyle h1({Color color = AppColors.ink}) =>
       GoogleFonts.bricolageGrotesque(

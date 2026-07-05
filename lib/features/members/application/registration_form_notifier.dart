@@ -8,6 +8,7 @@ class RegistrationFormData {
   final String? gender;
   final String phone;
   final String? email;
+  final String? ghanaCardId;
 
   // Step 2 — Location
   final int? regionId;
@@ -44,6 +45,7 @@ class RegistrationFormData {
     this.gender,
     this.phone = '',
     this.email,
+    this.ghanaCardId,
     this.regionId,
     this.regionName,
     this.districtId,
@@ -75,6 +77,8 @@ class RegistrationFormData {
     String? gender,
     String? phone,
     String? email,
+    String? ghanaCardId,
+    bool clearGhanaCardId = false,
     int? regionId,
     String? regionName,
     int? districtId,
@@ -115,6 +119,7 @@ class RegistrationFormData {
       gender: clearGender ? null : (gender ?? this.gender),
       phone: phone ?? this.phone,
       email: clearEmail ? null : (email ?? this.email),
+      ghanaCardId: clearGhanaCardId ? null : (ghanaCardId ?? this.ghanaCardId),
       regionId: clearRegion ? null : (regionId ?? this.regionId),
       regionName: clearRegion ? null : (regionName ?? this.regionName),
       districtId: clearDistrict ? null : (districtId ?? this.districtId),
@@ -191,6 +196,7 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
     String? gender,
     required String phone,
     String? email,
+    String? ghanaCardId,
   }) {
     state = state.copyWith(
       firstName: firstName,
@@ -201,6 +207,8 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
       clearGender: gender == null,
       phone: phone,
       email: email,
+      ghanaCardId: ghanaCardId,
+      clearGhanaCardId: ghanaCardId == null,
     );
   }
 

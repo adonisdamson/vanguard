@@ -1502,7 +1502,7 @@ class _DropdownField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       hint: Text(hint, style: AppTextStyles.bodyLarge(color: AppColors.textMuted)),
       decoration: InputDecoration(
         prefixIcon: Padding(

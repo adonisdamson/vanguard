@@ -246,14 +246,18 @@ class _PendingTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Role', style: AppTextStyles.label()),
-                ...['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
-                  dense: true,
-                  value: r,
+                RadioGroup<String>(
                   groupValue: selectedRole,
-                  title: Text(_roleLabel(r), style: AppTextStyles.body()),
-                  activeColor: AppColors.canopyGreen,
                   onChanged: (v) => setS(() => selectedRole = v!),
-                )),
+                  child: Column(
+                    children: ['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
+                      dense: true,
+                      value: r,
+                      title: Text(_roleLabel(r), style: AppTextStyles.body()),
+                      activeColor: AppColors.canopyGreen,
+                    )).toList(),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Text('Jurisdiction (optional)', style: AppTextStyles.label()),
                 const SizedBox(height: 6),
@@ -615,15 +619,17 @@ class _OperatorTile extends StatelessWidget {
         builder: (ctx, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
           title: Text('Change role', style: AppTextStyles.h3()),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
-              value: r,
-              groupValue: selected,
-              title: Text(_roleLabel(r), style: AppTextStyles.body()),
-              activeColor: AppColors.canopyGreen,
-              onChanged: (v) => setState(() => selected = v!),
-            )).toList(),
+          content: RadioGroup<String>(
+            groupValue: selected,
+            onChanged: (v) => setState(() => selected = v!),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: ['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
+                value: r,
+                title: Text(_roleLabel(r), style: AppTextStyles.body()),
+                activeColor: AppColors.canopyGreen,
+              )).toList(),
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),

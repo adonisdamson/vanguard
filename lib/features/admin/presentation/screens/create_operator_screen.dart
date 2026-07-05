@@ -220,34 +220,42 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                   style: AppTextStyles.small()),
               const SizedBox(height: 14),
 
-              _RoleOption(
-                value: 'personnel',
+              RadioGroup<String>(
                 groupValue: _selectedRole,
-                title: 'Personnel',
-                subtitle: 'Register and manage own member submissions',
-                icon: PhosphorIconsFill.userCircle,
-                color: AppColors.canopyGreen,
                 onChanged: (v) => setState(() => _selectedRole = v!),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _RoleOption(
-                value: 'higher_authority',
-                groupValue: _selectedRole,
-                title: 'Higher Authority (Coordinator)',
-                subtitle: 'Review pending registrations, view all members, export data',
-                icon: PhosphorIconsFill.userCircleCheck,
-                color: AppColors.statusPending,
-                onChanged: (v) => setState(() => _selectedRole = v!),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _RoleOption(
-                value: 'admin',
-                groupValue: _selectedRole,
-                title: 'Administrator',
-                subtitle: 'Full system access including operator management',
-                icon: PhosphorIconsFill.shieldStar,
-                color: AppColors.umbrellaRed,
-                onChanged: (v) => setState(() => _selectedRole = v!),
+                child: Column(
+                  children: [
+                    _RoleOption(
+                      value: 'personnel',
+                      selected: _selectedRole == 'personnel',
+                      title: 'Personnel',
+                      subtitle: 'Register and manage own member submissions',
+                      icon: PhosphorIconsFill.userCircle,
+                      color: AppColors.canopyGreen,
+                      onTap: () => setState(() => _selectedRole = 'personnel'),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _RoleOption(
+                      value: 'higher_authority',
+                      selected: _selectedRole == 'higher_authority',
+                      title: 'Higher Authority (Coordinator)',
+                      subtitle: 'Review pending registrations, view all members, export data',
+                      icon: PhosphorIconsFill.userCircleCheck,
+                      color: AppColors.statusPending,
+                      onTap: () => setState(() => _selectedRole = 'higher_authority'),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _RoleOption(
+                      value: 'admin',
+                      selected: _selectedRole == 'admin',
+                      title: 'Administrator',
+                      subtitle: 'Full system access including operator management',
+                      icon: PhosphorIconsFill.shieldStar,
+                      color: AppColors.umbrellaRed,
+                      onTap: () => setState(() => _selectedRole = 'admin'),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 28),
 
@@ -346,7 +354,7 @@ class _JurisdictionDropdown<T> extends StatelessWidget {
         Text(label, style: AppTextStyles.label()),
         const SizedBox(height: 6),
         DropdownButtonFormField<T>(
-          value: (selected != null && items.contains(selected)) ? selected : null,
+          initialValue: (selected != null && items.contains(selected)) ? selected : null,
           hint: Text(hint, style: AppTextStyles.bodyLarge(color: AppColors.textMuted)),
           decoration: InputDecoration(
             prefixIcon: Padding(
@@ -371,28 +379,27 @@ class _JurisdictionDropdown<T> extends StatelessWidget {
 
 class _RoleOption extends StatelessWidget {
   final String value;
-  final String groupValue;
+  final bool selected;
   final String title;
   final String subtitle;
   final IconData icon;
   final Color color;
-  final void Function(String?) onChanged;
+  final VoidCallback onTap;
 
   const _RoleOption({
     required this.value,
-    required this.groupValue,
+    required this.selected,
     required this.title,
     required this.subtitle,
     required this.icon,
     required this.color,
-    required this.onChanged,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final selected = value == groupValue;
     return GestureDetector(
-      onTap: () => onChanged(value),
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.all(AppSpacing.base),
@@ -428,9 +435,8 @@ class _RoleOption extends StatelessWidget {
             ),
             Radio<String>(
               value: value,
-              groupValue: groupValue,
-              onChanged: onChanged,
               activeColor: color,
+              // groupValue and onChanged provided by RadioGroup ancestor
             ),
           ],
         ),

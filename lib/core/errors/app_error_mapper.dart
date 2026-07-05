@@ -93,6 +93,16 @@ class AppErrorMapper {
     return "Couldn't load data. Pull down to retry.";
   }
 
+  // ── General-purpose friendly message ─────────────────────────────────────
+
+  static String friendly(Object e, [StackTrace? st]) {
+    _log('General', e, st);
+    if (_isNetwork(e.toString())) {
+      return "No connection. Check your network and try again.";
+    }
+    return "Something went wrong. Please try again.";
+  }
+
   // ── Admin / operator action errors ────────────────────────────────────────
 
   static String forAdminAction(Object e, [StackTrace? st]) {

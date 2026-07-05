@@ -295,7 +295,7 @@ class _ParentFilter<T> extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH, vertical: AppSpacing.sm),
       child: itemsAsync.when(
         data: (items) => DropdownButtonFormField<int>(
-          value: selectedId,
+          initialValue: selectedId,
           hint: Text(label, style: AppTextStyles.body(color: AppColors.mist)),
           decoration: InputDecoration(
             isDense: true,

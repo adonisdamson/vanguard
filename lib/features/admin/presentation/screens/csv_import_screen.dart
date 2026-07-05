@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../data/lookup_admin_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -104,7 +105,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _parseError = 'Import failed: $e';
+          _parseError = AppErrorMapper.friendly(e);
           _importing = false;
         });
       }

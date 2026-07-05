@@ -100,7 +100,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: AppRadii.sheetTop,
       ),
       builder: (ctx) => SafeArea(
         child: Column(

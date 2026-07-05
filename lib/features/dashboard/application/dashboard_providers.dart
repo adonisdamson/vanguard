@@ -8,6 +8,6 @@ final dashboardStatsProvider = FutureProvider.autoDispose<DashboardStats>((ref) 
   return _repo.fetchStats();
 });
 
-final recentActivityProvider = FutureProvider<List<AuditEntry>>((ref) async {
+final recentActivityProvider = FutureProvider.autoDispose<List<AuditEntry>>((ref) async {
   return AuditRepository().fetchAuditLog(page: 0, pageSize: 5);
 });

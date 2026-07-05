@@ -116,7 +116,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                     children: [
                       Expanded(child: Text('Recent activity', style: AppTextStyles.h3())),
                       GestureDetector(
-                        onTap: () => context.push('/submissions'),
+                        onTap: () => context.push('/my-submissions'),
                         child: Text('View all', style: AppTextStyles.label(color: AppColors.canopyGreen)),
                       ),
                     ],
@@ -455,7 +455,7 @@ class _ProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadii.borderXs,
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 6,

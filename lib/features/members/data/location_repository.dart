@@ -80,7 +80,8 @@ class LocationRepository {
         .select('electoral_area')
         .eq('constituency_id', constituencyId)
         .not('electoral_area', 'is', null)
-        .order('electoral_area');
+        .order('electoral_area')
+        .limit(500);
     final seen = <String>{};
     final areas = <String>[];
     for (final m in data as List) {

@@ -112,7 +112,8 @@ class OperatorRepository {
         .select('id, full_name, email, requested_role, created_at')
         .isFilter('role', null)
         .eq('is_active', false)
-        .order('created_at', ascending: true);
+        .order('created_at', ascending: true)
+        .limit(500);
     return (data as List).map((m) => PendingOperator.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -130,7 +131,8 @@ class OperatorRepository {
     final data = await _db
         .from('app_users')
         .select('role, is_active')
-        .not('role', 'is', null);
+        .not('role', 'is', null)
+        .limit(500);
     final counts = <String, int>{'admin': 0, 'higher_authority': 0, 'personnel': 0, 'total': 0};
     for (final row in data as List) {
       final role = row['role'] as String? ?? '';

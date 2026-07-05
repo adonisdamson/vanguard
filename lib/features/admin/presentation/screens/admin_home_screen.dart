@@ -637,7 +637,7 @@ class _ProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: AppRadii.borderXs,
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 6,

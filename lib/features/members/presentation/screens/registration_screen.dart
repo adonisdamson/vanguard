@@ -487,7 +487,7 @@ class _StepDot extends StatelessWidget {
           ),
           child: Center(
             child: isCompleted
-                ? const Icon(Icons.check, size: 14, color: AppColors.surface)
+                ? const PhosphorIcon(PhosphorIconsFill.check, size: 14, color: AppColors.surface)
                 : Text(
                     '${index + 1}',
                     style: AppTextStyles.badge(color: textColor),

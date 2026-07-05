@@ -453,7 +453,7 @@ class _RolePicker extends StatelessWidget {
                               : AppColors.hairline),
                     ),
                     child: sel
-                        ? const Icon(Icons.check,
+                        ? const PhosphorIcon(PhosphorIconsFill.check,
                             size: 11, color: AppColors.surface)
                         : null,
                   ),

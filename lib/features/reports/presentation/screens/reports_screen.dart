@@ -69,7 +69,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       await file.writeAsBytes(bytes);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exported to ${file.path}')),
+          SnackBar(
+            content: Text(
+              'Saved: ${file.path.split('/').last}',
+              style: AppTextStyles.bodyMedium(color: AppColors.surface),
+            ),
+            backgroundColor: AppColors.canopyGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {

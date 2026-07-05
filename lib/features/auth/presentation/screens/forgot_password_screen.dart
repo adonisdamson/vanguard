@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -43,9 +44,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           .read(authServiceProvider)
           .sendPasswordResetEmail(_emailCtrl.text.trim());
       if (mounted) setState(() => _sent = true);
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
-        setState(() => _error = 'Could not send reset email. Please try again.');
+        setState(() => _error = AppErrorMapper.forAuth(e, st) ?? 'Something went wrong. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _loading = false);

@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Signed Release APK
+    name: Build Signed Release APK (arm64)
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -29,10 +29,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter 3.38.1
+      - name: Set up Flutter 3.32.4
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.1'
+          flutter-version: '3.32.4'
           channel: 'stable'
           cache: true
 
@@ -45,11 +45,10 @@ jobs:
 
       - name: Write .env file
         run: |
-          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\nGOOGLE_WEB_CLIENT_ID=%s\n' \
+          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\n' \
             "${{ secrets.SUPABASE_URL }}" \
             "${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.RAILWAY_API_URL }}" \
-            "${{ secrets.GOOGLE_WEB_CLIENT_ID }}" > .env
+            "${{ secrets.RAILWAY_API_URL }}" > .env
 
       - name: Write google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
@@ -68,7 +67,7 @@ jobs:
           mkdir -p android/app
           echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 -d > android/app/vanguard-release.keystore
 
-      - name: Build release APK
+      - name: Build release APK (arm64 — Android 10+)
         env:
           KEY_STORE_PATH: ${{ github.workspace }}/android/app/vanguard-release.keystore
           KEY_ALIAS:          ${{ secrets.KEY_ALIAS }}
@@ -76,10 +75,13 @@ jobs:
           KEY_PASSWORD:       ${{ secrets.KEY_PASSWORD }}
         run: |
           flutter build apk --release --no-pub \
+            --target-platform android-arm64 \
             --build-number=${{ github.run_number }} \
             --build-name=1.0.${{ github.run_number }}
-          cp build/app/outputs/flutter-apk/app-release.apk Vanguard-NDC-v1.0.${{ github.run_number }}.apk
-          cp build/app/outputs/flutter-apk/app-release.apk vanguard-latest.apk
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            vanguard-latest.apk
 
       - name: Collect build metadata
         id: meta
@@ -94,11 +96,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get the latest release ID
           RELEASE_ID=$(gh api repos/${{ github.repository }}/releases/tags/latest \
             --jq '.id' 2>/dev/null || echo "")
           if [ -n "$RELEASE_ID" ]; then
-            # List all assets and delete each one
             ASSET_IDS=$(gh api repos/${{ github.repository }}/releases/${RELEASE_ID}/assets \
               --jq '.[].id' 2>/dev/null || echo "")
             for ASSET_ID in $ASSET_IDS; do
@@ -165,7 +165,8 @@ jobs:
 
             ---
 
-            > **Minimum Android:** 5.0 (API 21) &nbsp;·&nbsp; **Architecture:** arm64-v8a + armeabi-v7a
+            > **Minimum Android:** 10 (API 29) &nbsp;·&nbsp; **Architecture:** arm64-v8a
+            > Built specifically for modern Android phones — smaller APK, faster install.
             > This is the only current APK — previous builds have been removed.
           files: |
             Vanguard-NDC-v1.0.${{ github.run_number }}.apk

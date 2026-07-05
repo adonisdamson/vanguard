@@ -33,7 +33,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ndc.vanguard"
-        minSdk = flutter.minSdkVersion
+        minSdk = 29  // Android 10 — arm64 devices only, smaller APK
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

@@ -70,7 +70,7 @@ class MemberTileSkeleton extends StatelessWidget {
           const SkeletonLoader(
             width: 44,
             height: 44,
-            borderRadius: BorderRadius.all(Radius.circular(22)),
+            borderRadius: AppRadii.borderPill,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -84,7 +84,7 @@ class MemberTileSkeleton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const SkeletonLoader(width: 60, height: 24, borderRadius: BorderRadius.all(Radius.circular(12))),
+          const SkeletonLoader(width: 60, height: 24, borderRadius: AppRadii.borderSm),
         ],
       ),
     );

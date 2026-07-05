@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'brand_illustration.dart';
@@ -75,8 +74,8 @@ class EmptyState extends StatelessWidget {
         onAction = onRetry;
 
   const EmptyState.noRegions({super.key, VoidCallback? onAdd})
-      : icon = PhosphorIconsRegular.mapTrifold,
-        illustrationAsset = null,
+      : icon = null,
+        illustrationAsset = 'assets/illustrations/empty_polling.svg',
         title = 'No regions yet',
         subtitle = "Add Ghana's regions to start building the location list.",
         actionLabel = 'Add region',

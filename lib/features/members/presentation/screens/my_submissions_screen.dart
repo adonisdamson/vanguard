@@ -102,7 +102,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
     final filter = ref.watch(submissionsFilterProvider);
 
     // Reload when filter changes
-    ref.listen(submissionsFilterProvider, (_, __) => _loadPage(0));
+    ref.listen(submissionsFilterProvider, (_, _) => _loadPage(0));
 
     return Scaffold(
       backgroundColor: AppColors.paper,
@@ -157,7 +157,7 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
       return ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 6,
-        itemBuilder: (_, __) => const Padding(
+        itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.only(bottom: AppSpacing.sm),
           child: MemberTileSkeleton(),
         ),

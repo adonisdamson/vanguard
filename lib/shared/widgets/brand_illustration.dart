@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_colors.dart';
 
 class BrandIllustration extends StatelessWidget {
@@ -9,6 +10,9 @@ class BrandIllustration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (asset.endsWith('.svg')) {
+      return SvgPicture.asset(asset, width: size, height: size, fit: BoxFit.contain);
+    }
     final dpr = MediaQuery.of(context).devicePixelRatio;
     return Image.asset(
       asset,

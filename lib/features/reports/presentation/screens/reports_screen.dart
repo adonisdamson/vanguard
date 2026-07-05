@@ -157,7 +157,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 statsAsync.when(
                   data: (s) => _StatsRow(stats: s),
                   loading: () => const SkeletonLoader(height: 72, borderRadius: AppRadii.borderMd),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: AppSpacing.xl),
 

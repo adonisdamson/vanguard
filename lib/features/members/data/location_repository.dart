@@ -52,7 +52,7 @@ class LocationRepository {
   final _db = Supabase.instance.client;
 
   Future<List<Region>> fetchRegions() async {
-    final data = await _db.from('regions').select('id, name').order('name');
+    final data = await _db.from('regions').select('id, name').order('name').limit(50);
     return (data as List).map((m) => Region.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -61,7 +61,8 @@ class LocationRepository {
         .from('districts')
         .select('id, region_id, name')
         .eq('region_id', regionId)
-        .order('name');
+        .order('name')
+        .limit(500);
     return (data as List).map((m) => District.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -70,7 +71,8 @@ class LocationRepository {
         .from('constituencies')
         .select('id, district_id, name')
         .eq('district_id', districtId)
-        .order('name');
+        .order('name')
+        .limit(500);
     return (data as List).map((m) => Constituency.fromMap(m as Map<String, dynamic>)).toList();
   }
 

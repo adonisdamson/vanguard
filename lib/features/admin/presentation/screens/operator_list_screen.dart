@@ -119,7 +119,7 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
       return ListView.builder(
         padding: const EdgeInsets.all(AppSpacing.base),
         itemCount: 6,
-        itemBuilder: (_, __) => const Padding(
+        itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.only(bottom: AppSpacing.sm),
           child: MemberTileSkeleton(),
         ),

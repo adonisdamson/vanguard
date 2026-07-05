@@ -256,7 +256,7 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       return ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 8,
-        itemBuilder: (_, __) => const Padding(
+        itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.only(bottom: AppSpacing.sm),
           child: MemberTileSkeleton(),
         ),

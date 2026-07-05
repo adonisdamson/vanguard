@@ -137,7 +137,7 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
       return ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 8,
-        itemBuilder: (_, __) => const Padding(
+        itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: SkeletonLoader(height: 70, borderRadius: BorderRadius.all(Radius.circular(10))),
         ),

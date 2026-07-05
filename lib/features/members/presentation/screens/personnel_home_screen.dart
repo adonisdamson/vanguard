@@ -99,7 +99,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                         if (i < 2) const SizedBox(width: AppSpacing.sm),
                       ],
                     ]),
-                    error: (_, __) => _RetryCard(onRetry: () => ref.invalidate(myStatsProvider)),
+                    error: (_, _) => _RetryCard(onRetry: () => ref.invalidate(myStatsProvider)),
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
@@ -107,7 +107,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                   statsAsync.when(
                     data: (stats) => _ProgressCard(active: stats.active, total: stats.total),
                     loading: () => const SkeletonLoader(height: 88, borderRadius: AppRadii.borderMd),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
 
@@ -135,7 +135,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    error: (_, __) => _RetryCard(onRetry: () => ref.invalidate(recentActivityProvider)),
+                    error: (_, _) => _RetryCard(onRetry: () => ref.invalidate(recentActivityProvider)),
                   ),
                 ]),
               ),
@@ -218,13 +218,13 @@ class _GreetingHero extends StatelessWidget {
               statsAsync.when(
                 data: (s) => _TodaySummary(total: s.total, pending: s.pending),
                 loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
             ],
           );
         },
         loading: () => const SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
-        error: (_, __) => const SizedBox.shrink(),
+        error: (_, _) => const SizedBox.shrink(),
       ),
     );
   }

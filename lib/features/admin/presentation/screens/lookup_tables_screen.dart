@@ -318,7 +318,7 @@ class _ParentFilter<T> extends StatelessWidget {
           onChanged: onChanged,
         ),
         loading: () => const LinearProgressIndicator(color: AppColors.canopyGreen),
-        error: (_, __) => Text('Failed to load', style: AppTextStyles.small()),
+        error: (_, _) => Text('Failed to load', style: AppTextStyles.small()),
       ),
     );
   }
@@ -373,13 +373,13 @@ class _LookupList<T> extends StatelessWidget {
         loading: () => ListView.builder(
           padding: const EdgeInsets.all(AppSpacing.base),
           itemCount: 5,
-          itemBuilder: (_, __) => const Padding(
+          itemBuilder: (_, _) => const Padding(
             padding: EdgeInsets.only(bottom: AppSpacing.sm),
             child: SkeletonLoader(height: 52, borderRadius: AppRadii.borderSm),
           ),
         ),
         error: (e, _) => Center(
-          child: Text('Error: $e', style: AppTextStyles.body(color: AppColors.umbrellaRed)),
+          child: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.umbrellaRed)),
         ),
       ),
     );
@@ -465,10 +465,12 @@ Future<void> _showDialog(
                 if (ctx.mounted) Navigator.pop(ctx);
               } catch (e) {
                 setState(() => saving = false);
-                if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                  backgroundColor: AppColors.umbrellaRed,
-                  content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
-                ));
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    backgroundColor: AppColors.umbrellaRed,
+                    content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+                  ));
+                }
               }
             },
             child: saving
@@ -509,9 +511,11 @@ Future<void> _confirmDelete(
   try {
     await onConfirm();
   } catch (e) {
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      backgroundColor: AppColors.umbrellaRed,
-      content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
-    ));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.umbrellaRed,
+        content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+      ));
+    }
   }
 }

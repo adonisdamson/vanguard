@@ -94,13 +94,13 @@ class _Avatar extends StatelessWidget {
                 width: 44,
                 height: 44,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => _placeholder(),
-                errorWidget: (_, __, ___) => _placeholder(),
+                placeholder: (_, _) => _placeholder(),
+                errorWidget: (_, _, _) => _placeholder(),
               ),
             )
           : _placeholder(),
       loading: _placeholder,
-      error: (_, __) => _placeholder(),
+      error: (_, _) => _placeholder(),
     );
   }
 

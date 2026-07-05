@@ -144,18 +144,21 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
         false;
   }
 
-  Future<String?> _doInsert(
+  // Returns (memberId, photoUploadFailed) — member is always saved, photo is best-effort.
+  Future<(String?, bool)> _doInsert(
       RegistrationFormData formData, String userId, MemberRepository repo) async {
-    String? storagePath;
+    bool photoFailed = false;
     if (formData.photoLocalPath != null) {
       try {
-        storagePath = await repo.uploadPhoto(formData.photoLocalPath!, userId);
+        final storagePath = await repo.uploadPhoto(formData.photoLocalPath!, userId);
         ref.read(registrationFormProvider.notifier).setPhotoStoragePath(storagePath);
-      } catch (_) {}
+      } catch (_) {
+        photoFailed = true;
+      }
     }
     final updatedForm = ref.read(registrationFormProvider);
     final result = await repo.insertMember(updatedForm.toInsertMap(userId));
-    return result['id'];
+    return (result['id'], photoFailed);
   }
 
   void _captureMetadata(String memberId) async {
@@ -187,9 +190,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
     final repo = MemberRepository();
     bool isOffline = false;
     String? memberId;
+    bool photoFailed = false;
 
     try {
-      memberId = await _doInsert(formData, session.user.id, repo);
+      (memberId, photoFailed) = await _doInsert(formData, session.user.id, repo);
     } catch (e) {
       if (_isNetworkError(e)) {
         isOffline = true;
@@ -212,6 +216,18 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
 
     if (!mounted) return;
     HapticFeedback.mediumImpact();
+
+    if (photoFailed && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          'Member saved — photo upload failed. Reconnect and reopen to retry.',
+          style: AppTextStyles.bodyMedium(color: AppColors.surface),
+        ),
+        backgroundColor: AppColors.umbrellaRed,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 5),
+      ));
+    }
 
     if (addAnother) {
       final retention = LocationRetention(
@@ -1165,11 +1181,14 @@ class _Tab3PartyState extends ConsumerState<_Tab3Party> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Camera or gallery not available. Check app permissions.')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            'Camera or gallery not available. Check app permissions.',
+            style: AppTextStyles.bodyMedium(color: AppColors.surface),
+          ),
+          backgroundColor: AppColors.umbrellaRed,
+          behavior: SnackBarBehavior.floating,
+        ));
       }
     } finally {
       if (mounted) setState(() => _pickingPhoto = false);
@@ -1408,7 +1427,7 @@ class _PhotoPicker extends StatelessWidget {
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder(),
+                  errorBuilder: (_, _, _) => _placeholder(),
                 ),
               ),
               Positioned(
@@ -1572,7 +1591,7 @@ class _AsyncDropdown<T> extends ConsumerWidget {
             );
           },
           loading: () => _loadingField(hint),
-          error: (_, __) => _loadingField('Error loading options'),
+          error: (_, _) => _loadingField('Error loading options'),
         ),
       ],
     );

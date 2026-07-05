@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_radii.dart';
 
 class SkeletonLoader extends StatefulWidget {
   final double width;
@@ -10,7 +11,7 @@ class SkeletonLoader extends StatefulWidget {
     super.key,
     this.width = double.infinity,
     this.height = 16,
-    this.borderRadius = const BorderRadius.all(Radius.circular(6)),
+    this.borderRadius = AppRadii.borderXs,
   });
 
   @override
@@ -44,7 +45,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _animation,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(

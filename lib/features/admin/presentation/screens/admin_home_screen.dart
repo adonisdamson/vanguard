@@ -81,7 +81,7 @@ class AdminHomeScreen extends ConsumerWidget {
                         const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
                       ]
                     ]),
-                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(dashboardStatsProvider)),
+                    error: (_, _) => _ErrorCard(onRetry: () => ref.invalidate(dashboardStatsProvider)),
                   ),
                   const SizedBox(height: AppSpacing.base),
 
@@ -89,7 +89,7 @@ class AdminHomeScreen extends ConsumerWidget {
                   memberStatsAsync.when(
                     data: (s) => _ProgressCard(active: s.active, total: s.total),
                     loading: () => const SkeletonLoader(height: 90, borderRadius: AppRadii.borderMd),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
@@ -128,7 +128,7 @@ class AdminHomeScreen extends ConsumerWidget {
                         const Expanded(child: SkeletonLoader(height: 96, borderRadius: AppRadii.borderMd)),
                       ]
                     ]),
-                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(operatorStatsProvider)),
+                    error: (_, _) => _ErrorCard(onRetry: () => ref.invalidate(operatorStatsProvider)),
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
@@ -164,7 +164,7 @@ class AdminHomeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    error: (_, __) => _ErrorCard(onRetry: () => ref.invalidate(recentActivityProvider)),
+                    error: (_, _) => _ErrorCard(onRetry: () => ref.invalidate(recentActivityProvider)),
                   ),
                 ]),
               ),
@@ -260,13 +260,13 @@ class _AdminGreetingHero extends StatelessWidget {
               statsAsync.when(
                 data: (s) => _AdminHeroSummary(total: s.total, pending: s.pending),
                 loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
             ],
           );
         },
         loading: () => const SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
-        error: (_, __) => const SizedBox.shrink(),
+        error: (_, _) => const SizedBox.shrink(),
       ),
     );
   }

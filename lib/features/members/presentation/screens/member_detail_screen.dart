@@ -445,12 +445,12 @@ class _PhotoAvatar extends ConsumerWidget {
                 width: 88,
                 height: 88,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => const SizedBox(width: 88, height: 88),
-                errorWidget: (_, __, ___) => _placeholder(),
+                placeholder: (_, _) => const SizedBox(width: 88, height: 88),
+                errorWidget: (_, _, _) => _placeholder(),
               )
             : _placeholder(),
         loading: () => const SizedBox(width: 88, height: 88),
-        error: (_, __) => _placeholder(),
+        error: (_, _) => _placeholder(),
       );
     }
 
@@ -573,7 +573,7 @@ class _AuditSection extends StatelessWidget {
                 ),
               ),
             ),
-            error: (_, __) =>
+            error: (_, _) =>
                 Text('Could not load history.', style: AppTextStyles.small()),
           ),
         ],

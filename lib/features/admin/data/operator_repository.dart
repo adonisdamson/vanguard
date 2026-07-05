@@ -128,19 +128,19 @@ class OperatorRepository {
   }
 
   Future<Map<String, int>> countByRole() async {
-    final data = await _db
-        .from('app_users')
-        .select('role, is_active')
-        .not('role', 'is', null)
-        .limit(500);
-    final counts = <String, int>{'admin': 0, 'higher_authority': 0, 'personnel': 0, 'total': 0};
-    for (final row in data as List) {
-      final role = row['role'] as String? ?? '';
-      if (role.isEmpty) continue;
-      counts[role] = (counts[role] ?? 0) + 1;
-      counts['total'] = counts['total']! + 1;
-    }
-    return counts;
+    final base = _db.from('app_users').select().not('role', 'is', null);
+    final results = await Future.wait([
+      base.count(CountOption.exact),
+      base.eq('role', 'admin').count(CountOption.exact),
+      base.eq('role', 'higher_authority').count(CountOption.exact),
+      base.eq('role', 'personnel').count(CountOption.exact),
+    ]);
+    return {
+      'total': results[0].count,
+      'admin': results[1].count,
+      'higher_authority': results[2].count,
+      'personnel': results[3].count,
+    };
   }
 
   Future<void> createOperator({

@@ -185,4 +185,33 @@ class AppTextStyles {
         color: color,
         letterSpacing: 0.3,
       );
+
+  // ── Specialised tokens ────────────────────────────────────────────────────
+  static TextStyle navLabel({Color color = AppColors.mist}) =>
+      GoogleFonts.inter(
+        fontSize: 10.5,
+        fontWeight: FontWeight.w500,
+        color: color,
+        letterSpacing: 0.1,
+        height: 1.3,
+      );
+
+  static TextStyle navLabelActive({Color color = AppColors.canopyGreen}) =>
+      GoogleFonts.inter(
+        fontSize: 10.5,
+        fontWeight: FontWeight.w600,
+        color: color,
+        letterSpacing: 0.1,
+        height: 1.3,
+      );
+
+  // Ring percentage label inside CustomPaint progress rings
+  static TextStyle ringPercent({Color color = AppColors.ink}) =>
+      GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: color,
+        letterSpacing: 0,
+        height: 1.2,
+      );
 }

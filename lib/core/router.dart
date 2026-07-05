@@ -51,33 +51,33 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/signup', builder: (_, __) => const SignUpScreen()),
-      GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
-      GoRoute(path: '/pending-approval', builder: (_, __) => const PendingApprovalScreen()),
+      GoRoute(path: '/', builder: (context, _) => const SplashScreen()),
+      GoRoute(path: '/login', builder: (context, _) => const LoginScreen()),
+      GoRoute(path: '/signup', builder: (context, _) => const SignUpScreen()),
+      GoRoute(path: '/forgot-password', builder: (context, _) => const ForgotPasswordScreen()),
+      GoRoute(path: '/pending-approval', builder: (context, _) => const PendingApprovalScreen()),
 
       // Personnel (shell provides bottom nav + IndexedStack)
-      GoRoute(path: '/home', builder: (_, __) => const PersonnelShell()),
-      GoRoute(path: '/register-member', builder: (_, __) => const RegistrationScreen()),
-      GoRoute(path: '/my-submissions', builder: (_, __) => const MySubmissionsScreen()),
+      GoRoute(path: '/home', builder: (context, _) => const PersonnelShell()),
+      GoRoute(path: '/register-member', builder: (context, _) => const RegistrationScreen()),
+      GoRoute(path: '/my-submissions', builder: (context, _) => const MySubmissionsScreen()),
 
       // Higher Authority (shell provides bottom nav + IndexedStack)
-      GoRoute(path: '/dashboard', builder: (_, __) => const HigherAuthorityShell()),
-      GoRoute(path: '/review-queue', builder: (_, __) => const ReviewQueueScreen()),
+      GoRoute(path: '/dashboard', builder: (context, _) => const HigherAuthorityShell()),
+      GoRoute(path: '/review-queue', builder: (context, _) => const ReviewQueueScreen()),
       GoRoute(
         path: '/member/:id',
-        builder: (_, state) => MemberDetailScreen(memberId: state.pathParameters['id']!),
+        builder: (context, state) => MemberDetailScreen(memberId: state.pathParameters['id']!),
       ),
-      GoRoute(path: '/member-directory', builder: (_, __) => const MemberDirectoryScreen()),
+      GoRoute(path: '/member-directory', builder: (context, _) => const MemberDirectoryScreen()),
 
       // Admin (shell provides bottom nav + IndexedStack)
-      GoRoute(path: '/admin', builder: (_, __) => const AdminShell()),
-      GoRoute(path: '/admin/operators', builder: (_, __) => const OperatorListScreen()),
-      GoRoute(path: '/admin/operators/create', builder: (_, __) => const CreateOperatorScreen()),
-      GoRoute(path: '/admin/lookups', builder: (_, __) => const LookupTablesScreen()),
-      GoRoute(path: '/admin/lookups/import-csv', builder: (_, __) => const CsvImportScreen()),
-      GoRoute(path: '/admin/audit', builder: (_, __) => const AuditLogScreen()),
+      GoRoute(path: '/admin', builder: (context, _) => const AdminShell()),
+      GoRoute(path: '/admin/operators', builder: (context, _) => const OperatorListScreen()),
+      GoRoute(path: '/admin/operators/create', builder: (context, _) => const CreateOperatorScreen()),
+      GoRoute(path: '/admin/lookups', builder: (context, _) => const LookupTablesScreen()),
+      GoRoute(path: '/admin/lookups/import-csv', builder: (context, _) => const CsvImportScreen()),
+      GoRoute(path: '/admin/audit', builder: (context, _) => const AuditLogScreen()),
     ],
   );
 
@@ -97,6 +97,6 @@ String _roleHome(AppUser? user) {
 
 class _AuthChangeNotifier extends ChangeNotifier {
   _AuthChangeNotifier(Ref ref) {
-    ref.listen(supabaseAuthProvider, (_, __) => notifyListeners());
+    ref.listen(supabaseAuthProvider, (_, _) => notifyListeners());
   }
 }

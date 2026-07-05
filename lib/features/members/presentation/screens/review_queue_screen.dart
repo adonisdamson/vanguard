@@ -99,7 +99,7 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
       return ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: 6,
-        itemBuilder: (_, __) => const Padding(
+        itemBuilder: (_, _) => const Padding(
           padding: EdgeInsets.only(bottom: AppSpacing.sm),
           child: MemberTileSkeleton(),
         ),

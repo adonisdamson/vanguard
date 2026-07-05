@@ -9,10 +9,12 @@ class MemberDetail {
   final String? gender;
   final String? phone;
   final String? email;
+  final String? ghanaCardId;
   final String? regionName;
   final String? districtName;
   final String? constituencyName;
   final String? pollingStationName;
+  final String? pollingStationCode;
   final String? ward;
   final String? branch;
   final String? membershipType;
@@ -40,10 +42,12 @@ class MemberDetail {
     this.gender,
     this.phone,
     this.email,
+    this.ghanaCardId,
     this.regionName,
     this.districtName,
     this.constituencyName,
     this.pollingStationName,
+    this.pollingStationCode,
     this.ward,
     this.branch,
     this.membershipType,
@@ -75,10 +79,12 @@ class MemberDetail {
       gender: m['gender'] as String?,
       phone: m['phone'] as String?,
       email: m['email'] as String?,
+      ghanaCardId: m['ghana_card_id'] as String?,
       regionName: (m['regions'] as Map<String, dynamic>?)?['name'] as String?,
       districtName: (m['districts'] as Map<String, dynamic>?)?['name'] as String?,
       constituencyName: (m['constituencies'] as Map<String, dynamic>?)?['name'] as String?,
       pollingStationName: (m['polling_stations'] as Map<String, dynamic>?)?['name'] as String?,
+      pollingStationCode: (m['polling_stations'] as Map<String, dynamic>?)?['station_code'] as String?,
       ward: m['ward'] as String?,
       branch: m['branch'] as String?,
       membershipType: m['membership_type'] as String?,
@@ -135,10 +141,11 @@ class ReviewRepository {
 
   static const _memberDetailSelect = '''
     id, member_number, first_name, last_name, date_of_birth, gender,
-    phone, email, ward, branch, membership_type, preferred_role,
+    phone, email, ghana_card_id, ward, branch, membership_type, preferred_role,
     profession, employment_status, highest_academic_qualification,
     skills, photo_path, status, rejection_reason, created_at, updated_at,
-    regions(name), districts(name), constituencies(name), polling_stations(name)
+    residential_address, residence_town, party_position, other_party,
+    regions(name), districts(name), constituencies(name), polling_stations(name, station_code)
   ''';
 
   Future<List<MemberDetail>> fetchPendingMembers({
@@ -210,17 +217,21 @@ class ReviewRepository {
   }
 
   Future<void> approveMember(String memberId) async {
+    final uid = _db.auth.currentUser?.id;
+    if (uid == null) throw Exception('Session expired — please sign in again');
     await _db.from('members').update({
       'status': 'active',
-      'reviewed_by': _db.auth.currentUser!.id,
+      'reviewed_by': uid,
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', memberId);
   }
 
   Future<void> rejectMember(String memberId, String reason) async {
+    final uid = _db.auth.currentUser?.id;
+    if (uid == null) throw Exception('Session expired — please sign in again');
     await _db.from('members').update({
       'status': 'rejected',
-      'reviewed_by': _db.auth.currentUser!.id,
+      'reviewed_by': uid,
       'rejection_reason': reason,
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', memberId);

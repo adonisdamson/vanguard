@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/review_providers.dart';
 import '../../application/member_providers.dart';
 import '../../data/review_repository.dart';
+import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -115,7 +117,10 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.umbrellaRed,
+          content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -177,7 +182,10 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.umbrellaRed,
+          content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+        ));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -279,6 +287,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             if (member.gender != null) _Row('Gender', member.gender!),
             if (member.phone != null) _Row('Phone', member.phone!),
             if (member.email != null) _Row('Email', member.email!),
+            if (member.ghanaCardId != null) _Row('Ghana Card / Voter ID', member.ghanaCardId!),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -291,7 +300,10 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             if (member.regionName != null) _Row('Region', member.regionName!),
             if (member.districtName != null) _Row('District', member.districtName!),
             if (member.constituencyName != null) _Row('Constituency', member.constituencyName!),
-            if (member.pollingStationName != null) _Row('Polling station', member.pollingStationName!),
+            if (member.pollingStationName != null) _Row('Polling station',
+              member.pollingStationCode != null
+                ? '${member.pollingStationCode} — ${member.pollingStationName!}'
+                : member.pollingStationName!),
             if (member.ward != null) _Row('Ward', member.ward!),
             if (member.branch != null) _Row('Branch', member.branch!),
             if (member.residentialAddress != null) _Row('Address', member.residentialAddress!),
@@ -331,66 +343,116 @@ class _HeaderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.deepCanopy, Color(0xFF00552F)],
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
       ),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.base, AppSpacing.xl, AppSpacing.base, AppSpacing.xl,
+      ),
+      child: Column(
         children: [
-          _PhotoAvatar(photoPath: member.photoPath, ref: ref),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(member.fullName, style: AppTextStyles.h2(), maxLines: 2, overflow: TextOverflow.ellipsis),
-                if (member.memberNumber != null)
-                  Text(member.memberNumber!, style: AppTextStyles.memberNumber()),
-                const SizedBox(height: 6),
-                StatusPill.fromString(member.status),
-              ],
-            ),
+          // Photo avatar — centered, circular
+          _PhotoAvatar(photoPath: member.photoPath),
+          const SizedBox(height: AppSpacing.md),
+          // Name
+          Text(
+            member.fullName,
+            style: AppTextStyles.h2(color: AppColors.surface),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
+          // Member number
+          if (member.memberNumber != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              member.memberNumber!,
+              style: AppTextStyles.memberNumber(color: AppColors.surface.withValues(alpha: 0.65)),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          // Status badge
+          StatusPill.fromString(member.status),
+          // Polling station quick info
+          if (member.pollingStationName != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const PhosphorIcon(PhosphorIconsRegular.mapPin, size: 12, color: AppColors.surface),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      member.pollingStationName!,
+                      style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.75)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _PhotoAvatar extends StatelessWidget {
+class _PhotoAvatar extends ConsumerWidget {
   final String? photoPath;
-  final WidgetRef ref;
 
-  const _PhotoAvatar({required this.photoPath, required this.ref});
+  const _PhotoAvatar({required this.photoPath});
 
   @override
-  Widget build(BuildContext context) {
-    if (photoPath == null || photoPath!.isEmpty) return _placeholder();
+  Widget build(BuildContext context, WidgetRef ref) {
+    Widget inner;
+    if (photoPath == null || photoPath!.isEmpty) {
+      inner = _placeholder();
+    } else {
+      final urlAsync = ref.watch(photoUrlProvider(photoPath!));
+      inner = urlAsync.when(
+        data: (url) => url != null
+            ? CachedNetworkImage(
+                imageUrl: url,
+                width: 88,
+                height: 88,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const SizedBox(width: 88, height: 88),
+                errorWidget: (_, __, ___) => _placeholder(),
+              )
+            : _placeholder(),
+        loading: () => const SizedBox(width: 88, height: 88),
+        error: (_, __) => _placeholder(),
+      );
+    }
 
-    final urlAsync = ref.watch(photoUrlProvider(photoPath!));
-    return urlAsync.when(
-      data: (url) => url != null
-          ? ClipRRect(
-              borderRadius: AppRadii.borderSm,
-              child: Image.network(url, width: 80, height: 80, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder()),
-            )
-          : _placeholder(),
-      loading: () => Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(color: AppColors.fillMuted, borderRadius: AppRadii.borderSm),
+    return Container(
+      width: 88,
+      height: 88,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.30), width: 2),
       ),
-      error: (_, __) => _placeholder(),
+      child: ClipOval(child: inner),
     );
   }
 
   Widget _placeholder() => Container(
-    width: 80, height: 80,
-    decoration: BoxDecoration(color: AppColors.greenTint, borderRadius: AppRadii.borderSm),
-    child: const PhosphorIcon(PhosphorIconsRegular.person, size: 40, color: AppColors.canopyGreen),
+    width: 88, height: 88,
+    color: AppColors.canopyGreen.withValues(alpha: 0.5),
+    child: const PhosphorIcon(PhosphorIconsRegular.person, size: 42, color: AppColors.surface),
   );
 }
 
@@ -471,27 +533,32 @@ class _AuditSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const PhosphorIcon(PhosphorIconsRegular.scroll, size: 16, color: AppColors.canopyGreen),
+              const PhosphorIcon(PhosphorIconsRegular.clockCounterClockwise,
+                  size: 16, color: AppColors.canopyGreen),
               const SizedBox(width: 8),
-              Text('Audit history', style: AppTextStyles.h3()),
+              Text('History', style: AppTextStyles.h3()),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           auditAsync.when(
             data: (entries) => entries.isEmpty
-                ? Text('No audit events yet.', style: AppTextStyles.body(color: AppColors.textMuted))
-                : Column(
-                    children: entries.map((e) => _AuditEntry(entry: e)).toList(),
-                  ),
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('No events recorded yet.',
+                        style: AppTextStyles.body(color: AppColors.textMuted)),
+                  )
+                : _Timeline(entries: entries),
             loading: () => Column(
-              children: [1, 2, 3]
-                  .map((_) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: SkeletonLoader(height: 44),
-                      ))
-                  .toList(),
+              children: List.generate(
+                3,
+                (_) => const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: SkeletonLoader(height: 48, borderRadius: AppRadii.borderSm),
+                ),
+              ),
             ),
-            error: (_, __) => Text('Could not load audit history.', style: AppTextStyles.small()),
+            error: (_, __) =>
+                Text('Could not load history.', style: AppTextStyles.small()),
           ),
         ],
       ),
@@ -499,42 +566,112 @@ class _AuditSection extends StatelessWidget {
   }
 }
 
-class _AuditEntry extends StatelessWidget {
+class _Timeline extends StatelessWidget {
+  final List<AuditEntry> entries;
+  const _Timeline({required this.entries});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(entries.length, (i) {
+        return _TimelineItem(
+          entry: entries[i],
+          isLast: i == entries.length - 1,
+        );
+      }),
+    );
+  }
+}
+
+class _TimelineItem extends StatelessWidget {
   final AuditEntry entry;
-  const _AuditEntry({required this.entry});
+  final bool isLast;
+  const _TimelineItem({required this.entry, required this.isLast});
+
+  static (IconData, Color, Color) _iconFor(String action) {
+    return switch (action) {
+      'member_created'       => (PhosphorIconsFill.userPlus,      AppColors.canopyGreen,  AppColors.greenTint),
+      'member_status_changed'=> _statusIcon,
+      'member_updated'       => (PhosphorIconsFill.pencilSimple,  AppColors.mist,         AppColors.fillMuted),
+      'operator_created'     => (PhosphorIconsFill.userGear,      AppColors.canopyGreen,  AppColors.greenTint),
+      'role_changed'         => (PhosphorIconsFill.arrowsLeftRight,AppColors.gold,        AppColors.goldTint),
+      'account_status_changed'=> (PhosphorIconsFill.toggleRight,  AppColors.gold,         AppColors.goldTint),
+      _                      => (PhosphorIconsRegular.dot,        AppColors.mist,         AppColors.fillMuted),
+    };
+  }
+
+  // status_changed icon depends on new_status in metadata — resolved at build time
+  static const _statusIcon = (PhosphorIconsFill.arrowCircleRight, AppColors.canopyGreen, AppColors.greenTint);
+
+  (IconData, Color, Color) _resolvedIcon() {
+    if (entry.action == 'member_status_changed') {
+      final ns = entry.metadata['new_status'] as String?;
+      if (ns == 'active')   return (PhosphorIconsFill.checkCircle,  AppColors.canopyGreen,  AppColors.greenTint);
+      if (ns == 'rejected') return (PhosphorIconsFill.xCircle,      AppColors.umbrellaRed,  AppColors.redTint);
+    }
+    return _iconFor(entry.action);
+  }
 
   @override
   Widget build(BuildContext context) {
     final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     final d = entry.createdAt;
-    final dateStr = '${d.day} ${months[d.month - 1]} ${d.year}, ${d.hour.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2,'0')}';
+    final dateStr =
+        '${d.day} ${months[d.month - 1]} ${d.year}  ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-    String detail = '';
     final meta = entry.metadata;
+    String? detail;
     if (meta['old_status'] != null && meta['new_status'] != null) {
-      detail = '${meta['old_status']} → ${meta['new_status']}';
-    } else if (meta['status'] != null) {
-      detail = 'Status: ${meta['status']}';
+      detail = '${(meta['old_status'] as String).replaceAll('_', ' ')} → ${(meta['new_status'] as String).replaceAll('_', ' ')}';
+    } else if (meta['reason'] != null && (meta['reason'] as String).isNotEmpty) {
+      detail = meta['reason'] as String;
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+    final (icon, iconColor, iconBg) = _resolvedIcon();
+
+    return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 8, height: 8,
-            margin: const EdgeInsets.only(top: 5, right: 10),
-            decoration: const BoxDecoration(color: AppColors.canopyGreen, shape: BoxShape.circle),
-          ),
-          Expanded(
+          // Vertical spine + icon
+          SizedBox(
+            width: 36,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.humanAction, style: AppTextStyles.bodyMedium()),
-                if (detail.isNotEmpty) Text(detail, style: AppTextStyles.small()),
-                Text(dateStr, style: AppTextStyles.caption()),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                  child: Center(child: PhosphorIcon(icon, size: 15, color: iconColor)),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      color: AppColors.hairline,
+                    ),
+                  ),
               ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Content
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : AppSpacing.base),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.humanAction, style: AppTextStyles.bodyMedium()),
+                  if (detail != null) ...[
+                    const SizedBox(height: 2),
+                    Text(detail, style: AppTextStyles.small(color: AppColors.textSecondary)),
+                  ],
+                  const SizedBox(height: 3),
+                  Text(dateStr, style: AppTextStyles.caption()),
+                ],
+              ),
             ),
           ),
         ],

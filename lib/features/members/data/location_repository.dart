@@ -31,12 +31,20 @@ class PollingStation {
   final int constituencyId;
   final String name;
   final String? electoralArea;
-  const PollingStation({required this.id, required this.constituencyId, required this.name, this.electoralArea});
+  final String? stationCode;
+  const PollingStation({
+    required this.id,
+    required this.constituencyId,
+    required this.name,
+    this.electoralArea,
+    this.stationCode,
+  });
   factory PollingStation.fromMap(Map<String, dynamic> m) => PollingStation(
     id: m['id'] as int,
     constituencyId: m['constituency_id'] as int,
     name: m['name'] as String,
-    electoralArea: m['electoral_area'] as String?,
+    electoralArea: m['electoral_area']?.toString(),
+    stationCode: m['station_code'] as String?,
   );
 }
 
@@ -85,10 +93,10 @@ class LocationRepository {
   Future<List<PollingStation>> fetchPollingStations(int constituencyId, {String? electoralArea}) async {
     var query = _db
         .from('polling_stations')
-        .select('id, constituency_id, name, electoral_area')
+        .select('id, constituency_id, name, electoral_area, station_code')
         .eq('constituency_id', constituencyId);
     if (electoralArea != null) query = query.eq('electoral_area', electoralArea);
-    final data = await query.order('name');
+    final data = await query.order('name').limit(500);
     return (data as List).map((m) => PollingStation.fromMap(m as Map<String, dynamic>)).toList();
   }
 }

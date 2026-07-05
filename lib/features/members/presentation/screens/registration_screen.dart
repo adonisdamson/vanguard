@@ -22,12 +22,7 @@ import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 import '../../../../shared/widgets/lottie_loader.dart';
 
-const _stepTitles = [
-  'Personal Info',
-  'Location',
-  'Membership',
-  'Photo & Review',
-];
+const _tabLabels = ['Personal', 'Electoral', 'Party & Livelihood'];
 
 class RegistrationScreen extends ConsumerStatefulWidget {
   const RegistrationScreen({super.key});
@@ -36,24 +31,52 @@ class RegistrationScreen extends ConsumerStatefulWidget {
   ConsumerState<RegistrationScreen> createState() => _RegistrationScreenState();
 }
 
-class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
-  int _step = 0;
+class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
   int _sessionCount = 0;
   bool _submitting = false;
   String? _submitError;
 
-  final _formKeys = List.generate(4, (_) => GlobalKey<FormState>());
+  final _formKeys = List.generate(3, (_) => GlobalKey<FormState>());
 
-  bool _validateStep() => _formKeys[_step].currentState?.validate() ?? false;
-
-  void _next() {
-    if (!_validateStep()) return;
-    _formKeys[_step].currentState!.save();
-    if (_step < 3) setState(() => _step++);
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _tabs.addListener(() => setState(() {}));
   }
 
-  void _back() {
-    if (_step > 0) setState(() => _step--);
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  bool _validateTab(int i) => _formKeys[i].currentState?.validate() ?? false;
+
+  bool _validateAll() {
+    // Must validate all three to trigger error UI on every tab
+    final t0 = _formKeys[0].currentState?.validate() ?? false;
+    final t1 = _formKeys[1].currentState?.validate() ?? false;
+    final t2 = _formKeys[2].currentState?.validate() ?? false;
+    return t0 && t1 && t2;
+  }
+
+  void _saveAll() {
+    for (final k in _formKeys) {
+      k.currentState?.save();
+    }
+  }
+
+  void _nextTab() {
+    if (!_validateTab(_tabs.index)) return;
+    _formKeys[_tabs.index].currentState!.save();
+    if (_tabs.index < 2) _tabs.animateTo(_tabs.index + 1);
+  }
+
+  void _prevTab() {
+    if (_tabs.index > 0) _tabs.animateTo(_tabs.index - 1);
   }
 
   Future<bool> _checkDuplicates(RegistrationFormData data) async {
@@ -76,7 +99,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     }
     if (data.dateOfBirth != null) {
       final dob = data.dateOfBirth!;
-      final dobStr = '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
+      final dobStr =
+          '${dob.year}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
       try {
         final res = await db
             .from('members')
@@ -106,10 +130,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
             title: Text('Possible duplicate', style: AppTextStyles.h3()),
             content: Text(message, style: AppTextStyles.body()),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel')),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: Text('Register anyway', style: TextStyle(color: AppColors.umbrellaRed)),
+                child: Text('Register anyway',
+                    style: TextStyle(color: AppColors.umbrellaRed)),
               ),
             ],
           ),
@@ -117,7 +144,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         false;
   }
 
-  Future<String?> _doInsert(RegistrationFormData formData, String userId, MemberRepository repo) async {
+  Future<String?> _doInsert(
+      RegistrationFormData formData, String userId, MemberRepository repo) async {
     String? storagePath;
     if (formData.photoLocalPath != null) {
       try {
@@ -132,19 +160,22 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   void _captureMetadata(String memberId) async {
     final pos = await CaptureMetadataService.requestLocation();
-    CaptureMetadataService.capture(memberId, lat: pos?.latitude, lng: pos?.longitude).ignore();
+    CaptureMetadataService.capture(memberId,
+            lat: pos?.latitude, lng: pos?.longitude)
+        .ignore();
   }
 
   Future<void> _submit({bool addAnother = false}) async {
-    if (!_validateStep()) return;
-    _formKeys[_step].currentState!.save();
+    if (!_validateAll()) {
+      setState(() => _submitError = 'Please fix errors in all tabs before submitting.');
+      return;
+    }
+    _saveAll();
 
     final session = Supabase.instance.client.auth.currentSession;
     if (session == null) return;
 
     final formData = ref.read(registrationFormProvider);
-
-    // Duplicate guard — warn but let the operator decide
     final proceed = await _checkDuplicates(formData);
     if (!proceed || !mounted) return;
 
@@ -183,9 +214,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     HapticFeedback.mediumImpact();
 
     if (addAnother) {
-      // Save current location for retention before resetting
       final retention = LocationRetention(
-        region: null, // objects not tracked in form; step2 stores IDs
+        region: null,
         district: null,
         constituency: null,
         pollingStation: null,
@@ -198,14 +228,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       ref.read(locationRetentionProvider.notifier).state = retention;
       ref.read(registrationFormProvider.notifier).resetPersonalOnly();
       setState(() {
-        _step = 0;
         _sessionCount++;
         _submitting = false;
         _submitError = null;
       });
+      _tabs.animateTo(0);
       if (mounted) {
-        _showSaveSuccess(
-            'Saved — member $_sessionCount of this session. Location kept.');
+        _showSaveSuccess('Saved — member $_sessionCount of this session. Location kept.');
       }
     } else {
       ref.read(registrationFormProvider.notifier).reset();
@@ -214,7 +243,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       if (isOffline) {
         _showOfflineSaved();
       } else {
-        context.go('/my-submissions');
+        context.go('/home');
       }
     }
   }
@@ -234,7 +263,8 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
         backgroundColor: AppColors.statusPending,
         content: Row(
           children: [
-            const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.surface),
+            const PhosphorIcon(PhosphorIconsFill.cloudSlash,
+                size: 18, color: AppColors.surface),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -257,65 +287,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       barrierDismissible: false,
       builder: (_) => _SaveSuccessOverlay(message: message),
     );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.paper,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepCanopy,
-        elevation: 0,
-        leading: IconButton(
-          tooltip: 'Discard registration',
-          icon: const PhosphorIcon(PhosphorIconsRegular.x, color: AppColors.surface, size: 22),
-          onPressed: () => _confirmExit(context),
-        ),
-        title: _sessionCount > 0
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Register member', style: AppTextStyles.appBarTitle()),
-                  Text('Session · $_sessionCount saved', style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.7))),
-                ],
-              )
-            : Text('Register member', style: AppTextStyles.appBarTitle()),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
-      ),
-      body: Column(
-        children: [
-          _StepProgress(currentStep: _step),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-              child: _buildCurrentStep(),
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: _BottomNav(
-        step: _step,
-        submitting: _submitting,
-        error: _submitError,
-        onBack: _back,
-        onNext: _step < 3 ? _next : () => _submit(),
-        onSaveAndAnother: _step == 3 ? () => _submit(addAnother: true) : null,
-      ),
-    );
-  }
-
-  Widget _buildCurrentStep() {
-    return switch (_step) {
-      0 => _Step1Personal(formKey: _formKeys[0]),
-      1 => _Step2Location(formKey: _formKeys[1]),
-      2 => _Step3Membership(formKey: _formKeys[2]),
-      3 => _Step4PhotoReview(formKey: _formKeys[3]),
-      _ => const SizedBox.shrink(),
-    };
   }
 
   Future<void> _confirmExit(BuildContext context) async {
@@ -341,70 +312,212 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
     );
     if (exit == true && context.mounted) context.pop();
   }
-}
-
-// ─── Step Progress ──────────────────────────────────────────────────────────
-
-class _StepProgress extends StatelessWidget {
-  final int currentStep;
-  const _StepProgress({required this.currentStep});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: AppColors.paper,
+      appBar: AppBar(
+        backgroundColor: AppColors.deepCanopy,
+        elevation: 0,
+        leading: IconButton(
+          tooltip: 'Discard registration',
+          icon: const PhosphorIcon(PhosphorIconsRegular.x,
+              color: AppColors.surface, size: 22),
+          onPressed: () => _confirmExit(context),
+        ),
+        title: _sessionCount > 0
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Register member', style: AppTextStyles.appBarTitle()),
+                  Text(
+                    'Session · $_sessionCount saved',
+                    style: AppTextStyles.caption(
+                        color: AppColors.surface.withValues(alpha: 0.7)),
+                  ),
+                ],
+              )
+            : Text('Register member', style: AppTextStyles.appBarTitle()),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(4),
+          child: CanopyStripe(height: 4),
+        ),
+      ),
+      body: Column(
         children: [
-          Row(
-            children: List.generate(4, (i) => Expanded(
-              child: Container(
-                margin: EdgeInsets.only(right: i < 3 ? 6 : 0),
-                height: 4,
-                decoration: BoxDecoration(
-                  color: i <= currentStep ? AppColors.canopyGreen : AppColors.hairline,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            )),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Step ${currentStep + 1} of 4 — ${_stepTitles[currentStep]}',
-            style: AppTextStyles.small(color: AppColors.textSecondary),
+          // 3-tab strip
+          _TabStrip(controller: _tabs),
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              // No swipe — forces Continue button (validates before advancing)
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _scrollable(_Tab1Personal(formKey: _formKeys[0])),
+                _scrollable(_Tab2Electoral(formKey: _formKeys[1])),
+                _scrollable(_Tab3Party(formKey: _formKeys[2])),
+              ],
+            ),
           ),
         ],
+      ),
+      bottomNavigationBar: _BottomBar(
+        tabIndex: _tabs.index,
+        submitting: _submitting,
+        error: _submitError,
+        onBack: _prevTab,
+        onNext: _tabs.index < 2 ? _nextTab : null,
+        onSubmit: _tabs.index == 2 ? () => _submit() : null,
+        onSaveAndAnother: _tabs.index == 2 ? () => _submit(addAnother: true) : null,
+      ),
+    );
+  }
+
+  Widget _scrollable(Widget child) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        child: child,
+      );
+}
+
+// ─── Tab Strip ────────────────────────────────────────────────────────────────
+
+class _TabStrip extends StatelessWidget {
+  final TabController controller;
+  const _TabStrip({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = controller.index;
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Row(
+        children: List.generate(_tabLabels.length * 2 - 1, (i) {
+          if (i.isOdd) {
+            // Connector line between steps
+            final stepIndex = i ~/ 2;
+            final completed = stepIndex < current;
+            return Expanded(
+              child: Container(
+                height: 2,
+                color: completed ? AppColors.canopyGreen : AppColors.hairline,
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+            );
+          }
+          final stepIndex = i ~/ 2;
+          final isActive = stepIndex == current;
+          final isCompleted = stepIndex < current;
+          return _StepDot(
+            index: stepIndex,
+            isActive: isActive,
+            isCompleted: isCompleted,
+            label: _tabLabels[stepIndex],
+          );
+        }),
       ),
     );
   }
 }
 
-// ─── Bottom Nav ─────────────────────────────────────────────────────────────
+class _StepDot extends StatelessWidget {
+  final int index;
+  final bool isActive;
+  final bool isCompleted;
+  final String label;
 
-class _BottomNav extends StatelessWidget {
-  final int step;
+  const _StepDot({
+    required this.index,
+    required this.isActive,
+    required this.isCompleted,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bg;
+    final Color textColor;
+    final Color borderColor;
+    if (isCompleted) {
+      bg = AppColors.canopyGreen;
+      textColor = AppColors.surface;
+      borderColor = AppColors.canopyGreen;
+    } else if (isActive) {
+      bg = AppColors.canopyGreen;
+      textColor = AppColors.surface;
+      borderColor = AppColors.canopyGreen;
+    } else {
+      bg = AppColors.fillMuted;
+      textColor = AppColors.mist;
+      borderColor = AppColors.hairline;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: bg,
+            border: Border.all(color: borderColor, width: 2),
+          ),
+          child: Center(
+            child: isCompleted
+                ? const Icon(Icons.check, size: 14, color: AppColors.surface)
+                : Text(
+                    '${index + 1}',
+                    style: AppTextStyles.badge(color: textColor),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: AppTextStyles.caption(
+            color: isActive ? AppColors.canopyGreen : AppColors.mist,
+          ).copyWith(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Bottom Bar ───────────────────────────────────────────────────────────────
+
+class _BottomBar extends StatelessWidget {
+  final int tabIndex;
   final bool submitting;
   final String? error;
   final VoidCallback onBack;
-  final VoidCallback onNext;
+  final VoidCallback? onNext;
+  final VoidCallback? onSubmit;
   final VoidCallback? onSaveAndAnother;
 
-  const _BottomNav({
-    required this.step,
+  const _BottomBar({
+    required this.tabIndex,
     required this.submitting,
     required this.error,
     required this.onBack,
-    required this.onNext,
+    this.onNext,
+    this.onSubmit,
     this.onSaveAndAnother,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isFinalStep = step == 3;
+    final isLast = tabIndex == 2;
     return Container(
       color: AppColors.surface,
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+          20, 12, 20, 20 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -416,45 +529,54 @@ class _BottomNav extends StatelessWidget {
                 color: AppColors.redTint,
                 borderRadius: AppRadii.borderSm,
               ),
-              child: Text(error!, style: AppTextStyles.small(color: AppColors.umbrellaRed)),
+              child:
+                  Text(error!, style: AppTextStyles.small(color: AppColors.umbrellaRed)),
             ),
             const SizedBox(height: 10),
           ],
-          // Primary row: back + main action
           Row(
             children: [
-              if (step > 0) ...[
+              if (tabIndex > 0) ...[
                 SizedBox(
                   height: 52,
                   child: OutlinedButton(
                     onPressed: submitting ? null : onBack,
-                    child: const PhosphorIcon(PhosphorIconsFill.arrowLeft, size: 20, color: AppColors.canopyGreen),
+                    child: const PhosphorIcon(PhosphorIconsFill.arrowLeft,
+                        size: 20, color: AppColors.canopyGreen),
                   ),
                 ),
                 const SizedBox(width: 12),
               ],
               Expanded(
-                child: NdcButton(
-                  label: isFinalStep ? 'Save & Add Another' : 'Continue',
-                  onPressed: isFinalStep ? onSaveAndAnother : onNext,
-                  loading: submitting,
-                  icon: isFinalStep
-                      ? const PhosphorIcon(PhosphorIconsFill.userPlus, size: 18, color: AppColors.surface)
-                      : const PhosphorIcon(PhosphorIconsFill.arrowRight, size: 18, color: AppColors.surface),
-                ),
+                child: isLast
+                    ? NdcButton(
+                        label: 'Submit',
+                        onPressed: submitting ? null : onSubmit,
+                        loading: submitting,
+                        icon: const PhosphorIcon(PhosphorIconsFill.check,
+                            size: 18, color: AppColors.surface),
+                      )
+                    : NdcButton(
+                        label: 'Continue',
+                        onPressed: submitting ? null : onNext,
+                        loading: submitting,
+                        icon: const PhosphorIcon(PhosphorIconsFill.arrowRight,
+                            size: 18, color: AppColors.surface),
+                      ),
               ),
             ],
           ),
-          // Secondary: plain "Save" on final step
-          if (isFinalStep) ...[
+          if (isLast) ...[
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               height: 44,
               child: OutlinedButton.icon(
-                onPressed: submitting ? null : onNext,
-                icon: const PhosphorIcon(PhosphorIconsFill.check, size: 16, color: AppColors.canopyGreen),
-                label: Text('Save only', style: AppTextStyles.bodyMedium(color: AppColors.canopyGreen)),
+                onPressed: submitting ? null : onSaveAndAnother,
+                icon: const PhosphorIcon(PhosphorIconsFill.userPlus,
+                    size: 16, color: AppColors.canopyGreen),
+                label: Text('Save & add another',
+                    style: AppTextStyles.bodyMedium(color: AppColors.canopyGreen)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.canopyGreen),
                   shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
@@ -468,21 +590,22 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
-// ─── Step 1: Personal Info ───────────────────────────────────────────────────
+// ─── Tab 1: Personal ──────────────────────────────────────────────────────────
 
-class _Step1Personal extends ConsumerStatefulWidget {
+class _Tab1Personal extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
-  const _Step1Personal({required this.formKey});
+  const _Tab1Personal({required this.formKey});
 
   @override
-  ConsumerState<_Step1Personal> createState() => _Step1PersonalState();
+  ConsumerState<_Tab1Personal> createState() => _Tab1PersonalState();
 }
 
-class _Step1PersonalState extends ConsumerState<_Step1Personal> {
+class _Tab1PersonalState extends ConsumerState<_Tab1Personal> {
   late TextEditingController _firstName;
   late TextEditingController _lastName;
   late TextEditingController _phone;
   late TextEditingController _email;
+  late TextEditingController _ghanaCardId;
   DateTime? _dob;
   String? _gender;
 
@@ -494,6 +617,7 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
     _lastName = TextEditingController(text: d.lastName);
     _phone = TextEditingController(text: d.phone);
     _email = TextEditingController(text: d.email ?? '');
+    _ghanaCardId = TextEditingController(text: d.ghanaCardId ?? '');
     _dob = d.dateOfBirth;
     _gender = d.gender;
   }
@@ -504,6 +628,7 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
     _lastName.dispose();
     _phone.dispose();
     _email.dispose();
+    _ghanaCardId.dispose();
     super.dispose();
   }
 
@@ -525,7 +650,10 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
 
   String _formatDob(DateTime? d) {
     if (d == null) return 'Select date';
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final months = [
+      'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'
+    ];
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
@@ -547,7 +675,8 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
             icon: PhosphorIconsRegular.person,
             controller: _firstName,
             textInputAction: TextInputAction.next,
-            validator: (v) => v == null || v.trim().isEmpty ? 'First name is required' : null,
+            validator: (v) =>
+                v == null || v.trim().isEmpty ? 'First name is required' : null,
             onChanged: (_) {},
           ),
           const SizedBox(height: 16),
@@ -558,7 +687,8 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
             icon: PhosphorIconsRegular.person,
             controller: _lastName,
             textInputAction: TextInputAction.next,
-            validator: (v) => v == null || v.trim().isEmpty ? 'Last name is required' : null,
+            validator: (v) =>
+                v == null || v.trim().isEmpty ? 'Last name is required' : null,
             onChanged: (_) {},
           ),
           const SizedBox(height: 16),
@@ -581,7 +711,8 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
                   ),
                   child: Row(
                     children: [
-                      const PhosphorIcon(PhosphorIconsRegular.calendarBlank, size: 20, color: AppColors.textMuted),
+                      const PhosphorIcon(PhosphorIconsRegular.calendarBlank,
+                          size: 20, color: AppColors.textMuted),
                       const SizedBox(width: 12),
                       Text(
                         _formatDob(_dob),
@@ -597,7 +728,6 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
           ),
           const SizedBox(height: 16),
 
-          // Gender — segmented control (male/female per gender_type enum)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -633,15 +763,27 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
             icon: PhosphorIconsRegular.envelope,
             controller: _email,
             keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.done,
+            textInputAction: TextInputAction.next,
             validator: (v) {
-              if (v != null && v.isNotEmpty && !v.contains('@')) return 'Enter a valid email';
+              if (v != null && v.isNotEmpty && !v.contains('@')) {
+                return 'Enter a valid email';
+              }
               return null;
             },
             onChanged: (_) {},
           ),
+          const SizedBox(height: 16),
 
-          // Hidden FormField to save to notifier on validate
+          NdcTextField(
+            label: 'Ghana Card / Voter ID',
+            hint: 'GHA-XXXXXXXXX-X',
+            icon: PhosphorIconsRegular.identificationCard,
+            controller: _ghanaCardId,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.done,
+            onChanged: (_) {},
+          ),
+
           FormField<void>(
             builder: (_) => const SizedBox.shrink(),
             validator: (_) {
@@ -652,6 +794,9 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
                 gender: _gender,
                 phone: _phone.text.trim(),
                 email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+                ghanaCardId: _ghanaCardId.text.trim().isEmpty
+                    ? null
+                    : _ghanaCardId.text.trim(),
               );
               return null;
             },
@@ -662,17 +807,17 @@ class _Step1PersonalState extends ConsumerState<_Step1Personal> {
   }
 }
 
-// ─── Step 2: Location ────────────────────────────────────────────────────────
+// ─── Tab 2: Electoral ─────────────────────────────────────────────────────────
 
-class _Step2Location extends ConsumerStatefulWidget {
+class _Tab2Electoral extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
-  const _Step2Location({required this.formKey});
+  const _Tab2Electoral({required this.formKey});
 
   @override
-  ConsumerState<_Step2Location> createState() => _Step2LocationState();
+  ConsumerState<_Tab2Electoral> createState() => _Tab2ElectoralState();
 }
 
-class _Step2LocationState extends ConsumerState<_Step2Location> {
+class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
   late TextEditingController _ward;
   late TextEditingController _branch;
   late TextEditingController _residentialAddress;
@@ -693,21 +838,17 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
     _residentialAddress = TextEditingController(text: d.residentialAddress ?? '');
     _residenceTown = TextEditingController(text: d.residenceTown ?? '');
 
-    // Restore electoral area from Save & Add Another retention
     final retention = ref.read(locationRetentionProvider);
     if (retention?.electoralArea != null) {
       _electoralArea = retention!.electoralArea;
-      // provider is not reset by resetPersonalOnly so it already matches, no need to re-set
     }
 
-    // Restore dropdown objects if re-entering step 2 after Save & Add Another
     if (d.regionId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _restoreLocationObjects());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _restoreLocationObjects());
     }
   }
 
-  // Match form IDs back to live objects from cached providers.
-  // Providers aren't invalidated on Save & Add Another, so data is already cached.
   void _restoreLocationObjects() {
     if (!mounted) return;
     final d = ref.read(registrationFormProvider);
@@ -752,12 +893,12 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Location Details', style: AppTextStyles.h2()),
+          Text('Electoral Location', style: AppTextStyles.h2()),
           const SizedBox(height: 4),
-          Text('Select the member\'s registration location', style: AppTextStyles.small()),
+          Text('Select the member\'s registration location',
+              style: AppTextStyles.small()),
           const SizedBox(height: 24),
 
-          // Region
           _AsyncDropdown<Region>(
             label: 'Region *',
             icon: PhosphorIconsRegular.mapTrifold,
@@ -782,7 +923,6 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
           ),
           const SizedBox(height: 16),
 
-          // District
           _AsyncDropdown<District>(
             label: 'District *',
             icon: PhosphorIconsRegular.buildings,
@@ -802,11 +942,11 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
               ref.read(selectedConstituencyIdProvider.notifier).state = null;
               ref.read(selectedElectoralAreaProvider.notifier).state = null;
             },
-            validator: () => _district == null && _region != null ? 'Please select a district' : null,
+            validator: () =>
+                _district == null && _region != null ? 'Please select a district' : null,
           ),
           const SizedBox(height: 16),
 
-          // Constituency
           _AsyncDropdown<Constituency>(
             label: 'Constituency *',
             icon: PhosphorIconsRegular.mapPin,
@@ -824,11 +964,12 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
               ref.read(selectedConstituencyIdProvider.notifier).state = c?.id;
               ref.read(selectedElectoralAreaProvider.notifier).state = null;
             },
-            validator: () => _constituency == null && _district != null ? 'Please select a constituency' : null,
+            validator: () => _constituency == null && _district != null
+                ? 'Please select a constituency'
+                : null,
           ),
           const SizedBox(height: 16),
 
-          // Electoral Area — optional filter, only shown when constituency is chosen
           if (_constituency != null) ...[
             _AsyncDropdown<String>(
               label: 'Electoral Area',
@@ -848,17 +989,20 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
             const SizedBox(height: 16),
           ],
 
-          // Polling Station
           _AsyncDropdown<PollingStation>(
             label: 'Polling Station *',
             icon: PhosphorIconsRegular.buildings,
-            hint: _constituency == null ? 'Select constituency first' : 'Select polling station',
+            hint: _constituency == null
+                ? 'Select constituency first'
+                : 'Select polling station',
             asyncData: pollingStationsAsync,
             selected: _pollingStation,
             enabled: _constituency != null,
-            itemLabel: (p) => p.name,
+            itemLabel: (p) => p.stationCode != null ? '${p.stationCode} — ${p.name}' : p.name,
             onChanged: (p) => setState(() => _pollingStation = p),
-            validator: () => _pollingStation == null && _constituency != null ? 'Please select a polling station' : null,
+            validator: () => _pollingStation == null && _constituency != null
+                ? 'Please select a polling station'
+                : null,
           ),
           const SizedBox(height: 16),
 
@@ -916,8 +1060,12 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
                 pollingStationName: _pollingStation?.name,
                 ward: _ward.text.trim().isEmpty ? null : _ward.text.trim(),
                 branch: _branch.text.trim().isEmpty ? null : _branch.text.trim(),
-                residentialAddress: _residentialAddress.text.trim().isEmpty ? null : _residentialAddress.text.trim(),
-                residenceTown: _residenceTown.text.trim().isEmpty ? null : _residenceTown.text.trim(),
+                residentialAddress: _residentialAddress.text.trim().isEmpty
+                    ? null
+                    : _residentialAddress.text.trim(),
+                residenceTown: _residenceTown.text.trim().isEmpty
+                    ? null
+                    : _residenceTown.text.trim(),
               );
               return null;
             },
@@ -928,17 +1076,17 @@ class _Step2LocationState extends ConsumerState<_Step2Location> {
   }
 }
 
-// ─── Step 3: Membership ──────────────────────────────────────────────────────
+// ─── Tab 3: Party & Livelihood (+ Photo) ─────────────────────────────────────
 
-class _Step3Membership extends ConsumerStatefulWidget {
+class _Tab3Party extends ConsumerStatefulWidget {
   final GlobalKey<FormState> formKey;
-  const _Step3Membership({required this.formKey});
+  const _Tab3Party({required this.formKey});
 
   @override
-  ConsumerState<_Step3Membership> createState() => _Step3MembershipState();
+  ConsumerState<_Tab3Party> createState() => _Tab3PartyState();
 }
 
-class _Step3MembershipState extends ConsumerState<_Step3Membership> {
+class _Tab3PartyState extends ConsumerState<_Tab3Party> {
   late TextEditingController _profession;
   late TextEditingController _partyPosition;
   late TextEditingController _otherParty;
@@ -947,6 +1095,9 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
   String? _employmentStatus;
   String? _highestQualification;
   List<String> _skills = [];
+
+  final _picker = ImagePicker();
+  bool _pickingPhoto = false;
 
   static const _skillOptions = [
     'Public Speaking', 'Canvassing', 'Social Media', 'Photography',
@@ -1000,14 +1151,41 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
     super.dispose();
   }
 
+  Future<void> _pickPhoto(ImageSource source) async {
+    setState(() => _pickingPhoto = true);
+    try {
+      final image = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+      if (image != null) {
+        ref.read(registrationFormProvider.notifier).setPhotoLocalPath(image.path);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('Camera or gallery not available. Check app permissions.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pickingPhoto = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final formData = ref.watch(registrationFormProvider);
+
     return Form(
       key: widget.formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Membership Details', style: AppTextStyles.h2()),
+          Text('Party & Livelihood', style: AppTextStyles.h2()),
           const SizedBox(height: 24),
 
           // Membership Type
@@ -1122,18 +1300,17 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
             children: _skillOptions.map((skill) {
               final selected = _skills.contains(skill);
               return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (selected) {
-                      _skills.remove(skill);
-                    } else {
-                      _skills.add(skill);
-                    }
-                  });
-                },
+                onTap: () => setState(() {
+                  if (selected) {
+                    _skills.remove(skill);
+                  } else {
+                    _skills.add(skill);
+                  }
+                }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: selected ? AppColors.canopyGreen : AppColors.fillMuted,
                     borderRadius: AppRadii.borderPill,
@@ -1151,6 +1328,24 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
               );
             }).toList(),
           ),
+          const SizedBox(height: 28),
+
+          // ── Member Photo ──────────────────────────────────────────────────
+          const Divider(height: 1),
+          const SizedBox(height: 24),
+          Text('Member Photo', style: AppTextStyles.h3()),
+          const SizedBox(height: 4),
+          Text('Optional — take a photo or pick from gallery',
+              style: AppTextStyles.small()),
+          const SizedBox(height: 16),
+          _PhotoPicker(
+            localPath: formData.photoLocalPath,
+            picking: _pickingPhoto,
+            onCamera: () => _pickPhoto(ImageSource.camera),
+            onGallery: () => _pickPhoto(ImageSource.gallery),
+            onRemove: () =>
+                ref.read(registrationFormProvider.notifier).setPhotoLocalPath(null),
+          ),
 
           FormField<void>(
             builder: (_) => const SizedBox.shrink(),
@@ -1159,9 +1354,15 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
               ref.read(registrationFormProvider.notifier).updateStep3(
                 membershipType: _membershipType,
                 preferredRole: _preferredRole,
-                profession: _profession.text.trim().isEmpty ? null : _profession.text.trim(),
-                partyPosition: _partyPosition.text.trim().isEmpty ? null : _partyPosition.text.trim(),
-                otherParty: _otherParty.text.trim().isEmpty ? null : _otherParty.text.trim(),
+                profession: _profession.text.trim().isEmpty
+                    ? null
+                    : _profession.text.trim(),
+                partyPosition: _partyPosition.text.trim().isEmpty
+                    ? null
+                    : _partyPosition.text.trim(),
+                otherParty: _otherParty.text.trim().isEmpty
+                    ? null
+                    : _otherParty.text.trim(),
                 employmentStatus: _employmentStatus,
                 highestQualification: _highestQualification,
                 skills: _skills,
@@ -1175,74 +1376,7 @@ class _Step3MembershipState extends ConsumerState<_Step3Membership> {
   }
 }
 
-// ─── Step 4: Photo & Review ──────────────────────────────────────────────────
-
-class _Step4PhotoReview extends ConsumerStatefulWidget {
-  final GlobalKey<FormState> formKey;
-  const _Step4PhotoReview({required this.formKey});
-
-  @override
-  ConsumerState<_Step4PhotoReview> createState() => _Step4PhotoReviewState();
-}
-
-class _Step4PhotoReviewState extends ConsumerState<_Step4PhotoReview> {
-  final _picker = ImagePicker();
-  bool _pickingPhoto = false;
-
-  Future<void> _pickPhoto(ImageSource source) async {
-    setState(() => _pickingPhoto = true);
-    try {
-      final image = await _picker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 80,
-      );
-      if (image != null) {
-        ref.read(registrationFormProvider.notifier).setPhotoLocalPath(image.path);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Camera or gallery not available. Check app permissions.')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _pickingPhoto = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final formData = ref.watch(registrationFormProvider);
-
-    return Form(
-      key: widget.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Photo & Review', style: AppTextStyles.h2()),
-          const SizedBox(height: 4),
-          Text('Add a photo and review your details before submitting.', style: AppTextStyles.small()),
-          const SizedBox(height: 24),
-
-          // Photo picker
-          _PhotoPicker(
-            localPath: formData.photoLocalPath,
-            picking: _pickingPhoto,
-            onCamera: () => _pickPhoto(ImageSource.camera),
-            onGallery: () => _pickPhoto(ImageSource.gallery),
-            onRemove: () => ref.read(registrationFormProvider.notifier).setPhotoLocalPath(null),
-          ),
-          const SizedBox(height: 24),
-
-          // Summary card
-          _ReviewSummary(data: formData),
-        ],
-      ),
-    );
-  }
-}
+// ─── Photo Picker ─────────────────────────────────────────────────────────────
 
 class _PhotoPicker extends StatelessWidget {
   final String? localPath;
@@ -1264,8 +1398,6 @@ class _PhotoPicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Member Photo', style: AppTextStyles.label()),
-        const SizedBox(height: 10),
         if (localPath != null)
           Stack(
             children: [
@@ -1276,7 +1408,7 @@ class _PhotoPicker extends StatelessWidget {
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                  errorBuilder: (_, __, ___) => _placeholder(),
                 ),
               ),
               Positioned(
@@ -1290,14 +1422,15 @@ class _PhotoPicker extends StatelessWidget {
                       color: AppColors.ink.withValues(alpha: 0.7),
                       shape: BoxShape.circle,
                     ),
-                    child: const PhosphorIcon(PhosphorIconsFill.trash, size: 16, color: AppColors.surface),
+                    child: const PhosphorIcon(PhosphorIconsFill.trash,
+                        size: 16, color: AppColors.surface),
                   ),
                 ),
               ),
             ],
           )
         else
-          _buildPlaceholder(),
+          _placeholder(),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -1306,7 +1439,8 @@ class _PhotoPicker extends StatelessWidget {
                 label: 'Camera',
                 variant: NdcButtonVariant.secondary,
                 loading: picking,
-                icon: const PhosphorIcon(PhosphorIconsFill.camera, size: 16, color: AppColors.canopyGreen),
+                icon: const PhosphorIcon(PhosphorIconsFill.camera,
+                    size: 16, color: AppColors.canopyGreen),
                 onPressed: onCamera,
               ),
             ),
@@ -1315,7 +1449,8 @@ class _PhotoPicker extends StatelessWidget {
               child: NdcButton(
                 label: 'Gallery',
                 variant: NdcButtonVariant.secondary,
-                icon: const PhosphorIcon(PhosphorIconsFill.image, size: 16, color: AppColors.canopyGreen),
+                icon: const PhosphorIcon(PhosphorIconsFill.image,
+                    size: 16, color: AppColors.canopyGreen),
                 onPressed: onGallery,
               ),
             ),
@@ -1325,95 +1460,23 @@ class _PhotoPicker extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _placeholder() {
     return Container(
       height: 140,
       decoration: BoxDecoration(
         color: AppColors.fillMuted,
         borderRadius: AppRadii.borderMd,
-        border: Border.all(color: AppColors.hairline, style: BorderStyle.solid),
-      ),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            PhosphorIcon(PhosphorIconsRegular.camera, size: 36, color: AppColors.textMuted),
-            SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ReviewSummary extends StatelessWidget {
-  final RegistrationFormData data;
-  const _ReviewSummary({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    final dob = data.dateOfBirth;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadii.borderMd,
         border: Border.all(color: AppColors.hairline),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Summary', style: AppTextStyles.h3()),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          _Row('Name', '${data.firstName} ${data.lastName}'),
-          _Row('Phone', data.phone.isNotEmpty ? data.phone : '—'),
-          if (dob != null) _Row('Date of Birth', '${dob.day} ${months[dob.month - 1]} ${dob.year}'),
-          if (data.gender != null) _Row('Gender', data.gender!),
-          if (data.regionName != null) _Row('Region', data.regionName!),
-          if (data.districtName != null) _Row('District', data.districtName!),
-          if (data.constituencyName != null) _Row('Constituency', data.constituencyName!),
-          if (data.pollingStationName != null) _Row('Polling Station', data.pollingStationName!),
-          if (data.residentialAddress != null) _Row('Address', data.residentialAddress!),
-          if (data.residenceTown != null) _Row('Town', data.residenceTown!),
-          if (data.membershipType != null) _Row('Membership', data.membershipType!.replaceAll('_', ' ')),
-          if (data.preferredRole != null) _Row('Preferred Role', data.preferredRole!),
-          if (data.partyPosition != null) _Row('Party Position', data.partyPosition!),
-          if (data.otherParty != null) _Row('Previous Party', data.otherParty!),
-          if (data.skills.isNotEmpty) _Row('Skills', data.skills.join(', ')),
-        ],
+      child: const Center(
+        child: PhosphorIcon(PhosphorIconsRegular.camera,
+            size: 36, color: AppColors.textMuted),
       ),
     );
   }
 }
 
-class _Row extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Row(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(label, style: AppTextStyles.small()),
-          ),
-          Expanded(child: Text(value, style: AppTextStyles.bodyMedium())),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Shared: Dropdown widgets ────────────────────────────────────────────────
+// ─── Shared: Dropdown widgets ─────────────────────────────────────────────────
 
 class _DropdownField<T> extends StatelessWidget {
   final String hint;
@@ -1449,10 +1512,12 @@ class _DropdownField<T> extends StatelessWidget {
         prefixIconConstraints: const BoxConstraints(minWidth: 48),
       ),
       items: enabled
-          ? items.map((item) => DropdownMenuItem<T>(
-                value: item,
-                child: Text(itemLabel(item), style: AppTextStyles.bodyLarge()),
-              )).toList()
+          ? items
+              .map((item) => DropdownMenuItem<T>(
+                    value: item,
+                    child: Text(itemLabel(item), style: AppTextStyles.bodyLarge()),
+                  ))
+              .toList()
           : [],
       onChanged: enabled ? onChanged : null,
       validator: validator != null ? (v) => validator!(v) : null,
@@ -1493,9 +1558,8 @@ class _AsyncDropdown<T> extends ConsumerWidget {
         const SizedBox(height: 6),
         asyncData.when(
           data: (items) {
-            // Guard: if selected is not in the loaded list, treat as null to
-            // prevent DropdownButtonFormField assertion errors.
-            final effectiveSelected = (selected != null && items.contains(selected)) ? selected : null;
+            final effectiveSelected =
+                (selected != null && items.contains(selected)) ? selected : null;
             return _DropdownField<T>(
               hint: hint,
               value: effectiveSelected,
@@ -1527,7 +1591,9 @@ class _AsyncDropdown<T> extends ConsumerWidget {
         children: [
           PhosphorIcon(icon, size: 20, color: AppColors.mist),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: AppTextStyles.bodyLarge(color: AppColors.mist))),
+          Expanded(
+              child: Text(text,
+                  style: AppTextStyles.bodyLarge(color: AppColors.mist))),
         ],
       ),
     );
@@ -1546,16 +1612,14 @@ class _GenderSegment extends StatelessWidget {
     return Row(
       children: [
         _GenderPill(
-          label: 'Male',
-          selected: value == 'male',
-          onTap: () => onChanged('male'),
-        ),
+            label: 'Male',
+            selected: value == 'male',
+            onTap: () => onChanged('male')),
         const SizedBox(width: AppSpacing.sm),
         _GenderPill(
-          label: 'Female',
-          selected: value == 'female',
-          onTap: () => onChanged('female'),
-        ),
+            label: 'Female',
+            selected: value == 'female',
+            onTap: () => onChanged('female')),
       ],
     );
   }
@@ -1565,7 +1629,8 @@ class _GenderPill extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _GenderPill({required this.label, required this.selected, required this.onTap});
+  const _GenderPill(
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1573,27 +1638,25 @@ class _GenderPill extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
         decoration: BoxDecoration(
           color: selected ? AppColors.canopyGreen : AppColors.fillMuted,
           borderRadius: AppRadii.borderPill,
           border: Border.all(
             color: selected ? AppColors.canopyGreen : AppColors.hairline,
-            width: 1,
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.label(
-            color: selected ? AppColors.surface : AppColors.mist,
-          ),
+              color: selected ? AppColors.surface : AppColors.mist),
         ),
       ),
     );
   }
 }
 
-// ── Save success overlay (Lottie checkmark → auto-dismiss) ───────────────────
+// ─── Save success overlay ─────────────────────────────────────────────────────
 
 class _SaveSuccessOverlay extends StatelessWidget {
   final String message;
@@ -1623,8 +1686,7 @@ class _SaveSuccessOverlay extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(message,
-                  style: AppTextStyles.body(),
-                  textAlign: TextAlign.center),
+                  style: AppTextStyles.body(), textAlign: TextAlign.center),
             ],
           ),
         ),

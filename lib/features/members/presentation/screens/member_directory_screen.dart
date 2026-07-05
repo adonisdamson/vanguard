@@ -23,7 +23,8 @@ import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/status_pill.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
-  const MemberDirectoryScreen({super.key});
+  final bool showAppBar;
+  const MemberDirectoryScreen({super.key, this.showAppBar = true});
 
   @override
   ConsumerState<MemberDirectoryScreen> createState() => _MemberDirectoryScreenState();
@@ -176,7 +177,10 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
+          SnackBar(
+            backgroundColor: AppColors.umbrellaRed,
+            content: Text(AppErrorMapper.friendly(e), style: AppTextStyles.body(color: AppColors.surface)),
+          ),
         );
       }
     } finally {
@@ -188,29 +192,42 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepCanopy,
-        elevation: 0,
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('Member directory', style: AppTextStyles.appBarTitle()),
-        actions: [
-          IconButton(
-            icon: _exporting
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
-                : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.surface, size: 22),
-            onPressed: _exporting ? null : _triggerExport,
-            tooltip: 'Export (CSV / PDF)',
-          ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: AppColors.deepCanopy,
+              elevation: 0,
+              leading: IconButton(
+                tooltip: 'Back',
+                icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
+                onPressed: () => context.pop(),
+              ),
+              title: Text('Member directory', style: AppTextStyles.appBarTitle()),
+              actions: [
+                IconButton(
+                  icon: _exporting
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                      : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.surface, size: 22),
+                  onPressed: _exporting ? null : _triggerExport,
+                  tooltip: 'Export (CSV / PDF)',
+                ),
+              ],
+              bottom: const PreferredSize(
+                preferredSize: Size.fromHeight(4),
+                child: CanopyStripe(height: 4),
+              ),
+            )
+          : null,
+      floatingActionButton: !widget.showAppBar
+          ? FloatingActionButton.small(
+              backgroundColor: AppColors.canopyGreen,
+              tooltip: 'Export (CSV / PDF)',
+              onPressed: _exporting ? null : _triggerExport,
+              child: _exporting
+                  ? const SizedBox(width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface))
+                  : const PhosphorIcon(PhosphorIconsRegular.export, color: AppColors.surface, size: 18),
+            )
+          : null,
       body: Column(
         children: [
           _SearchBar(

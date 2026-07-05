@@ -30,6 +30,8 @@ class MemberDetail {
   final String? residenceTown;
   final String? partyPosition;
   final String? otherParty;
+  final String? electoralArea;
+  final String? registeredByName;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -63,6 +65,8 @@ class MemberDetail {
     this.residenceTown,
     this.partyPosition,
     this.otherParty,
+    this.electoralArea,
+    this.registeredByName,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -100,6 +104,8 @@ class MemberDetail {
       residenceTown: m['residence_town'] as String?,
       partyPosition: m['party_position'] as String?,
       otherParty: m['other_party'] as String?,
+      electoralArea: (m['polling_stations'] as Map<String, dynamic>?)?['electoral_area']?.toString(),
+      registeredByName: (m['registrar'] as Map<String, dynamic>?)?['full_name'] as String?,
       createdAt: DateTime.parse(m['created_at'] as String),
       updatedAt: DateTime.parse(m['updated_at'] as String),
     );
@@ -145,7 +151,9 @@ class ReviewRepository {
     profession, employment_status, highest_academic_qualification,
     skills, photo_path, status, rejection_reason, created_at, updated_at,
     residential_address, residence_town, party_position, other_party,
-    regions(name), districts(name), constituencies(name), polling_stations(name, station_code)
+    regions(name), districts(name), constituencies(name),
+    polling_stations(name, station_code, electoral_area),
+    registrar:app_users!registered_by(full_name)
   ''';
 
   Future<List<MemberDetail>> fetchPendingMembers({

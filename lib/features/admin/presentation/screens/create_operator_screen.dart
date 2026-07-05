@@ -112,7 +112,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
           content: Text(
-            'Account created. A password reset email will be sent to ${_emailCtrl.text.trim()}.',
+            'Account created. An invitation email has been sent to ${_emailCtrl.text.trim()}.',
             style: AppTextStyles.body(color: AppColors.surface),
           ),
           duration: const Duration(seconds: 5),
@@ -170,7 +170,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'A Supabase Auth account will be created and the operator will receive a password reset email. No operator can self-register.',
+                        'An operator account will be created and the operator will receive an invitation email to set their password. No operator can self-register.',
                         style: AppTextStyles.small(color: AppColors.canopyGreen),
                       ),
                     ),

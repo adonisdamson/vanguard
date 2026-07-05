@@ -14,34 +14,38 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'full_name, email, and role are required' });
   }
 
-  const { data: authData, error: authError } = await serviceClient().auth.admin.createUser({
-    email,
-    password: password || crypto.randomUUID(),
-    email_confirm: true,
+  // inviteUserByEmail creates the auth user AND sends an invitation email automatically.
+  // The handle_new_user trigger creates the app_users row (role=null, is_active=false);
+  // we then upsert to set the correct role and activate the account.
+  const { data: inviteData, error: inviteError } = await serviceClient().auth.admin.inviteUserByEmail(email, {
+    data: { full_name, signup_source: 'admin_created' },
   });
 
-  if (authError) {
-    return res.status(400).json({ error: authError.message });
+  if (inviteError) {
+    return res.status(400).json({ error: inviteError.message });
   }
 
-  const { error: insertError } = await serviceClient().from('app_users').insert({
-    id: authData.user.id,
+  const userId = inviteData.user.id;
+
+  const { error: upsertError } = await serviceClient().from('app_users').upsert({
+    id: userId,
     full_name,
     email,
     phone: phone || null,
     role,
+    is_active: true,
     created_by: ctx.user.id,
     assigned_region_id: assigned_region_id || null,
     assigned_district_id: assigned_district_id || null,
     assigned_constituency_id: assigned_constituency_id || null,
-  });
+  }, { onConflict: 'id' });
 
-  if (insertError) {
-    await serviceClient().auth.admin.deleteUser(authData.user.id);
-    return res.status(500).json({ error: insertError.message });
+  if (upsertError) {
+    await serviceClient().auth.admin.deleteUser(userId);
+    return res.status(500).json({ error: upsertError.message });
   }
 
-  res.status(201).json({ id: authData.user.id });
+  res.status(201).json({ id: userId });
 });
 
 // POST /api/admin/operators/:id/suspend

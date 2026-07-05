@@ -87,7 +87,7 @@ class LocationRepository {
     final seen = <String>{};
     final areas = <String>[];
     for (final m in data as List) {
-      final ea = m['electoral_area'] as String;
+      final ea = m['electoral_area'].toString();
       if (seen.add(ea)) areas.add(ea);
     }
     return areas;

@@ -39,3 +39,16 @@ final photoUrlProvider = FutureProvider.autoDispose.family<String?, String>((ref
       .createSignedUrl(path, 3600);
   return response;
 });
+
+// Recent submissions for the personnel activity feed.
+// Uses the members table (RLS-accessible to personnel) instead of audit_log
+// which is blocked for the personnel role.
+final personnelRecentActivityProvider = FutureProvider.autoDispose<List<MemberSummary>>((ref) async {
+  final session = ref.watch(currentSessionProvider);
+  if (session == null) return [];
+  return _repo.fetchMySubmissions(
+    userId: session.user.id,
+    page: 0,
+    pageSize: 5,
+  );
+});

@@ -150,6 +150,7 @@ class AppTextStyles {
         color: color,
         letterSpacing: -0.5,
         height: 1.1,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 
   static TextStyle statNumberLg({Color color = AppColors.ink}) =>
@@ -159,6 +160,7 @@ class AppTextStyles {
         color: color,
         letterSpacing: -0.5,
         height: 1.1,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 
   // ── App bar & buttons ─────────────────────────────────────────────────────

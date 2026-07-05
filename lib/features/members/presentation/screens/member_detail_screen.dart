@@ -90,6 +90,16 @@ class _DetailBody extends ConsumerStatefulWidget {
 class _DetailBodyState extends ConsumerState<_DetailBody> {
   bool _submitting = false;
 
+  static String _titleCase(String s) => s
+      .split('_')
+      .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
+
+  static String _fmtDate(DateTime d) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
   Future<void> _approve() async {
     final confirmed = await _confirmDialog(
       'Approve ${widget.member.fullName}?',
@@ -304,6 +314,8 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             if (member.phone != null) _Row('Phone', member.phone!),
             if (member.email != null) _Row('Email', member.email!),
             if (member.ghanaCardId != null) _Row('Ghana Card / Voter ID', member.ghanaCardId!),
+            _Row('Registered on', _fmtDate(member.createdAt)),
+            if (member.registeredByName != null) _Row('Registered by', member.registeredByName!),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -316,6 +328,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             if (member.regionName != null) _Row('Region', member.regionName!),
             if (member.districtName != null) _Row('District', member.districtName!),
             if (member.constituencyName != null) _Row('Constituency', member.constituencyName!),
+            if (member.electoralArea != null) _Row('Electoral area', 'Area ${member.electoralArea!}'),
             if (member.pollingStationName != null) _Row('Polling station',
               member.pollingStationCode != null
                 ? '${member.pollingStationCode} — ${member.pollingStationName!}'
@@ -333,8 +346,8 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
           title: 'Membership',
           icon: PhosphorIconsRegular.identificationCard,
           rows: [
-            if (member.membershipType != null) _Row('Type', member.membershipType!.replaceAll('_', ' ')),
-            if (member.preferredRole != null) _Row('Preferred role', member.preferredRole!),
+            if (member.membershipType != null) _Row('Type', _titleCase(member.membershipType!)),
+            if (member.preferredRole != null) _Row('Preferred role', _titleCase(member.preferredRole!)),
             if (member.partyPosition != null) _Row('Party position', member.partyPosition!),
             if (member.otherParty != null) _Row('Other party', member.otherParty!),
             if (member.profession != null) _Row('Profession', member.profession!),

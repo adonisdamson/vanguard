@@ -51,7 +51,7 @@ class _LookupTablesScreenState extends ConsumerState<LookupTablesScreen>
           icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft, color: AppColors.surface, size: 22),
           onPressed: () => context.pop(),
         ),
-        title: Text('Lookup tables', style: AppTextStyles.appBarTitle()),
+        title: Text('Location Setup', style: AppTextStyles.appBarTitle()),
         actions: [
           IconButton(
             icon: const PhosphorIcon(PhosphorIconsRegular.uploadSimple, color: AppColors.surface, size: 20),
@@ -67,7 +67,7 @@ class _LookupTablesScreenState extends ConsumerState<LookupTablesScreen>
               const CanopyStripe(height: 4),
               AppTabBar(
                 controller: _tabs,
-                tabs: const ['Regions', 'Districts', 'Const.', 'Polling'],
+                tabs: const ['Regions', 'Districts', 'Constituencies', 'Stations'],
               ),
             ],
           ),

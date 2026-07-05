@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../features/auth/application/user_role_provider.dart';
-import '../../../../features/dashboard/application/dashboard_providers.dart';
 import '../../application/member_providers.dart';
 import '../../application/offline_queue.dart';
+import '../../data/member_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -22,7 +22,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(appUserProvider);
     final statsAsync = ref.watch(myStatsProvider);
-    final activityAsync = ref.watch(recentActivityProvider);
+    final activityAsync = ref.watch(personnelRecentActivityProvider);
 
     if (OfflineQueue.hasItems) {
       OfflineQueue.flush().then((synced) {
@@ -40,7 +40,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(appUserProvider);
           ref.invalidate(myStatsProvider);
-          ref.invalidate(recentActivityProvider);
+          ref.invalidate(personnelRecentActivityProvider);
         },
         child: CustomScrollView(
           slivers: [
@@ -116,16 +116,16 @@ class PersonnelHomeScreen extends ConsumerWidget {
                     children: [
                       Expanded(child: Text('Recent activity', style: AppTextStyles.h3())),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () => context.push('/submissions'),
                         child: Text('View all', style: AppTextStyles.label(color: AppColors.canopyGreen)),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
                   activityAsync.when(
-                    data: (entries) => entries.isEmpty
+                    data: (members) => members.isEmpty
                         ? const _EmptyActivity()
-                        : Column(children: entries.map((e) => _ActivityItem(entry: e)).toList()),
+                        : Column(children: members.map((m) => _SubmissionActivityItem(member: m)).toList()),
                     loading: () => Column(
                       children: List.generate(
                         3,
@@ -135,7 +135,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    error: (_, _) => _RetryCard(onRetry: () => ref.invalidate(recentActivityProvider)),
+                    error: (_, _) => _RetryCard(onRetry: () => ref.invalidate(personnelRecentActivityProvider)),
                   ),
                 ]),
               ),
@@ -500,52 +500,23 @@ class _OfflineBanner extends StatelessWidget {
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
-class _ActivityItem extends StatelessWidget {
-  final dynamic entry;
-  const _ActivityItem({required this.entry});
+// Shows a personnel member submission as an activity row (Linear-style dense row)
+class _SubmissionActivityItem extends StatelessWidget {
+  final MemberSummary member;
+  const _SubmissionActivityItem({required this.member});
 
-  static String _humanAction(String action, Map<String, dynamic> meta) {
-    return switch (action) {
-      'member_created' => 'New member registered',
-      'member_status_changed' => () {
-          final s = meta['new_status'] as String? ?? '';
-          return s == 'active' ? 'Member approved' : 'Member rejected';
-        }(),
-      'member_updated' => 'Member record updated',
-      'operator_created' => 'Operator account created',
-      'role_changed' => 'Operator role changed',
-      'account_status_changed' => 'Account status updated',
-      _ => action.replaceAll('_', ' '),
-    };
-  }
+  static (IconData, Color, Color) _forStatus(String status) => switch (status) {
+    'active'    => (PhosphorIconsRegular.sealCheck,      AppColors.canopyGreen, AppColors.greenTint),
+    'rejected'  => (PhosphorIconsRegular.xCircle,        AppColors.umbrellaRed, AppColors.redTint),
+    'suspended' => (PhosphorIconsRegular.prohibit,       AppColors.umbrellaRed, AppColors.redTint),
+    _           => (PhosphorIconsRegular.hourglass,      AppColors.gold,        AppColors.goldTint),
+  };
 
-  static IconData _icon(String action) {
-    return switch (action) {
-      'member_created' => PhosphorIconsRegular.userPlus,
-      'member_status_changed' => PhosphorIconsRegular.sealCheck,
-      'operator_created' => PhosphorIconsRegular.usersThree,
-      'role_changed' => PhosphorIconsRegular.shieldStar,
-      _ => PhosphorIconsRegular.clockCounterClockwise,
-    };
-  }
-
-  static Color _color(String action, Map<String, dynamic> meta) {
-    if (action == 'member_status_changed') {
-      return (meta['new_status'] as String? ?? '') == 'active'
-          ? AppColors.canopyGreen
-          : AppColors.umbrellaRed;
-    }
-    return AppColors.canopyGreen;
-  }
-
-  static Color _bg(String action, Map<String, dynamic> meta) {
-    if (action == 'member_status_changed') {
-      return (meta['new_status'] as String? ?? '') == 'active'
-          ? AppColors.greenTint
-          : AppColors.redTint;
-    }
-    return AppColors.greenTint;
-  }
+  static String _label(String status) => switch (status) {
+    'active'   => 'Approved',
+    'rejected' => 'Rejected',
+    _          => 'Pending review',
+  };
 
   static String _rel(DateTime dt) {
     final d = DateTime.now().difference(dt);
@@ -558,44 +529,40 @@ class _ActivityItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final action = entry.action as String;
-    final meta = entry.metadata as Map<String, dynamic>;
-    final actor = entry.actorName as String? ?? 'System';
-    final color = _color(action, meta);
-    final bg = _bg(action, meta);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(color: bg, borderRadius: AppRadii.borderSm),
-            child: Icon(_icon(action), color: color, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_humanAction(action, meta),
-                    style: AppTextStyles.bodyMedium(), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(actor,
-                    style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
+    final (icon, color, bg) = _forStatus(member.status);
+    return GestureDetector(
+      onTap: () => context.push('/member/${member.id}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: bg, borderRadius: AppRadii.borderSm),
+              child: Icon(icon, color: color, size: 18),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(_rel(entry.createdAt as DateTime), style: AppTextStyles.timestamp()),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(member.fullName, style: AppTextStyles.bodyMedium(), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(_label(member.status), style: AppTextStyles.caption()),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(_rel(member.createdAt), style: AppTextStyles.timestamp()),
+          ],
+        ),
       ),
     );
   }

@@ -378,7 +378,7 @@ class _SystemActionsGrid extends StatelessWidget {
               icon: PhosphorIconsRegular.mapPin,
               iconColor: AppColors.mist,
               iconBg: AppColors.fillMuted,
-              label: 'Lookup tables',
+              label: 'Location Setup',
               subtitle: 'Regions & stations',
               onTap: () => context.push('/admin/lookups'),
             ),

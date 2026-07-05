@@ -156,6 +156,7 @@ class RegistrationFormData {
       if (gender != null) 'gender': gender,
       'phone': phone,
       if (email != null && email!.isNotEmpty) 'email': email,
+      if (ghanaCardId != null && ghanaCardId!.isNotEmpty) 'ghana_card_id': ghanaCardId,
       if (regionId != null) 'region_id': regionId,
       if (districtId != null) 'district_id': districtId,
       if (constituencyId != null) 'constituency_id': constituencyId,

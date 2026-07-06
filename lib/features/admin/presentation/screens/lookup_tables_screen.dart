@@ -12,7 +12,6 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_tab_bar.dart';
 import '../../../../core/errors/app_error_mapper.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 

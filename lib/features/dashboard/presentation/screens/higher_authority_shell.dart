@@ -129,9 +129,8 @@ class _HaAppBar extends StatelessWidget implements PreferredSizeWidget {
           margin: const EdgeInsets.only(right: 12),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.gold.withValues(alpha: 0.18),
+            color: AppColors.ink,
             borderRadius: AppRadii.borderPill,
-            border: Border.all(color: AppColors.gold.withValues(alpha: 0.5), width: 1),
           ),
           child: Text('COORDINATOR', style: AppTextStyles.badge(color: AppColors.surface)),
         ),

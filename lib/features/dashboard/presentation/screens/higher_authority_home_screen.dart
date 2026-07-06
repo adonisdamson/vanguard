@@ -252,10 +252,10 @@ class _GreetingHero extends StatelessWidget {
               Row(
                 children: [
                   _HeroPill(
-                    icon: PhosphorIconsRegular.star,
+                    icon: PhosphorIconsRegular.identificationBadge,
                     label: 'Coordinator',
-                    color: AppColors.gold.withValues(alpha: 0.22),
-                    textColor: AppColors.gold,
+                    color: AppColors.ink,
+                    textColor: AppColors.surface,
                   ),
                   const SizedBox(width: 8),
                   _HeroPill(

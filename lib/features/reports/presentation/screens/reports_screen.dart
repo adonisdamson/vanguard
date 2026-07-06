@@ -233,22 +233,21 @@ class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: AppColors.line),
       ),
       child: Row(
         children: [
-          _Metric(value: '${stats.total}', label: 'Total', color: AppColors.canopyGreen),
+          _Metric(value: '${stats.total}', label: 'Total'),
           _Divider(),
-          _Metric(value: '${stats.active}', label: 'Approved', color: AppColors.canopyGreen),
+          _Metric(value: '${stats.active}', label: 'Approved', dotColor: AppColors.success),
           _Divider(),
-          _Metric(value: '${stats.pending}', label: 'Pending', color: AppColors.gold),
+          _Metric(value: '${stats.pending}', label: 'Pending', dotColor: AppColors.warning),
           _Divider(),
-          _Metric(value: '${stats.rejected}', label: 'Rejected', color: AppColors.umbrellaRed),
+          _Metric(value: '${stats.rejected}', label: 'Rejected', dotColor: AppColors.danger),
         ],
       ),
     );
@@ -258,23 +257,41 @@ class _StatsRow extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 32, color: AppColors.hairline, margin: const EdgeInsets.symmetric(horizontal: 12));
+    return Container(width: 1, height: 30, color: AppColors.line);
   }
 }
 
 class _Metric extends StatelessWidget {
   final String value;
   final String label;
-  final Color color;
-  const _Metric({required this.value, required this.label, required this.color});
+  final Color? dotColor;
+  const _Metric({required this.value, required this.label, this.dotColor});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: AppTextStyles.h2(color: color)),
-          Text(label, style: AppTextStyles.caption()),
+          Text(value, style: AppTextStyles.h1()),
+          const SizedBox(height: 3),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (dotColor != null) ...[
+                Container(
+                    width: 6, height: 6,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor)),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(label,
+                    style: AppTextStyles.caption(),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.fade),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -287,43 +304,55 @@ class _ReportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: data.onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.base),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadii.borderMd,
-          boxShadow: AppShadows.e1,
-          border: Border.all(color: AppColors.hairline),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: data.bg,
-                borderRadius: AppRadii.borderSm,
+    // Real button affordance: ink ripple + chevron. Uniform brand icon chip —
+    // no rainbow of green/gold/red tinted boxes.
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadii.borderMd,
+      child: InkWell(
+        borderRadius: AppRadii.borderMd,
+        onTap: data.onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpacing.base),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.borderMd,
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.brandTint,
+                      borderRadius: AppRadii.borderSm,
+                    ),
+                    child: Icon(data.icon, color: AppColors.brand, size: 18),
+                  ),
+                  const Spacer(),
+                  const PhosphorIcon(PhosphorIconsRegular.caretRight,
+                      size: 15, color: AppColors.inkMuted),
+                ],
               ),
-              child: Icon(data.icon, color: data.color, size: 18),
-            ),
-            const Spacer(),
-            Text(
-              data.title,
-              style: AppTextStyles.bodyMedium(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              data.subtitle,
-              style: AppTextStyles.caption(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              const SizedBox(height: 14),
+              Text(
+                data.title,
+                style: AppTextStyles.bodyMedium(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                data.subtitle,
+                style: AppTextStyles.caption(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -342,7 +371,7 @@ class _ExportCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.deepCanopy,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
+        boxShadow: AppShadows.e2,
       ),
       child: Row(
         children: [

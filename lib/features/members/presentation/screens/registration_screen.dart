@@ -630,7 +630,16 @@ class _Tab1PersonalState extends ConsumerState<_Tab1Personal>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Personal Information', style: AppTextStyles.h2()),
+          Row(
+            children: [
+              Container(
+                  width: 3, height: 20, margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                      color: AppColors.brand,
+                      borderRadius: BorderRadius.circular(2))),
+              Text('Personal Information', style: AppTextStyles.h1()),
+            ],
+          ),
           const SizedBox(height: 4),
           Text('Required fields are marked with *', style: AppTextStyles.small()),
           const SizedBox(height: 24),
@@ -859,7 +868,16 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Electoral Location', style: AppTextStyles.h2()),
+          Row(
+            children: [
+              Container(
+                  width: 3, height: 20, margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                      color: AppColors.brand,
+                      borderRadius: BorderRadius.circular(2))),
+              Text('Electoral Location', style: AppTextStyles.h1()),
+            ],
+          ),
           const SizedBox(height: 4),
           Text('Select the member\'s registration location',
               style: AppTextStyles.small()),
@@ -1164,7 +1182,16 @@ class _Tab3PartyState extends ConsumerState<_Tab3Party>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Party & Livelihood', style: AppTextStyles.h2()),
+          Row(
+            children: [
+              Container(
+                  width: 3, height: 20, margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                      color: AppColors.brand,
+                      borderRadius: BorderRadius.circular(2))),
+              Text('Party & Livelihood', style: AppTextStyles.h1()),
+            ],
+          ),
           const SizedBox(height: 24),
 
           // Membership Type

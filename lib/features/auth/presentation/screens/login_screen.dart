@@ -5,7 +5,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../features/auth/application/auth_provider.dart';
-import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
@@ -47,29 +46,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authServiceProvider).signInWithEmail(
         _emailCtrl.text.trim(), _passwordCtrl.text,
       );
-      await _routeByRole();
+      // Navigate explicitly — never wait for an auth-stream tick or a
+      // provider rebuild to move the user. Role resolution happens on the
+      // gate screen, which has its own timeout + retry.
+      if (mounted) context.go('/resolving');
     } catch (e, st) {
       final msg = AppErrorMapper.forAuth(e, st) ??
           "Something didn't work. Please try again.";
       if (mounted) setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _routeByRole() async {
-    if (!mounted) return;
-    ref.invalidate(appUserProvider);
-    final user = await ref.read(appUserProvider.future);
-    if (!mounted) return;
-    if (user == null || !user.isActive) {
-      context.go('/pending-approval');
-    } else {
-      switch (user.role) {
-        case AppUserRole.admin:           context.go('/admin');
-        case AppUserRole.higherAuthority: context.go('/dashboard');
-        case AppUserRole.personnel:       context.go('/home');
-      }
     }
   }
 

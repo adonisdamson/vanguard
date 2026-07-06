@@ -54,11 +54,14 @@ final appUserProvider = FutureProvider<AppUser?>((ref) async {
   if (session == null) return null;
 
   final supabase = Supabase.instance.client;
+  // Hard timeout: a hung query must surface as a retryable error on the
+  // gate screen, never as an indefinite loading state.
   final response = await supabase
       .from('app_users')
       .select('id, full_name, email, role, is_active')
       .eq('id', session.user.id)
-      .maybeSingle();
+      .maybeSingle()
+      .timeout(const Duration(seconds: 10));
 
   if (response == null) return null;
   return AppUser.fromMap(response);

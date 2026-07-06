@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/assets.dart';
-import '../../../../features/auth/application/auth_provider.dart';
-import '../../../../features/auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
@@ -67,29 +66,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _navigate() {
-    final session = ref.read(currentSessionProvider);
-    if (session == null) {
-      if (mounted) context.go('/login');
-      return;
-    }
-    ref.invalidate(appUserProvider);
-    ref.read(appUserProvider.future).then((user) {
-      if (!mounted) return;
-      if (user == null || !user.isActive) {
-        context.go('/pending-approval');
-      } else {
-        switch (user.role) {
-          case AppUserRole.admin:
-            context.go('/admin');
-          case AppUserRole.higherAuthority:
-            context.go('/dashboard');
-          case AppUserRole.personnel:
-            context.go('/home');
-        }
-      }
-    }).catchError((_) {
-      if (mounted) context.go('/login');
-    });
+    if (!mounted) return;
+    // Synchronous session read — the auth stream may not have emitted yet on
+    // a cold start. Role resolution is the gate screen's job, not splash's.
+    final session = Supabase.instance.client.auth.currentSession;
+    context.go(session == null ? '/login' : '/resolving');
   }
 
   @override

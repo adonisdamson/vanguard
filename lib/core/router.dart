@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../features/auth/application/auth_provider.dart';
 import '../features/auth/application/user_role_provider.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
+import '../features/auth/presentation/screens/auth_gate_screen.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -29,11 +30,12 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: '/',
     refreshListenable: notifier,
-    redirect: (context, state) async {
-      // Read the SYNCHRONOUS session, not currentSessionProvider (which is
-      // derived from the async onAuthStateChange stream and lags a tick behind
-      // signInWithPassword). Using the stream value here caused a just-logged-in
-      // user to be bounced back to /login until an app restart.
+    // SYNCHRONOUS on purpose. An async redirect that awaited appUserProvider
+    // here raced the provider's own invalidation on the signedIn auth event,
+    // so first-time logins never resolved (worked only after an app restart).
+    // The redirect now only reads the synchronous session; role resolution
+    // happens in exactly one place: AuthGateScreen at /resolving.
+    redirect: (context, state) {
       final session = Supabase.instance.client.auth.currentSession;
       final location = state.matchedLocation;
 
@@ -46,17 +48,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      if (location == '/pending-approval') return null;
-
-      if (publicRoutes.contains(location)) {
-        final user = await ref.read(appUserProvider.future);
-        return _roleHome(user);
-      }
+      // Authenticated users don't belong on the auth entry screens.
+      // (/forgot-password stays reachable — Profile uses it for password change.)
+      if (location == '/login' || location == '/signup') return '/resolving';
 
       return null;
     },
     routes: [
       GoRoute(path: '/', builder: (context, _) => const SplashScreen()),
+      GoRoute(path: '/resolving', builder: (context, _) => const AuthGateScreen()),
       GoRoute(path: '/login', builder: (context, _) => const LoginScreen()),
       GoRoute(path: '/signup', builder: (context, _) => const SignUpScreen()),
       GoRoute(path: '/forgot-password', builder: (context, _) => const ForgotPasswordScreen()),
@@ -91,7 +91,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-String _roleHome(AppUser? user) {
+/// The single mapping from a resolved user to their home route. Used by
+/// AuthGateScreen — nothing else should duplicate this switch.
+String roleHomePath(AppUser? user) {
   if (user == null || !user.isActive) return '/pending-approval';
   return switch (user.role) {
     AppUserRole.admin => '/admin',

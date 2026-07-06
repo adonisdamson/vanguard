@@ -47,7 +47,11 @@ function streamFollowingRedirects(url, res, depth = 0) {
 router.get('/', (req, res) => {
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
   res.setHeader('Content-Disposition', 'attachment; filename="Vanguard-NDC.apk"');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  // NEVER cache: with a constant filename + max-age, phones re-served a stale
+  // APK for every "new" download — users kept reinstalling an old build while
+  // believing they had the latest release.
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   streamFollowingRedirects(FALLBACK_URL, res);
 });

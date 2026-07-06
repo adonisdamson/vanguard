@@ -15,7 +15,6 @@ dependencies:
   supabase_flutter: ^2.9.0
 
   # Firebase (core only — Google Sign-In deferred to a future release)
-  firebase_core: ^3.13.1
 
   # State management & routing
   flutter_riverpod: ^2.6.1

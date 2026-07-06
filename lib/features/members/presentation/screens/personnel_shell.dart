@@ -62,7 +62,6 @@ class _PersonnelShellState extends ConsumerState<PersonnelShell> {
       appBar: _VanguardAppBar(
         firstName: firstName,
         roleLabel: 'Personnel',
-        onNotificationTap: () {},
       ),
       body: Column(
         children: [
@@ -88,12 +87,10 @@ class _PersonnelShellState extends ConsumerState<PersonnelShell> {
 class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String firstName;
   final String roleLabel;
-  final VoidCallback onNotificationTap;
 
   const _VanguardAppBar({
     required this.firstName,
     required this.roleLabel,
-    required this.onNotificationTap,
   });
 
   @override
@@ -143,7 +140,7 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         Container(
-          margin: const EdgeInsets.only(right: 4),
+          margin: const EdgeInsets.only(right: 12),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: rColor.withValues(alpha: 0.18),
@@ -151,10 +148,6 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
             border: Border.all(color: rColor.withValues(alpha: 0.4), width: 1),
           ),
           child: Text(roleLabel.toUpperCase(), style: AppTextStyles.badge(color: AppColors.surface)),
-        ),
-        IconButton(
-          icon: const Icon(PhosphorIconsRegular.bell, color: AppColors.surface, size: 20),
-          onPressed: onNotificationTap,
         ),
       ],
     );

@@ -6,23 +6,24 @@ import 'app_colors.dart';
 //             Title 17/24/600/0 · Body 15/22/400/0 · Label 13/18/500/0.1
 //             Caption 12/16/500/0.2
 //
-// Display/headings → Bricolage Grotesque (character, authority)
-// Body/UI          → Inter (neutral, sunlight-legible)
-// Identifiers      → Inter tabular / IBM Plex Mono (data alignment)
+// Statecraft type — LOCKED (VANGUARD_REBUILD_V2.md §C0):
+// Display/headings/numbers → Sora (600/700)
+// Body/UI/identifiers      → Plus Jakarta Sans
+// Scale: Display 28/34 · H1 22/28 · H2 17/24 · Body 15/22 · Caption 12.5/18
 
 class AppTextStyles {
   // ── Display ───────────────────────────────────────────────────────────────
   static TextStyle display({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
-        fontSize: 32,
+      GoogleFonts.sora(
+        fontSize: 28,
         fontWeight: FontWeight.w700,
         color: color,
         letterSpacing: -0.5,
-        height: 38 / 32,
+        height: 34 / 28,
       );
 
   static TextStyle displayLarge({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
+      GoogleFonts.sora(
         fontSize: 42,
         fontWeight: FontWeight.w800,
         color: color,
@@ -32,7 +33,7 @@ class AppTextStyles {
 
   // ── Eyebrow (small all-caps label above display headings) ────────────────
   static TextStyle eyebrow({Color color = AppColors.mist}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 11,
         fontWeight: FontWeight.w600,
         color: color,
@@ -42,25 +43,25 @@ class AppTextStyles {
 
   // ── Headings ──────────────────────────────────────────────────────────────
   static TextStyle h1({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
-        fontSize: 24,
+      GoogleFonts.sora(
+        fontSize: 22,
         fontWeight: FontWeight.w700,
         color: color,
         letterSpacing: -0.3,
-        height: 30 / 24,
+        height: 28 / 22,
       );
 
   static TextStyle h2({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
-        fontSize: 20,
+      GoogleFonts.sora(
+        fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
         letterSpacing: -0.2,
-        height: 26 / 20,
+        height: 24 / 17,
       );
 
   static TextStyle h3({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
+      GoogleFonts.sora(
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -70,7 +71,7 @@ class AppTextStyles {
 
   // ── UI / body ─────────────────────────────────────────────────────────────
   static TextStyle title({Color color = AppColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -78,7 +79,7 @@ class AppTextStyles {
       );
 
   static TextStyle body({Color color = AppColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 15,
         fontWeight: FontWeight.w400,
         color: color,
@@ -86,7 +87,7 @@ class AppTextStyles {
       );
 
   static TextStyle bodyLarge({Color color = AppColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 16,
         fontWeight: FontWeight.w400,
         color: color,
@@ -94,7 +95,7 @@ class AppTextStyles {
       );
 
   static TextStyle bodyMedium({Color color = AppColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 15,
         fontWeight: FontWeight.w500,
         color: color,
@@ -102,7 +103,7 @@ class AppTextStyles {
       );
 
   static TextStyle label({Color color = AppColors.mist}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w500,
         color: color,
@@ -111,16 +112,16 @@ class AppTextStyles {
       );
 
   static TextStyle caption({Color color = AppColors.mist}) =>
-      GoogleFonts.inter(
-        fontSize: 12,
+      GoogleFonts.plusJakartaSans(
+        fontSize: 12.5,
         fontWeight: FontWeight.w500,
         color: color,
         letterSpacing: 0.2,
-        height: 16 / 12,
+        height: 18 / 12.5,
       );
 
   static TextStyle small({Color color = AppColors.mist}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: color,
@@ -129,7 +130,7 @@ class AppTextStyles {
 
   // ── Identifiers (tabular / mono) ──────────────────────────────────────────
   static TextStyle memberNumber({Color color = AppColors.canopyGreen}) =>
-      GoogleFonts.ibmPlexMono(
+      GoogleFonts.plusJakartaSans(
         fontSize: 13,
         fontWeight: FontWeight.w500,
         color: color,
@@ -137,14 +138,14 @@ class AppTextStyles {
       );
 
   static TextStyle timestamp({Color color = AppColors.mist}) =>
-      GoogleFonts.ibmPlexMono(
+      GoogleFonts.plusJakartaSans(
         fontSize: 12,
         fontWeight: FontWeight.w400,
         color: color,
       );
 
   static TextStyle statNumber({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
+      GoogleFonts.sora(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: color,
@@ -154,7 +155,7 @@ class AppTextStyles {
       );
 
   static TextStyle statNumberLg({Color color = AppColors.ink}) =>
-      GoogleFonts.bricolageGrotesque(
+      GoogleFonts.sora(
         fontSize: 20,
         fontWeight: FontWeight.w700,
         color: color,
@@ -165,7 +166,7 @@ class AppTextStyles {
 
   // ── App bar & buttons ─────────────────────────────────────────────────────
   static TextStyle appBarTitle({Color color = AppColors.surface}) =>
-      GoogleFonts.bricolageGrotesque(
+      GoogleFonts.sora(
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: color,
@@ -173,7 +174,7 @@ class AppTextStyles {
       );
 
   static TextStyle buttonText({Color color = AppColors.surface}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 15,
         fontWeight: FontWeight.w600,
         color: color,
@@ -181,7 +182,7 @@ class AppTextStyles {
       );
 
   static TextStyle badge({Color color = AppColors.surface}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 11,
         fontWeight: FontWeight.w600,
         color: color,
@@ -190,7 +191,7 @@ class AppTextStyles {
 
   // ── Specialised tokens ────────────────────────────────────────────────────
   static TextStyle navLabel({Color color = AppColors.mist}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 10.5,
         fontWeight: FontWeight.w500,
         color: color,
@@ -199,7 +200,7 @@ class AppTextStyles {
       );
 
   static TextStyle navLabelActive({Color color = AppColors.canopyGreen}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 10.5,
         fontWeight: FontWeight.w600,
         color: color,
@@ -209,7 +210,7 @@ class AppTextStyles {
 
   // Ring percentage label inside CustomPaint progress rings
   static TextStyle ringPercent({Color color = AppColors.ink}) =>
-      GoogleFonts.inter(
+      GoogleFonts.plusJakartaSans(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         color: color,

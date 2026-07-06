@@ -1,64 +1,80 @@
 import 'package:flutter/material.dart';
 
+/// Statecraft palette — LOCKED (VANGUARD_REBUILD_V2.md §C0). One brand color
+/// doing all the talking, one warm neutral scale, exactly three semantic
+/// colors, gold reserved for the approved checkmark / executive badge.
+/// Do not add colors here without amending the design doc first.
 class AppColors {
-  // ── Primary palette (PRD token names) ─────────────────────────────────────
-  static const canopyGreen = Color(0xFF006B3F); // primary actions, brand
-  static const canopyMid   = Color(0xFF00552F); // gradient endpoint between deepCanopy and canopyGreen
-  static const deepCanopy  = Color(0xFF00341E); // app bars, dark surfaces
-  static const umbrellaRed = Color(0xFFCE1126); // destructive, alerts (sparing)
-  static const paper       = Color(0xFFFBFBF8); // warm app background
-  static const ink         = Color(0xFF12211A); // primary text (green-tinted near-black)
-  static const mist        = Color(0xFF647169); // secondary text, labels
+  // ── Brand ──────────────────────────────────────────────────────────────────
+  static const brand      = Color(0xFF006B3F); // header bands, primary buttons, active states
+  static const brandDeep  = Color(0xFF00522F); // pressed states, band depth
+  static const brandTint  = Color(0xFFE7F2EC); // selected bg, avatar fallback, icon chips
 
-  // ── Surface & structural neutrals ─────────────────────────────────────────
-  static const surface      = Color(0xFFFFFFFF); // card backgrounds
-  static const hairline     = Color(0xFFE7EAE8); // dividers, rest borders
-  static const fillMuted    = Color(0xFFF1F3F1); // chip/idle fills
+  // ── Neutrals ───────────────────────────────────────────────────────────────
+  static const canvas   = Color(0xFFF4F6F4); // screen background (green-tinted off-white)
+  static const surface  = Color(0xFFFFFFFF); // cards, sheets, inputs
+  static const ink      = Color(0xFF141C17); // headings, primary text
+  static const inkMuted = Color(0xFF5C6B62); // secondary text, captions, inactive icons
+  static const line     = Color(0xFFE3E8E4); // hairline borders, dividers
+  static const fillMuted = Color(0xFFF1F3F1); // idle chip/skeleton fills
 
-  // ── Status tints ──────────────────────────────────────────────────────────
-  static const greenTint = Color(0xFFE8F2EC);
-  static const redTint   = Color(0xFFFBE9EB);
-  static const amberTint = Color(0xFFFCF3E2);
+  // ── Semantic (the only three) ──────────────────────────────────────────────
+  static const success = Color(0xFF1B7F4D); // approved
+  static const warning = Color(0xFFB77400); // pending
+  static const danger  = Color(0xFFB3261E); // rejected / destructive
 
-  // ── Gold accent (pending / in-progress) ──────────────────────────────────
-  static const gold     = Color(0xFFE8A317); // pending stat accent
-  static const goldTint = Color(0xFFFCF3E2); // pending bg tint
+  // ── Gold — ONE use: approved-member checkmark & executive badge ────────────
+  static const gold = Color(0xFFC9A227);
 
-  // ── Status semantic colors ─────────────────────────────────────────────────
-  static const statusPending   = gold;        // amber/gold — matches PRD token
-  static const statusActive    = canopyGreen;
-  static const statusRejected  = umbrellaRed;
-  static const statusSuspended = mist;
+  // ── Soft tints (status backgrounds, banners) ───────────────────────────────
+  static const greenTint = brandTint;
+  static const redTint   = Color(0xFFF9EAE9);
+  static const amberTint = Color(0xFFF7EFDC);
+  static const goldTint  = amberTint;
+
+  // ── Established names (every existing screen uses these) ──────────────────
+  static const canopyGreen = brand;
+  static const canopyMid   = brandDeep;
+  static const deepCanopy  = brand;     // header bands are the BRAND color now
+  static const umbrellaRed = danger;
+  static const paper       = canvas;
+  static const mist        = inkMuted;
+  static const hairline    = line;
+
+  static const statusPending   = warning;
+  static const statusActive    = success;
+  static const statusRejected  = danger;
+  static const statusSuspended = inkMuted;
 
   static const pendingBg   = amberTint;
   static const activeBg    = greenTint;
   static const rejectedBg  = redTint;
   static const suspendedBg = fillMuted;
 
-  // ── NDC flag stripe colors ─────────────────────────────────────────────────
+  // ── NDC flag stripe colors (brand device only, not UI chrome) ─────────────
   static const stripeBlack = Color(0xFF1A1A1A);
-  static const stripeRed   = umbrellaRed;
+  static const stripeRed   = Color(0xFFCE1126); // official flag red, stripe only
   static const stripeWhite = surface;
-  static const stripeGreen = canopyGreen;
+  static const stripeGreen = brand;
 
   // ── Legacy aliases (kept for files not yet migrated) ──────────────────────
-  static const ndcGreen     = canopyGreen;
-  static const ndcRed       = umbrellaRed;
-  static const ndcBlack     = Color(0xFF1A1A1A);
-  static const ndcWhite     = Color(0xFFFFFFFF);
-  static const ndcGold      = Color(0xFFFFCC00);
+  static const ndcGreen = brand;
+  static const ndcRed   = danger;
+  static const ndcBlack = Color(0xFF1A1A1A);
+  static const ndcWhite = Color(0xFFFFFFFF);
+  static const ndcGold  = gold;
 
-  static const background      = paper;
-  static const surfaceVariant  = fillMuted;
-  static const border          = hairline;
-  static const divider         = hairline;
+  static const background     = canvas;
+  static const surfaceVariant = fillMuted;
+  static const border         = line;
+  static const divider        = line;
 
   static const textPrimary   = ink;
-  static const textSecondary = mist;
-  static const textMuted     = mist;
+  static const textSecondary = inkMuted;
+  static const textMuted     = inkMuted;
   static const textOnGreen   = Color(0xFFFFFFFF);
 
-  static const greenLight = greenTint;
+  static const greenLight = brandTint;
   static const greenMid   = Color(0xFF338C65);
   static const redLight   = redTint;
 }

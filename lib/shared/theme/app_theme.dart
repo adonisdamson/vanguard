@@ -36,22 +36,22 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
         ),
-        titleLarge: GoogleFonts.inter(
+        titleLarge: GoogleFonts.plusJakartaSans(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: GoogleFonts.plusJakartaSans(
           fontSize: 14.5,
           color: AppColors.ink,
           height: 1.55,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: GoogleFonts.plusJakartaSans(
           fontSize: 14.5,
           color: AppColors.ink,
           height: 1.55,
         ),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: GoogleFonts.plusJakartaSans(
           fontSize: 14.5,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
@@ -130,9 +130,9 @@ class AppTheme {
           borderRadius: AppRadii.borderSm,
           borderSide: const BorderSide(color: AppColors.umbrellaRed, width: 2),
         ),
-        labelStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.mist),
-        hintStyle: GoogleFonts.inter(fontSize: 15, color: AppColors.mist),
-        errorStyle: GoogleFonts.inter(fontSize: 12, color: AppColors.umbrellaRed),
+        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppColors.mist),
+        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 15, color: AppColors.mist),
+        errorStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.umbrellaRed),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
@@ -151,7 +151,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.fillMuted,
         selectedColor: AppColors.canopyGreen,
-        labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
+        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
         shape: const RoundedRectangleBorder(
           borderRadius: AppRadii.borderPill,
         ),
@@ -160,7 +160,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.deepCanopy,
-        contentTextStyle: GoogleFonts.inter(
+        contentTextStyle: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           color: AppColors.surface,
         ),

@@ -15,9 +15,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
+    "cors": "^2.8.6",
     "csv-stringify": "^6.8.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "pdfkit": "^0.19.1",
     "pg": "^8.22.0"
   }

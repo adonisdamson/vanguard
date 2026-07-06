@@ -71,12 +71,22 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
   }
 
   void _nextTab() {
-    if (!_validateTab(_tabs.index)) return;
+    // Never fail silently: a validation failure must say so in the pinned
+    // action bar (always visible), or the button just looks dead — the field
+    // errors alone can sit above the fold where the user can't see them.
+    if (!_validateTab(_tabs.index)) {
+      HapticFeedback.heavyImpact();
+      setState(() => _submitError =
+          'Complete the required fields marked in red above, then tap Continue.');
+      return;
+    }
     _formKeys[_tabs.index].currentState!.save();
+    setState(() => _submitError = null);
     if (_tabs.index < 2) _tabs.animateTo(_tabs.index + 1);
   }
 
   void _prevTab() {
+    setState(() => _submitError = null);
     if (_tabs.index > 0) _tabs.animateTo(_tabs.index - 1);
   }
 
@@ -534,7 +544,13 @@ class _Tab1Personal extends ConsumerStatefulWidget {
   ConsumerState<_Tab1Personal> createState() => _Tab1PersonalState();
 }
 
-class _Tab1PersonalState extends ConsumerState<_Tab1Personal> {
+class _Tab1PersonalState extends ConsumerState<_Tab1Personal>
+    with AutomaticKeepAliveClientMixin {
+  // Keep every tab mounted: _validateAll()/_saveAll() need all three
+  // Form states alive, and Back must not wipe unsaved field edits.
+  @override
+  bool get wantKeepAlive => true;
+
   late TextEditingController _firstName;
   late TextEditingController _lastName;
   late TextEditingController _phone;
@@ -593,6 +609,7 @@ class _Tab1PersonalState extends ConsumerState<_Tab1Personal> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
     return Form(
       key: widget.formKey,
       child: Column(
@@ -751,7 +768,13 @@ class _Tab2Electoral extends ConsumerStatefulWidget {
   ConsumerState<_Tab2Electoral> createState() => _Tab2ElectoralState();
 }
 
-class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
+class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral>
+    with AutomaticKeepAliveClientMixin {
+  // Keep every tab mounted: _validateAll()/_saveAll() need all three
+  // Form states alive, and Back must not wipe unsaved field edits.
+  @override
+  bool get wantKeepAlive => true;
+
   late TextEditingController _ward;
   late TextEditingController _branch;
   late TextEditingController _residentialAddress;
@@ -810,6 +833,7 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
     final regionsAsync = ref.watch(regionsProvider);
     final districtsAsync = ref.watch(districtsProvider);
     final constituenciesAsync = ref.watch(constituenciesProvider);
@@ -846,6 +870,7 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
               ref.read(selectedElectoralAreaProvider.notifier).state = null;
             },
             validator: () => _region == null ? 'Please select a region' : null,
+            onRetry: () => ref.invalidate(regionsProvider),
           ),
           const SizedBox(height: 16),
 
@@ -869,6 +894,7 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
             },
             validator: () =>
                 _district == null && _region != null ? 'Please select a district' : null,
+            onRetry: () => ref.invalidate(districtsProvider),
           ),
           const SizedBox(height: 16),
 
@@ -891,6 +917,7 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
             validator: () => _constituency == null && _district != null
                 ? 'Please select a constituency'
                 : null,
+            onRetry: () => ref.invalidate(constituenciesProvider),
           ),
           const SizedBox(height: 16),
 
@@ -902,6 +929,7 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
             validator: () => _pollingStation == null && _constituency != null
                 ? 'Please select a polling station'
                 : null,
+            onRetry: () => ref.invalidate(pollingStationsProvider),
           ),
           const SizedBox(height: 16),
 
@@ -945,9 +973,36 @@ class _Tab2ElectoralState extends ConsumerState<_Tab2Electoral> {
           ),
 
           FormField<void>(
-            builder: (_) => const SizedBox.shrink(),
+            // This is the safety net when a dropdown is in a loading/error
+            // state (its own FormField isn't in the tree then, so its
+            // validator never runs). It must render its error VISIBLY —
+            // an invisible failing validator makes Continue look dead.
+            builder: (field) => field.hasError
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Row(
+                      children: [
+                        const PhosphorIcon(PhosphorIconsFill.warningCircle,
+                            size: 16, color: AppColors.umbrellaRed),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(field.errorText!,
+                              style: AppTextStyles.small(
+                                  color: AppColors.umbrellaRed)),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
             validator: (_) {
-              if (_region == null) return 'Region is required';
+              if (_region == null) return 'Select a region to continue';
+              if (_district == null) return 'Select a district to continue';
+              if (_constituency == null) {
+                return 'Select a constituency to continue';
+              }
+              if (_pollingStation == null) {
+                return 'Select a polling station to continue';
+              }
               ref.read(registrationFormProvider.notifier).updateStep2(
                 regionId: _region?.id,
                 regionName: _region?.name,
@@ -985,7 +1040,13 @@ class _Tab3Party extends ConsumerStatefulWidget {
   ConsumerState<_Tab3Party> createState() => _Tab3PartyState();
 }
 
-class _Tab3PartyState extends ConsumerState<_Tab3Party> {
+class _Tab3PartyState extends ConsumerState<_Tab3Party>
+    with AutomaticKeepAliveClientMixin {
+  // Keep every tab mounted: _validateAll()/_saveAll() need all three
+  // Form states alive, and Back must not wipe unsaved field edits.
+  @override
+  bool get wantKeepAlive => true;
+
   late TextEditingController _profession;
   late TextEditingController _partyPosition;
   late TextEditingController _otherParty;
@@ -1080,6 +1141,7 @@ class _Tab3PartyState extends ConsumerState<_Tab3Party> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required by AutomaticKeepAliveClientMixin
     final formData = ref.watch(registrationFormProvider);
 
     return Form(
@@ -1438,6 +1500,7 @@ class _AsyncDropdown<T> extends ConsumerWidget {
   final void Function(T?) onChanged;
   final String? Function()? validator;
   final bool enabled;
+  final VoidCallback? onRetry;
 
   const _AsyncDropdown({
     required this.label,
@@ -1449,6 +1512,7 @@ class _AsyncDropdown<T> extends ConsumerWidget {
     required this.onChanged,
     this.validator,
     this.enabled = true,
+    this.onRetry,
   });
 
   @override
@@ -1474,7 +1538,10 @@ class _AsyncDropdown<T> extends ConsumerWidget {
             );
           },
           loading: () => _loadingField(hint),
-          error: (_, _) => _loadingField('Error loading options'),
+          error: (_, _) => _RetryField(
+            message: "Couldn't load ${label.replaceAll(' *', '').toLowerCase()}s",
+            onRetry: onRetry,
+          ),
         ),
       ],
     );
@@ -1502,6 +1569,45 @@ class _AsyncDropdown<T> extends ConsumerWidget {
   }
 }
 
+/// Load-failure state for a lookup field: says what failed and retries on
+/// tap — never a dead "Error loading options" box the user can't act on.
+class _RetryField extends StatelessWidget {
+  final String message;
+  final VoidCallback? onRetry;
+  const _RetryField({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onRetry,
+      child: Container(
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(
+              color: AppColors.umbrellaRed.withValues(alpha: 0.5)),
+          borderRadius: AppRadii.borderSm,
+          color: AppColors.redTint,
+        ),
+        child: Row(
+          children: [
+            const PhosphorIcon(PhosphorIconsRegular.arrowClockwise,
+                size: 20, color: AppColors.umbrellaRed),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('$message — tap to retry',
+                  style:
+                      AppTextStyles.bodyLarge(color: AppColors.umbrellaRed),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Polling station: searchable picker ──────────────────────────────────────
 
 class _PollingStationField extends StatelessWidget {
@@ -1510,6 +1616,7 @@ class _PollingStationField extends StatelessWidget {
   final bool enabled;
   final void Function(PollingStation?) onChanged;
   final String? Function() validator;
+  final VoidCallback? onRetry;
 
   const _PollingStationField({
     required this.asyncData,
@@ -1517,6 +1624,7 @@ class _PollingStationField extends StatelessWidget {
     required this.enabled,
     required this.onChanged,
     required this.validator,
+    this.onRetry,
   });
 
   @override
@@ -1594,7 +1702,8 @@ class _PollingStationField extends StatelessWidget {
               );
             },
             loading: () => _stationField('Loading polling stations…'),
-            error: (_, _) => _stationField('Error loading options'),
+            error: (_, _) => _RetryField(
+                message: "Couldn't load polling stations", onRetry: onRetry),
           ),
         ),
       ],

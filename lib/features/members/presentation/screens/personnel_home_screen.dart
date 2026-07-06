@@ -14,6 +14,7 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
+import '../../../../shared/widgets/inline_load_error.dart';
 
 class PersonnelHomeScreen extends ConsumerWidget {
   const PersonnelHomeScreen({super.key});
@@ -107,7 +108,7 @@ class PersonnelHomeScreen extends ConsumerWidget {
                   statsAsync.when(
                     data: (stats) => _ProgressCard(active: stats.active, total: stats.total),
                     loading: () => const SkeletonLoader(height: 88, borderRadius: AppRadii.borderMd),
-                    error: (_, _) => const SizedBox.shrink(),
+                    error: (_, _) => const InlineLoadError(),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
 
@@ -218,13 +219,13 @@ class _GreetingHero extends StatelessWidget {
               statsAsync.when(
                 data: (s) => _TodaySummary(total: s.total, pending: s.pending),
                 loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
-                error: (_, _) => const SizedBox.shrink(),
+                error: (_, _) => const InlineLoadError(),
               ),
             ],
           );
         },
         loading: () => const SkeletonLoader(height: 120, borderRadius: AppRadii.borderMd),
-        error: (_, _) => const SizedBox.shrink(),
+        error: (_, _) => const InlineLoadError(),
       ),
     );
   }

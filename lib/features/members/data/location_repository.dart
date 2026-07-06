@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/net/db_timeout.dart';
 
 class Region {
   final int id;
@@ -52,7 +53,7 @@ class LocationRepository {
   final _db = Supabase.instance.client;
 
   Future<List<Region>> fetchRegions() async {
-    final data = await _db.from('regions').select('id, name').order('name').limit(50);
+    final data = await _db.from('regions').select('id, name').order('name').limit(50).dbTimeout();
     return (data as List).map((m) => Region.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -62,7 +63,7 @@ class LocationRepository {
         .select('id, region_id, name')
         .eq('region_id', regionId)
         .order('name')
-        .limit(500);
+        .limit(500).dbTimeout();
     return (data as List).map((m) => District.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -72,7 +73,7 @@ class LocationRepository {
         .select('id, district_id, name')
         .eq('district_id', districtId)
         .order('name')
-        .limit(500);
+        .limit(500).dbTimeout();
     return (data as List).map((m) => Constituency.fromMap(m as Map<String, dynamic>)).toList();
   }
 
@@ -83,7 +84,7 @@ class LocationRepository {
         .eq('constituency_id', constituencyId)
         .not('electoral_area', 'is', null)
         .order('electoral_area')
-        .limit(500);
+        .limit(500).dbTimeout();
     final seen = <String>{};
     final areas = <String>[];
     for (final m in data as List) {
@@ -99,7 +100,7 @@ class LocationRepository {
         .select('id, constituency_id, name, electoral_area, station_code')
         .eq('constituency_id', constituencyId);
     if (electoralArea != null) query = query.eq('electoral_area', electoralArea);
-    final data = await query.order('name').limit(500);
+    final data = await query.order('name').limit(500).dbTimeout();
     return (data as List).map((m) => PollingStation.fromMap(m as Map<String, dynamic>)).toList();
   }
 }

@@ -106,7 +106,11 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
           );
           if (!proceed) return false;
         }
-      } catch (_) {}
+      } catch (e) {
+        // Fail open by design (a flaky network must not block registration),
+        // but never swallow invisibly.
+        debugPrint('[duplicate check phone] $e');
+      }
     }
     if (data.dateOfBirth != null) {
       final dob = data.dateOfBirth!;
@@ -127,7 +131,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
           );
           if (!proceed) return false;
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[duplicate check name+dob] $e');
+      }
     }
     return true;
   }
@@ -187,7 +193,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
     _saveAll();
 
     final session = Supabase.instance.client.auth.currentSession;
-    if (session == null) return;
+    if (session == null) {
+      // Never a silent dead button — tell the user what's wrong.
+      setState(() => _submitError =
+          'Your session has expired. Sign in again to submit.');
+      return;
+    }
 
     final formData = ref.read(registrationFormProvider);
     final proceed = await _checkDuplicates(formData);

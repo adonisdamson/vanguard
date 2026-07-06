@@ -15,6 +15,7 @@ import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
+import '../../../../shared/widgets/inline_load_error.dart';
 
 class _ReportTileData {
   final IconData icon;
@@ -164,7 +165,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 statsAsync.when(
                   data: (s) => _StatsRow(stats: s),
                   loading: () => const SkeletonLoader(height: 72, borderRadius: AppRadii.borderMd),
-                  error: (_, _) => const SizedBox.shrink(),
+                  error: (_, _) => InlineLoadError(
+                    onRetry: () => ref.invalidate(dashboardStatsProvider),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
 

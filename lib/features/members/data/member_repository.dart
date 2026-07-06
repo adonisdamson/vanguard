@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/net/db_timeout.dart';
 
 class MemberSummary {
   final String id;
@@ -61,7 +62,7 @@ class MemberRepository {
         .from('members')
         .insert(data)
         .select('id, member_number')
-        .single();
+        .single().dbTimeout();
     return {
       'id': result['id'] as String,
       'member_number': result['member_number'] as String? ?? '',
@@ -84,7 +85,7 @@ class MemberRepository {
             contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
             upsert: false,
           ),
-        );
+        ).dbTimeout();
     return storagePath;
   }
 
@@ -115,7 +116,7 @@ class MemberRepository {
           .range(from, to);
     }
 
-    final data = await query;
+    final data = await query.dbTimeout();
     return (data as List)
         .map((m) => MemberSummary.fromMap(m as Map<String, dynamic>))
         .toList();
@@ -128,7 +129,7 @@ class MemberRepository {
       _db.from('members').select().eq('registered_by', userId).eq('status', 'pending').count(CountOption.exact),
       _db.from('members').select().eq('registered_by', userId).eq('status', 'active').count(CountOption.exact),
       _db.from('members').select().eq('registered_by', userId).eq('status', 'rejected').count(CountOption.exact),
-    ]);
+    ]).dbTimeout();
     return MemberStats(
       total: results[0].count,
       pending: results[1].count,

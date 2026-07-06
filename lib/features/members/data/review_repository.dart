@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/net/db_timeout.dart';
 
 class MemberDetail {
   final String id;
@@ -167,7 +168,7 @@ class ReviewRepository {
         .select(_memberDetailSelect)
         .eq('status', 'pending')
         .order('created_at', ascending: true)
-        .range(from, to);
+        .range(from, to).dbTimeout();
     return (data as List)
         .map((m) => MemberDetail.fromMap(m as Map<String, dynamic>))
         .toList();
@@ -208,7 +209,7 @@ class ReviewRepository {
 
     final data = await q
         .order('created_at', ascending: false)
-        .range(from, to);
+        .range(from, to).dbTimeout();
 
     return (data as List)
         .map((m) => MemberDetail.fromMap(m as Map<String, dynamic>))
@@ -220,7 +221,7 @@ class ReviewRepository {
         .from('members')
         .select(_memberDetailSelect)
         .eq('id', id)
-        .single();
+        .single().dbTimeout();
     return MemberDetail.fromMap(data);
   }
 
@@ -231,7 +232,7 @@ class ReviewRepository {
       'status': 'active',
       'reviewed_by': uid,
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', memberId);
+    }).eq('id', memberId).dbTimeout();
   }
 
   Future<void> rejectMember(String memberId, String reason) async {
@@ -242,7 +243,7 @@ class ReviewRepository {
       'reviewed_by': uid,
       'rejection_reason': reason,
       'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', memberId);
+    }).eq('id', memberId).dbTimeout();
   }
 
   Future<List<AuditEntry>> fetchAuditHistory(String memberId) async {
@@ -251,7 +252,7 @@ class ReviewRepository {
         .select('id, action, metadata, created_at')
         .eq('target_id', memberId)
         .order('created_at', ascending: false)
-        .limit(20);
+        .limit(20).dbTimeout();
     return (data as List)
         .map((m) => AuditEntry.fromMap(m as Map<String, dynamic>))
         .toList();

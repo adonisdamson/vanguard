@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/net/db_timeout.dart';
 
 class MonthlyCount {
   final String month;
@@ -32,7 +33,7 @@ class DashboardRepository {
     final results = await Future.wait([
       _db.rpc('get_member_status_counts'),
       _db.rpc('get_registration_trend'),
-    ]);
+    ]).dbTimeout();
 
     // Status counts
     final statusRows = results[0] as List;

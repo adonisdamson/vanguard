@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/net/db_timeout.dart';
 
 class AuditEntry {
   final int id;
@@ -55,7 +56,7 @@ class AuditRepository {
 
     final data = await query
         .order('created_at', ascending: false)
-        .range(page * pageSize, (page + 1) * pageSize - 1);
+        .range(page * pageSize, (page + 1) * pageSize - 1).dbTimeout();
     return (data as List).map((m) => AuditEntry.fromMap(m as Map<String, dynamic>)).toList();
   }
 }

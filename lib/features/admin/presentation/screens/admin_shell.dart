@@ -13,6 +13,7 @@ import 'admin_home_screen.dart';
 import '../../../../features/members/presentation/screens/member_directory_screen.dart';
 import '../../../../features/tracker/presentation/screens/tracker_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
+import '../../../../shared/widgets/offline_banner.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
@@ -58,9 +59,16 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: _AdminAppBar(firstName: firstName),
-      body: IndexedStack(
-        index: _stackIndex(_tabIndex),
-        children: _screens,
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: _stackIndex(_tabIndex),
+              children: _screens,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: _tabIndex,

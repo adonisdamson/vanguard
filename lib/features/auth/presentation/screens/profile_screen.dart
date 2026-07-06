@@ -12,6 +12,7 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
+import '../../../../shared/widgets/inline_load_error.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -35,7 +36,9 @@ class ProfileScreen extends ConsumerWidget {
                 userAsync.when(
                   data: (user) => _InfoSection(user: user),
                   loading: () => const SkeletonLoader(height: 140, borderRadius: AppRadii.borderMd),
-                  error: (_, _) => const SizedBox.shrink(),
+                  error: (_, _) => InlineLoadError(
+                    onRetry: () => ref.invalidate(appUserProvider),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 _SettingsTile(

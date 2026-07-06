@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 /// Central error → friendly-message converter.
@@ -87,6 +88,9 @@ class AppErrorMapper {
 
   static String forDataLoad(Object e, [StackTrace? st]) {
     _log('DataLoad', e, st);
+    if (_isTimeout(e)) {
+      return "The server took too long to respond. Pull down to retry.";
+    }
     if (_isNetwork(e.toString())) {
       return "No connection. Pull down to retry.";
     }
@@ -97,6 +101,9 @@ class AppErrorMapper {
 
   static String friendly(Object e, [StackTrace? st]) {
     _log('General', e, st);
+    if (_isTimeout(e)) {
+      return "The server took too long to respond. Try again.";
+    }
     if (_isNetwork(e.toString())) {
       return "No connection. Check your network and try again.";
     }
@@ -109,6 +116,9 @@ class AppErrorMapper {
     _log('AdminAction', e, st);
     final s = e.toString();
 
+    if (_isTimeout(e)) {
+      return "The server took too long to respond. Try again.";
+    }
     if (_isNetwork(s)) {
       return "No connection. Check your network and try again.";
     }
@@ -139,7 +149,8 @@ class AppErrorMapper {
     final msg = _serverMessage(s);
     if (msg != null) return msg;
 
-    return "Action failed. Please try again.";
+    // Last resort — still say more than a bare "failed".
+    return "The action couldn't be completed. Check your connection and try again — if it keeps happening, contact your administrator.";
   }
 
   /// Extracts the human message from `Exception: <message>` thrown after a
@@ -154,6 +165,9 @@ class AppErrorMapper {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  static bool _isTimeout(Object e) =>
+      e is TimeoutException || e.toString().contains('TimeoutException');
 
   static bool _isNetwork(String s) {
     return s.contains('SocketException') ||

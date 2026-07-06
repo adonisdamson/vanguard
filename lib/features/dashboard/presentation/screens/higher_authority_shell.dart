@@ -13,6 +13,7 @@ import 'higher_authority_home_screen.dart';
 import '../../../../features/members/presentation/screens/member_directory_screen.dart';
 import '../../../../features/reports/presentation/screens/reports_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
+import '../../../../shared/widgets/offline_banner.dart';
 
 class HigherAuthorityShell extends ConsumerStatefulWidget {
   const HigherAuthorityShell({super.key});
@@ -58,9 +59,16 @@ class _HigherAuthorityShellState extends ConsumerState<HigherAuthorityShell> {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: _HaAppBar(firstName: firstName),
-      body: IndexedStack(
-        index: _stackIndex(_tabIndex),
-        children: _screens,
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: _stackIndex(_tabIndex),
+              children: _screens,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: _tabIndex,

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../members/data/location_repository.dart';
+import '../../../core/net/db_timeout.dart';
 
 class LookupAdminRepository {
   final _db = Supabase.instance.client;
@@ -7,20 +8,20 @@ class LookupAdminRepository {
   // ── Regions ────────────────────────────────────────────────────────────────
 
   Future<List<Region>> fetchAllRegions() async {
-    final data = await _db.from('regions').select('id, name').order('name').limit(500);
+    final data = await _db.from('regions').select('id, name').order('name').limit(500).dbTimeout();
     return (data as List).map((m) => Region.fromMap(m as Map<String, dynamic>)).toList();
   }
 
   Future<void> createRegion(String name) async {
-    await _db.from('regions').insert({'name': name.trim()});
+    await _db.from('regions').insert({'name': name.trim()}).dbTimeout();
   }
 
   Future<void> updateRegion(int id, String name) async {
-    await _db.from('regions').update({'name': name.trim()}).eq('id', id);
+    await _db.from('regions').update({'name': name.trim()}).eq('id', id).dbTimeout();
   }
 
   Future<void> deleteRegion(int id) async {
-    await _db.from('regions').delete().eq('id', id);
+    await _db.from('regions').delete().eq('id', id).dbTimeout();
   }
 
   // ── Districts ──────────────────────────────────────────────────────────────
@@ -28,20 +29,20 @@ class LookupAdminRepository {
   Future<List<District>> fetchDistricts({int? regionId}) async {
     var q = _db.from('districts').select('id, region_id, name');
     if (regionId != null) q = q.eq('region_id', regionId);
-    final data = await q.order('name').limit(500);
+    final data = await q.order('name').limit(500).dbTimeout();
     return (data as List).map((m) => District.fromMap(m as Map<String, dynamic>)).toList();
   }
 
   Future<void> createDistrict(int regionId, String name) async {
-    await _db.from('districts').insert({'region_id': regionId, 'name': name.trim()});
+    await _db.from('districts').insert({'region_id': regionId, 'name': name.trim()}).dbTimeout();
   }
 
   Future<void> updateDistrict(int id, String name) async {
-    await _db.from('districts').update({'name': name.trim()}).eq('id', id);
+    await _db.from('districts').update({'name': name.trim()}).eq('id', id).dbTimeout();
   }
 
   Future<void> deleteDistrict(int id) async {
-    await _db.from('districts').delete().eq('id', id);
+    await _db.from('districts').delete().eq('id', id).dbTimeout();
   }
 
   // ── Constituencies ─────────────────────────────────────────────────────────
@@ -49,20 +50,20 @@ class LookupAdminRepository {
   Future<List<Constituency>> fetchConstituencies({int? districtId}) async {
     var q = _db.from('constituencies').select('id, district_id, name');
     if (districtId != null) q = q.eq('district_id', districtId);
-    final data = await q.order('name').limit(500);
+    final data = await q.order('name').limit(500).dbTimeout();
     return (data as List).map((m) => Constituency.fromMap(m as Map<String, dynamic>)).toList();
   }
 
   Future<void> createConstituency(int districtId, String name) async {
-    await _db.from('constituencies').insert({'district_id': districtId, 'name': name.trim()});
+    await _db.from('constituencies').insert({'district_id': districtId, 'name': name.trim()}).dbTimeout();
   }
 
   Future<void> updateConstituency(int id, String name) async {
-    await _db.from('constituencies').update({'name': name.trim()}).eq('id', id);
+    await _db.from('constituencies').update({'name': name.trim()}).eq('id', id).dbTimeout();
   }
 
   Future<void> deleteConstituency(int id) async {
-    await _db.from('constituencies').delete().eq('id', id);
+    await _db.from('constituencies').delete().eq('id', id).dbTimeout();
   }
 
   // ── Polling Stations ───────────────────────────────────────────────────────
@@ -70,20 +71,20 @@ class LookupAdminRepository {
   Future<List<PollingStation>> fetchPollingStations({int? constituencyId}) async {
     var q = _db.from('polling_stations').select('id, constituency_id, name');
     if (constituencyId != null) q = q.eq('constituency_id', constituencyId);
-    final data = await q.order('name').limit(1000);
+    final data = await q.order('name').limit(1000).dbTimeout();
     return (data as List).map((m) => PollingStation.fromMap(m as Map<String, dynamic>)).toList();
   }
 
   Future<void> createPollingStation(int constituencyId, String name) async {
-    await _db.from('polling_stations').insert({'constituency_id': constituencyId, 'name': name.trim()});
+    await _db.from('polling_stations').insert({'constituency_id': constituencyId, 'name': name.trim()}).dbTimeout();
   }
 
   Future<void> updatePollingStation(int id, String name) async {
-    await _db.from('polling_stations').update({'name': name.trim()}).eq('id', id);
+    await _db.from('polling_stations').update({'name': name.trim()}).eq('id', id).dbTimeout();
   }
 
   Future<void> deletePollingStation(int id) async {
-    await _db.from('polling_stations').delete().eq('id', id);
+    await _db.from('polling_stations').delete().eq('id', id).dbTimeout();
   }
 
   // Bulk import — idempotent upsert of full hierarchy from parsed CSV rows.
@@ -119,7 +120,7 @@ class LookupAdminRepository {
               .from('regions')
               .upsert({'name': regionName}, onConflict: 'name')
               .select('id')
-              .single();
+              .single().dbTimeout();
           regionCache[regionName] = r['id'] as int;
         }
         final regionId = regionCache[regionName]!;
@@ -131,7 +132,7 @@ class LookupAdminRepository {
               .from('districts')
               .upsert({'region_id': regionId, 'name': districtName}, onConflict: 'region_id,name')
               .select('id')
-              .single();
+              .single().dbTimeout();
           districtCache[districtKey] = r['id'] as int;
         }
         final districtId = districtCache[districtKey]!;
@@ -143,7 +144,7 @@ class LookupAdminRepository {
               .from('constituencies')
               .upsert({'district_id': districtId, 'name': constituencyName}, onConflict: 'district_id,name')
               .select('id')
-              .single();
+              .single().dbTimeout();
           constituencyCache[constituencyKey] = r['id'] as int;
         }
         final constituencyId = constituencyCache[constituencyKey]!;
@@ -156,7 +157,7 @@ class LookupAdminRepository {
             'electoral_area': ?eaValue,
           },
           onConflict: 'constituency_id,name',
-        );
+        ).dbTimeout();
 
         upserted++;
       } catch (_) {

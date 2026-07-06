@@ -13,6 +13,7 @@ import 'personnel_home_screen.dart';
 import 'my_submissions_screen.dart';
 import 'member_directory_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
+import '../../../../shared/widgets/offline_banner.dart';
 
 class PersonnelShell extends ConsumerStatefulWidget {
   const PersonnelShell({super.key});
@@ -62,9 +63,16 @@ class _PersonnelShellState extends ConsumerState<PersonnelShell> {
         roleLabel: 'Personnel',
         onNotificationTap: () {},
       ),
-      body: IndexedStack(
-        index: _stackIndex(_tabIndex),
-        children: _screens,
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: _stackIndex(_tabIndex),
+              children: _screens,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: _tabIndex,

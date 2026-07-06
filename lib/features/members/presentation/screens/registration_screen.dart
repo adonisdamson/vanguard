@@ -356,12 +356,21 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
       appBar: AppBar(
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
-        leading: IconButton(
-          tooltip: 'Discard registration',
-          icon: const PhosphorIcon(PhosphorIconsRegular.x,
-              color: AppColors.surface, size: 22),
-          onPressed: () => _confirmExit(context),
-        ),
+        // Steps 2-3: top-left arrow goes BACK a step (matching the pinned
+        // bar) — never a dead end mid-entry. Step 1 keeps the cancel X.
+        leading: _tabs.index > 0
+            ? IconButton(
+                tooltip: 'Previous step',
+                icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft,
+                    color: AppColors.surface, size: 22),
+                onPressed: _prevTab,
+              )
+            : IconButton(
+                tooltip: 'Discard registration',
+                icon: const PhosphorIcon(PhosphorIconsRegular.x,
+                    color: AppColors.surface, size: 22),
+                onPressed: () => _confirmExit(context),
+              ),
         title: _sessionCount > 0
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

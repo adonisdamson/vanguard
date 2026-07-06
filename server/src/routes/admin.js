@@ -113,6 +113,24 @@ router.post('/:id/role', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/admin/operators/:id/password — admin sets a new password for any
+// operator, entirely in-app (no reset emails, which proved undeliverable in
+// the field). The admin shares the new password with the operator securely.
+router.post('/:id/password', async (req, res) => {
+  const ctx = await requireRole(req, res, ['admin']);
+  if (!ctx) return;
+
+  const { password } = req.body;
+  if (!password || String(password).length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const { error } = await serviceClient().auth.admin.updateUserById(req.params.id, { password });
+  if (error) return res.status(400).json({ error: error.message });
+
+  res.json({ ok: true });
+});
+
 // POST /api/admin/operators/:id/approve — approve a self-signup: set role + activate
 router.post('/:id/approve', async (req, res) => {
   const ctx = await requireRole(req, res, ['admin']);

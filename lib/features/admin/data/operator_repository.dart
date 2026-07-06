@@ -195,6 +195,10 @@ class OperatorRepository {
     }).dbTimeout();
   }
 
+  Future<void> setOperatorPassword(String id, String password) async {
+    await _railwayPost('/api/admin/operators/$id/password', {'password': password}).dbTimeout();
+  }
+
   Future<void> declineOperator(String id) async {
     await _railwayPost('/api/admin/operators/$id/decline', {}).dbTimeout();
   }

@@ -15,6 +15,7 @@ import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
+import '../../../../shared/widgets/hero_crest.dart';
 
 class PersonnelHomeScreen extends ConsumerWidget {
   const PersonnelHomeScreen({super.key});
@@ -187,17 +188,30 @@ class _GreetingHero extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Eyebrow
-              Text(
-                _greeting().toUpperCase(),
-                style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
-              ),
-              const SizedBox(height: 4),
-              // Name
-              Text(
-                firstName,
-                style: AppTextStyles.display(color: AppColors.surface),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting().toUpperCase(),
+                          style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          firstName,
+                          style: AppTextStyles.display(color: AppColors.surface),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const HeroCrest(),
+                ],
               ),
               const SizedBox(height: 10),
               // Role + constituency chips

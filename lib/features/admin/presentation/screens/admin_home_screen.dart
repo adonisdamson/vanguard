@@ -14,6 +14,7 @@ import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
+import '../../../../shared/widgets/hero_crest.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key});
@@ -214,16 +215,30 @@ class _AdminGreetingHero extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _greeting().toUpperCase(),
-                style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                firstName,
-                style: AppTextStyles.display(color: AppColors.surface),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting().toUpperCase(),
+                          style: AppTextStyles.eyebrow(color: AppColors.surface.withValues(alpha: 0.5)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          firstName,
+                          style: AppTextStyles.display(color: AppColors.surface),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const HeroCrest(),
+                ],
               ),
               const SizedBox(height: 10),
               Row(children: [
@@ -424,45 +439,53 @@ class _SystemActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.base),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadii.borderMd,
-          boxShadow: AppShadows.e1,
-          border: Border.all(color: AppColors.hairline),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 34, height: 34,
-                  decoration: BoxDecoration(color: iconBg, borderRadius: AppRadii.borderSm),
-                  child: Icon(icon, size: 17, color: iconColor),
-                ),
-                const Spacer(),
-                if (badge != null && badge! > 0)
+    // Real button affordance: ink ripple on press, chevron that says "this
+    // goes somewhere" — not a static card that happens to be tappable.
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadii.borderMd,
+      child: InkWell(
+        borderRadius: AppRadii.borderMd,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpacing.base),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.borderMd,
+            border: Border.all(color: AppColors.line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: const BoxDecoration(
-                      color: AppColors.gold,
-                      borderRadius: AppRadii.borderPill,
-                    ),
-                    child: Text('$badge', style: AppTextStyles.badge(color: AppColors.surface)),
+                    width: 34, height: 34,
+                    decoration: BoxDecoration(color: iconBg, borderRadius: AppRadii.borderSm),
+                    child: Icon(icon, size: 17, color: iconColor),
                   ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(label, style: AppTextStyles.bodyMedium()),
-            Text(subtitle, style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
-          ],
+                  const Spacer(),
+                  if (badge != null && badge! > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: const BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: AppRadii.borderPill,
+                      ),
+                      child: Text('$badge', style: AppTextStyles.badge(color: AppColors.surface)),
+                    )
+                  else
+                    const PhosphorIcon(PhosphorIconsRegular.caretRight,
+                        size: 16, color: AppColors.inkMuted),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(label, style: AppTextStyles.bodyMedium()),
+              Text(subtitle, style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
         ),
       ),
     );

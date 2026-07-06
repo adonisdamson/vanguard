@@ -12,6 +12,7 @@ class AppUser {
   final String email;
   final AppUserRole role;
   final bool isActive;
+  final String? avatarPath;
 
   const AppUser({
     required this.id,
@@ -19,6 +20,7 @@ class AppUser {
     required this.email,
     required this.role,
     required this.isActive,
+    this.avatarPath,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -28,6 +30,7 @@ class AppUser {
       email: map['email'] as String,
       role: _parseRole(map['role'] as String?),
       isActive: map['is_active'] as bool? ?? false,
+      avatarPath: map['avatar_path'] as String?,
     );
   }
 
@@ -58,7 +61,7 @@ final appUserProvider = FutureProvider<AppUser?>((ref) async {
   // gate screen, never as an indefinite loading state.
   final response = await supabase
       .from('app_users')
-      .select('id, full_name, email, role, is_active')
+      .select('id, full_name, email, role, is_active, avatar_path')
       .eq('id', session.user.id)
       .maybeSingle()
       .timeout(const Duration(seconds: 10));

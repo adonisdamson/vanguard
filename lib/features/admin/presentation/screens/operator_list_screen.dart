@@ -555,6 +555,11 @@ class _OperatorTile extends StatelessWidget {
                     label: 'Change role',
                     onTap: () => _changeRole(context),
                   ),
+                  ContextMenuAction(
+                    icon: PhosphorIconsRegular.password,
+                    label: 'Reset password',
+                    onTap: () => _resetPassword(context),
+                  ),
                   if (operator.isActive)
                     ContextMenuAction(
                       icon: PhosphorIconsRegular.prohibit,
@@ -602,6 +607,70 @@ class _OperatorTile extends StatelessWidget {
   backgroundColor: AppColors.umbrellaRed,
   content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
 ));
+      }
+    }
+  }
+
+  Future<void> _resetPassword(BuildContext context) async {
+    final seed = DateTime.now().microsecondsSinceEpoch;
+    final ctrl =
+        TextEditingController(text: 'NDC-${seed % 900000 + 100000}');
+    final password = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
+        title: Text('Reset password', style: AppTextStyles.h3()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Set a new password for ${operator.fullName}. It takes effect '
+              'immediately — share it with them securely.',
+              style: AppTextStyles.body(),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              style: AppTextStyles.bodyLarge(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              if (ctrl.text.length < 8) return;
+              Navigator.pop(ctx, ctrl.text);
+            },
+            child: Text('Set password',
+                style: TextStyle(color: AppColors.canopyGreen)),
+          ),
+        ],
+      ),
+    );
+    if (password == null || !context.mounted) return;
+    try {
+      await OperatorRepository().setOperatorPassword(operator.id, password);
+      HapticFeedback.mediumImpact();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.canopyGreen,
+          content: Text(
+              'Password updated for ${operator.fullName}. New password: $password',
+              style: AppTextStyles.body(color: AppColors.surface)),
+          duration: const Duration(seconds: 8),
+        ));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.umbrellaRed,
+          content: Text(AppErrorMapper.forAdminAction(e),
+              style: AppTextStyles.body(color: AppColors.surface)),
+        ));
       }
     }
   }

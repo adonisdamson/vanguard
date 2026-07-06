@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/auth_provider.dart';
+import '../../../members/application/member_providers.dart';
 import '../../application/user_role_provider.dart';
 import '../../../../core/constants/build_info.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -44,7 +49,7 @@ class ProfileScreen extends ConsumerWidget {
                 _SettingsTile(
                   icon: PhosphorIconsRegular.lock,
                   label: 'Change password',
-                  onTap: () => context.push('/forgot-password'),
+                  onTap: () => context.push('/change-password'),
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 NdcButton(
@@ -94,32 +99,121 @@ class _ProfileAppBar extends StatelessWidget {
   }
 }
 
-class _AvatarHeader extends StatelessWidget {
+class _AvatarHeader extends ConsumerWidget {
   final AppUser? user;
   const _AvatarHeader({required this.user});
 
+  Future<void> _changePhoto(BuildContext context, WidgetRef ref) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadii.sheetTop),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const PhosphorIcon(PhosphorIconsRegular.camera,
+                  color: AppColors.canopyGreen),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const PhosphorIcon(PhosphorIconsRegular.image,
+                  color: AppColors.canopyGreen),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    try {
+      final picked = await ImagePicker().pickImage(
+          source: source, maxWidth: 600, maxHeight: 600, imageQuality: 80);
+      if (picked == null) return;
+      final uid = Supabase.instance.client.auth.currentUser!.id;
+      final path = '$uid/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await Supabase.instance.client.storage.from('member-photos').uploadBinary(
+            path,
+            await File(picked.path).readAsBytes(),
+            fileOptions:
+                const FileOptions(contentType: 'image/jpeg', upsert: false),
+          );
+      await Supabase.instance.client
+          .from('app_users')
+          .update({'avatar_path': path}).eq('id', uid);
+      ref.invalidate(appUserProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.umbrellaRed,
+          content: Text("Couldn't update your photo. Check your connection and try again.",
+              style: AppTextStyles.body(color: AppColors.surface)),
+        ));
+      }
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final name = user?.fullName ?? 'User';
     final initials = _initials(name);
     final roleLabel = _roleLabel(user?.role);
 
+    Widget avatarInner;
+    final avatarPath = user?.avatarPath;
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      final urlAsync = ref.watch(photoUrlProvider(avatarPath));
+      avatarInner = urlAsync.when(
+        data: (url) => url == null
+            ? _initialsCircle(initials)
+            : ClipOval(
+                child: CachedNetworkImage(
+                    imageUrl: url, width: 80, height: 80, fit: BoxFit.cover),
+              ),
+        loading: () => _initialsCircle(initials),
+        error: (_, _) => _initialsCircle(initials),
+      );
+    } else {
+      avatarInner = _initialsCircle(initials);
+    }
+
     return Column(
       children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: AppColors.canopyGreen,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.surface.withValues(alpha: 0.25), width: 2),
-          ),
-          child: Center(
-            child: Text(
-              initials,
-              style: AppTextStyles.h1(color: AppColors.surface),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: AppColors.surface.withValues(alpha: 0.25), width: 2),
+              ),
+              child: avatarInner,
             ),
-          ),
+            Positioned(
+              right: -4,
+              bottom: -4,
+              child: GestureDetector(
+                onTap: () => _changePhoto(context, ref),
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: const PhosphorIcon(PhosphorIconsRegular.camera,
+                      size: 15, color: AppColors.brand),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
         Text(
@@ -149,6 +243,16 @@ class _AvatarHeader extends StatelessWidget {
       ],
     );
   }
+
+  Widget _initialsCircle(String initials) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.canopyGreen,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(initials, style: AppTextStyles.h1(color: AppColors.surface)),
+        ),
+      );
 
   static String _initials(String name) {
     final parts = name.trim().split(' ');

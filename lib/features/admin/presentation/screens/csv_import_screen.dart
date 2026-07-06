@@ -8,7 +8,7 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
+import '../../../../shared/widgets/form_scaffold.dart';
 
 class CsvImportScreen extends StatefulWidget {
   const CsvImportScreen({super.key});
@@ -114,8 +114,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.paper,
+    return FormScaffold(
       appBar: AppBar(
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
@@ -221,21 +220,20 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               const SizedBox(height: AppSpacing.base),
               _ResultCard(result: _result!),
             ],
-
             const SizedBox(height: AppSpacing.xl),
-            NdcButton(
-              label: 'Import',
-              loading: _importing,
-              onPressed: _importing ? null : _import,
-              icon: const PhosphorIcon(PhosphorIconsFill.uploadSimple, size: 18, color: AppColors.surface),
-            ),
-            const SizedBox(height: AppSpacing.base),
-            Text(
-              'Import is idempotent — re-running with the same data will not create duplicates.',
-              style: AppTextStyles.caption(),
-              textAlign: TextAlign.center,
-            ),
           ],
+        ),
+      ),
+      actionBar: FormActionBar(
+        primaryLabel: 'Import',
+        onPrimary: _import,
+        loading: _importing,
+        primaryIcon: const PhosphorIcon(PhosphorIconsFill.uploadSimple,
+            size: 18, color: AppColors.surface),
+        secondaryAction: Text(
+          'Import is idempotent — re-running with the same data will not create duplicates.',
+          style: AppTextStyles.caption(),
+          textAlign: TextAlign.center,
         ),
       ),
     );

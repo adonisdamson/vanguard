@@ -11,7 +11,7 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
+import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -62,9 +62,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.paper,
+    return FormScaffold(
+      actionBar: FormActionBar(
+        primaryLabel: 'Sign in',
+        onPrimary: _signIn,
+        loading: _loading,
+        primaryIcon: const PhosphorIcon(PhosphorIconsFill.signIn,
+            size: 18, color: AppColors.surface),
+        secondaryAction: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('New here? ', style: AppTextStyles.small()),
+                GestureDetector(
+                  onTap: () => context.push('/signup'),
+                  child: Text(
+                    'Request access',
+                    style: AppTextStyles.small(color: AppColors.canopyGreen)
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // Build stamp — first thing to read off a device when
+            // triaging "is this install stale?"
+            Text(
+              BuildInfo.stamp,
+              style: AppTextStyles.caption(color: AppColors.mist),
+            ),
+          ],
+        ),
+      ),
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -132,44 +165,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: Text('Forgot password?',
                               style: AppTextStyles.label(
                                   color: AppColors.canopyGreen)),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      NdcButton(
-                        label: 'Sign in',
-                        onPressed: _signIn,
-                        loading: _loading,
-                        icon: const PhosphorIcon(
-                            PhosphorIconsFill.signIn,
-                            size: 18,
-                            color: AppColors.surface),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('New here? ', style: AppTextStyles.small()),
-                          GestureDetector(
-                            onTap: () => context.push('/signup'),
-                            child: Text(
-                              'Request access',
-                              style: AppTextStyles.small(
-                                      color: AppColors.canopyGreen)
-                                  .copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // Build stamp — first thing to read off a device when
-                      // triaging "is this install stale?"
-                      Center(
-                        child: Text(
-                          BuildInfo.stamp,
-                          style: AppTextStyles.caption(color: AppColors.mist),
                         ),
                       ),
                     ],

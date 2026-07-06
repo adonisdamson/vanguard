@@ -9,7 +9,7 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
+import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -55,9 +55,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.paper,
-      body: SafeArea(
+    return FormScaffold(
+      header: SafeArea(
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -83,22 +83,31 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ],
               ),
             ),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: _sent ? _SuccessState(email: _emailCtrl.text.trim()) : _FormState(
-                  formKey: _formKey,
-                  emailCtrl: _emailCtrl,
-                  loading: _loading,
-                  error: _error,
-                  onSubmit: _submit,
-                ),
-              ),
-            ),
           ],
         ),
       ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: _sent ? _SuccessState(email: _emailCtrl.text.trim()) : _FormState(
+          formKey: _formKey,
+          emailCtrl: _emailCtrl,
+          loading: _loading,
+          error: _error,
+          onSubmit: _submit,
+        ),
+      ),
+      actionBar: _sent
+          ? FormActionBar(
+              primaryLabel: 'Back to Sign In',
+              onPrimary: () => context.go('/login'),
+            )
+          : FormActionBar(
+              primaryLabel: 'Send Reset Link',
+              onPrimary: _submit,
+              loading: _loading,
+              primaryIcon: const PhosphorIcon(PhosphorIconsFill.paperPlaneTilt,
+                  size: 18, color: AppColors.surface),
+            ),
     );
   }
 }
@@ -165,14 +174,6 @@ class _FormState extends StatelessWidget {
               return null;
             },
           ),
-          const SizedBox(height: 24),
-
-          NdcButton(
-            label: 'Send Reset Link',
-            onPressed: onSubmit,
-            loading: loading,
-            icon: const PhosphorIcon(PhosphorIconsFill.paperPlaneTilt, size: 18, color: AppColors.surface),
-          ),
         ],
       ),
     );
@@ -215,12 +216,6 @@ class _SuccessState extends StatelessWidget {
           'A password reset link has been sent to\n$email\n\nCheck your spam folder if you don\'t see it.',
           textAlign: TextAlign.center,
           style: AppTextStyles.body(color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 36),
-        NdcButton(
-          label: 'Back to Sign In',
-          variant: NdcButtonVariant.secondary,
-          onPressed: () => context.go('/login'),
         ),
       ],
     );

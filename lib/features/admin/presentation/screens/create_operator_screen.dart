@@ -10,7 +10,7 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
-import '../../../../shared/widgets/ndc_button.dart';
+import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
 class CreateOperatorScreen extends StatefulWidget {
@@ -132,8 +132,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.paper,
+    return FormScaffold(
       appBar: AppBar(
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
@@ -147,6 +146,11 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
           preferredSize: Size.fromHeight(4),
           child: CanopyStripe(height: 4),
         ),
+      ),
+      actionBar: FormActionBar(
+        primaryLabel: 'Create Operator Account',
+        onPrimary: _submit,
+        loading: _loading,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -311,12 +315,6 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                 onChanged: (c) => setState(() => _constituency = c),
               ),
               const SizedBox(height: 32),
-
-              NdcButton(
-                label: 'Create Operator Account',
-                loading: _loading,
-                onPressed: _loading ? null : _submit,
-              ),
             ],
           ),
         ),

@@ -18,6 +18,7 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/theme/app_shadows.dart';
+import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 import '../../../../shared/widgets/lottie_loader.dart';
@@ -331,8 +332,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.paper,
+    return FormScaffold(
       appBar: AppBar(
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
@@ -361,39 +361,57 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
           child: CanopyStripe(height: 4),
         ),
       ),
-      body: Column(
+      header: _TabStrip(controller: _tabs),
+      body: TabBarView(
+        controller: _tabs,
+        // No swipe — forces Continue button (validates before advancing)
+        physics: const NeverScrollableScrollPhysics(),
         children: [
-          // 3-tab strip
-          _TabStrip(controller: _tabs),
-          // Tab content
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              // No swipe — forces Continue button (validates before advancing)
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _scrollable(_Tab1Personal(formKey: _formKeys[0])),
-                _scrollable(_Tab2Electoral(formKey: _formKeys[1])),
-                _scrollable(_Tab3Party(formKey: _formKeys[2])),
-              ],
-            ),
-          ),
+          _scrollable(_Tab1Personal(formKey: _formKeys[0])),
+          _scrollable(_Tab2Electoral(formKey: _formKeys[1])),
+          _scrollable(_Tab3Party(formKey: _formKeys[2])),
         ],
       ),
-      bottomNavigationBar: _BottomBar(
-        tabIndex: _tabs.index,
-        submitting: _submitting,
+      actionBar: FormActionBar(
+        primaryLabel: _tabs.index == 2 ? 'Submit' : 'Continue',
+        onPrimary: _tabs.index == 2 ? () => _submit() : _nextTab,
+        loading: _submitting,
+        primaryIcon: PhosphorIcon(
+            _tabs.index == 2
+                ? PhosphorIconsFill.check
+                : PhosphorIconsFill.arrowRight,
+            size: 18,
+            color: AppColors.surface),
+        onBack: _tabs.index > 0 ? _prevTab : null,
         error: _submitError,
-        onBack: _prevTab,
-        onNext: _tabs.index < 2 ? _nextTab : null,
-        onSubmit: _tabs.index == 2 ? () => _submit() : null,
-        onSaveAndAnother: _tabs.index == 2 ? () => _submit(addAnother: true) : null,
+        secondaryAction: _tabs.index == 2
+            ? SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton.icon(
+                  onPressed:
+                      _submitting ? null : () => _submit(addAnother: true),
+                  icon: const PhosphorIcon(PhosphorIconsFill.userPlus,
+                      size: 16, color: AppColors.canopyGreen),
+                  label: Text('Save & add another',
+                      style: AppTextStyles.bodyMedium(
+                          color: AppColors.canopyGreen)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.canopyGreen),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: AppRadii.borderSm),
+                  ),
+                ),
+              )
+            : null,
       ),
     );
   }
 
+  // Bottom padding no longer needs to clear a floating bar — the action bar
+  // is pinned outside the scroll area by FormScaffold.
   Widget _scrollable(Widget child) => SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: child,
       );
 }
@@ -502,106 +520,6 @@ class _StepDot extends StatelessWidget {
           ).copyWith(fontWeight: isActive ? FontWeight.w600 : FontWeight.w400),
         ),
       ],
-    );
-  }
-}
-
-// ─── Bottom Bar ───────────────────────────────────────────────────────────────
-
-class _BottomBar extends StatelessWidget {
-  final int tabIndex;
-  final bool submitting;
-  final String? error;
-  final VoidCallback onBack;
-  final VoidCallback? onNext;
-  final VoidCallback? onSubmit;
-  final VoidCallback? onSaveAndAnother;
-
-  const _BottomBar({
-    required this.tabIndex,
-    required this.submitting,
-    required this.error,
-    required this.onBack,
-    this.onNext,
-    this.onSubmit,
-    this.onSaveAndAnother,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isLast = tabIndex == 2;
-    return Container(
-      color: AppColors.surface,
-      padding: EdgeInsets.fromLTRB(
-          20, 12, 20, 20 + MediaQuery.of(context).padding.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (error != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.redTint,
-                borderRadius: AppRadii.borderSm,
-              ),
-              child:
-                  Text(error!, style: AppTextStyles.small(color: AppColors.umbrellaRed)),
-            ),
-            const SizedBox(height: 10),
-          ],
-          Row(
-            children: [
-              if (tabIndex > 0) ...[
-                SizedBox(
-                  height: 52,
-                  child: OutlinedButton(
-                    onPressed: submitting ? null : onBack,
-                    child: const PhosphorIcon(PhosphorIconsFill.arrowLeft,
-                        size: 20, color: AppColors.canopyGreen),
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-              Expanded(
-                child: isLast
-                    ? NdcButton(
-                        label: 'Submit',
-                        onPressed: submitting ? null : onSubmit,
-                        loading: submitting,
-                        icon: const PhosphorIcon(PhosphorIconsFill.check,
-                            size: 18, color: AppColors.surface),
-                      )
-                    : NdcButton(
-                        label: 'Continue',
-                        onPressed: submitting ? null : onNext,
-                        loading: submitting,
-                        icon: const PhosphorIcon(PhosphorIconsFill.arrowRight,
-                            size: 18, color: AppColors.surface),
-                      ),
-              ),
-            ],
-          ),
-          if (isLast) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: OutlinedButton.icon(
-                onPressed: submitting ? null : onSaveAndAnother,
-                icon: const PhosphorIcon(PhosphorIconsFill.userPlus,
-                    size: 16, color: AppColors.canopyGreen),
-                label: Text('Save & add another',
-                    style: AppTextStyles.bodyMedium(color: AppColors.canopyGreen)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.canopyGreen),
-                  shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

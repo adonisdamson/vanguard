@@ -9,6 +9,7 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
+import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
@@ -94,9 +95,30 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   Widget build(BuildContext context) {
     if (_awaitingEmailConfirm) return _EmailSentScreen(email: _emailCtrl.text.trim());
 
-    return Scaffold(
-      backgroundColor: AppColors.paper,
+    return FormScaffold(
+      actionBar: FormActionBar(
+        primaryLabel: 'Request access',
+        onPrimary: _submit,
+        loading: _loading,
+        primaryIcon: const PhosphorIcon(PhosphorIconsFill.paperPlaneRight,
+            size: 18, color: AppColors.surface),
+        secondaryAction: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Already have access? ', style: AppTextStyles.small()),
+            GestureDetector(
+              onTap: () => context.pop(),
+              child: Text(
+                'Sign in',
+                style: AppTextStyles.small(color: AppColors.canopyGreen)
+                    .copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -211,36 +233,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         value: _requestedRole,
                         onChanged: (v) =>
                             setState(() => _requestedRole = v),
-                      ),
-
-                      const SizedBox(height: AppSpacing.lg),
-
-                      NdcButton(
-                        label: 'Request access',
-                        onPressed: _submit,
-                        loading: _loading,
-                        icon: const PhosphorIcon(
-                            PhosphorIconsFill.paperPlaneRight,
-                            size: 18,
-                            color: AppColors.surface),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Already have access? ',
-                              style: AppTextStyles.small()),
-                          GestureDetector(
-                            onTap: () => context.pop(),
-                            child: Text(
-                              'Sign in',
-                              style: AppTextStyles.small(
-                                      color: AppColors.canopyGreen)
-                                  .copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),

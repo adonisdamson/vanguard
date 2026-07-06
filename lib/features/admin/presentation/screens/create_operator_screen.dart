@@ -25,8 +25,16 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   String _selectedRole = 'personnel';
   bool _loading = false;
+
+  // Readable temp password: NDC- + 6 digits (10 chars, meets the 8+ rule).
+  void _generatePassword() {
+    final seed = DateTime.now().microsecondsSinceEpoch;
+    final digits = (seed % 900000 + 100000).toString();
+    setState(() => _passCtrl.text = 'NDC-$digits');
+  }
 
   // Jurisdiction — optional; null means national/unrestricted scope
   final _locationRepo = LocationRepository();
@@ -56,6 +64,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
+    _passCtrl.dispose();
     super.dispose();
   }
 
@@ -102,6 +111,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         fullName: _nameCtrl.text.trim(),
         email: _emailCtrl.text.trim().toLowerCase(),
         role: _selectedRole,
+        password: _passCtrl.text,
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         assignedRegionId: _region?.id,
         assignedDistrictId: _district?.id,
@@ -112,10 +122,10 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
           content: Text(
-            'Account created. An invitation email has been sent to ${_emailCtrl.text.trim()}.',
+            'Account created. ${_emailCtrl.text.trim()} can sign in now with the temporary password.',
             style: AppTextStyles.body(color: AppColors.surface),
           ),
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 6),
         ));
         context.pop();
       }
@@ -174,7 +184,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
-                        'An operator account will be created and the operator will receive an invitation email to set their password. No operator can self-register.',
+                        'The account works immediately — share the temporary password with the operator securely and ask them to change it after first sign-in. No operator can self-register.',
                         style: AppTextStyles.small(color: AppColors.canopyGreen),
                       ),
                     ),
@@ -216,7 +226,30 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                 icon: PhosphorIconsRegular.phone,
                 keyboardType: TextInputType.phone,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              NdcTextField(
+                label: 'Temporary Password',
+                hint: 'At least 8 characters',
+                controller: _passCtrl,
+                icon: PhosphorIconsRegular.password,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Set a temporary password';
+                  if (v.length < 8) return 'Use at least 8 characters';
+                  return null;
+                },
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _generatePassword,
+                  icon: const PhosphorIcon(PhosphorIconsRegular.arrowsClockwise,
+                      size: 14, color: AppColors.canopyGreen),
+                  label: Text('Generate',
+                      style: AppTextStyles.label(color: AppColors.canopyGreen)),
+                ),
+              ),
+              const SizedBox(height: 8),
 
               Text('Role', style: AppTextStyles.h3()),
               const SizedBox(height: 8),

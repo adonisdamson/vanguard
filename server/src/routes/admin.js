@@ -14,18 +14,38 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'full_name, email, and role are required' });
   }
 
-  // inviteUserByEmail creates the auth user AND sends an invitation email automatically.
-  // The handle_new_user trigger creates the app_users row (role=null, is_active=false);
-  // we then upsert to set the correct role and activate the account.
-  const { data: inviteData, error: inviteError } = await serviceClient().auth.admin.inviteUserByEmail(email, {
-    data: { full_name, signup_source: 'admin_created' },
-  });
-
-  if (inviteError) {
-    return res.status(400).json({ error: inviteError.message });
+  // Two creation modes:
+  // - password provided → ready-to-use account (email pre-confirmed, operator
+  //   signs in immediately). Primary path: an invited user has NO password
+  //   until they click the emailed link, so if that email never lands the
+  //   account is unusable — unacceptable in the field.
+  // - no password → legacy invite-email flow.
+  // Either way the handle_new_user trigger creates the app_users row
+  // (role=null, is_active=false); the upsert below sets role + activation.
+  let userId;
+  if (password) {
+    if (String(password).length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    const { data: created, error: createError } = await serviceClient().auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name, signup_source: 'admin_created' },
+    });
+    if (createError) {
+      return res.status(400).json({ error: createError.message });
+    }
+    userId = created.user.id;
+  } else {
+    const { data: inviteData, error: inviteError } = await serviceClient().auth.admin.inviteUserByEmail(email, {
+      data: { full_name, signup_source: 'admin_created' },
+    });
+    if (inviteError) {
+      return res.status(400).json({ error: inviteError.message });
+    }
+    userId = inviteData.user.id;
   }
-
-  const userId = inviteData.user.id;
 
   const { error: upsertError } = await serviceClient().from('app_users').upsert({
     id: userId,

@@ -147,6 +147,7 @@ class OperatorRepository {
     required String fullName,
     required String email,
     required String role,
+    required String password,
     String? phone,
     int? assignedRegionId,
     int? assignedDistrictId,
@@ -156,6 +157,9 @@ class OperatorRepository {
       'full_name': fullName,
       'email': email,
       'role': role,
+      // Temporary password set by the admin — the account works immediately,
+      // with no dependence on invite-email deliverability.
+      'password': password,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
       'assigned_region_id': ?assignedRegionId,
       'assigned_district_id': ?assignedDistrictId,
@@ -213,8 +217,17 @@ class OperatorRepository {
       final responseBody = await response.transform(const Utf8Decoder()).join();
 
       if (response.statusCode >= 400) {
-        final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
-        throw Exception(decoded['error'] ?? 'Request failed (${response.statusCode})');
+        // The body may not be JSON (proxy/HTML error pages) — never let the
+        // decode failure eat the real cause.
+        String message;
+        try {
+          final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
+          message = (decoded['error'] ?? 'Request failed (${response.statusCode})').toString();
+        } on FormatException {
+          message = 'Server error ${response.statusCode}'
+              '${responseBody.isNotEmpty ? ': ${responseBody.substring(0, responseBody.length > 120 ? 120 : responseBody.length)}' : ''}';
+        }
+        throw Exception(message);
       }
     } finally {
       client.close();

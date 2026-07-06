@@ -14,7 +14,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/lottie_loader.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
@@ -50,10 +49,6 @@ class MemberDetailScreen extends ConsumerWidget {
             },
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
       ),
       body: detailAsync.when(
         data: (member) => _DetailBody(member: member, auditAsync: auditAsync),
@@ -373,11 +368,7 @@ class _HeaderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.deepCanopy, AppColors.canopyMid],
-        ),
+        color: AppColors.brand,
         borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
       ),
       padding: const EdgeInsets.fromLTRB(

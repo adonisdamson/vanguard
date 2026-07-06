@@ -60,11 +60,10 @@ class _LookupTablesScreenState extends ConsumerState<LookupTablesScreen>
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(52),
+          preferredSize: const Size.fromHeight(48),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CanopyStripe(height: 4),
               AppTabBar(
                 controller: _tabs,
                 tabs: const ['Regions', 'Districts', 'Constituencies', 'Stations'],

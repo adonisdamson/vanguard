@@ -10,7 +10,6 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
@@ -187,7 +186,6 @@ class _Header extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const CanopyArc(height: 5),
         Container(
           color: AppColors.deepCanopy,
           padding: const EdgeInsets.fromLTRB(

@@ -130,30 +130,7 @@ class _HaAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Text('COORDINATOR', style: AppTextStyles.badge(color: AppColors.surface)),
         ),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(3),
-        child: _FlagStripe(),
-      ),
     );
   }
 }
 
-class _FlagStripe extends StatelessWidget {
-  const _FlagStripe();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 3,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [
-          AppColors.umbrellaRed,
-          AppColors.surface,
-          AppColors.canopyGreen,
-          AppColors.surface,
-          AppColors.umbrellaRed,
-        ]),
-      ),
-    );
-  }
-}

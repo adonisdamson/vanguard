@@ -203,11 +203,7 @@ class _GreetingHero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.deepCanopy, AppColors.canopyMid],
-        ),
+        color: AppColors.brand,
       ),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.screenH, AppSpacing.xl,

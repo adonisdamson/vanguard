@@ -218,11 +218,7 @@ class _TrackerAppBar extends StatelessWidget {
     return SliverToBoxAdapter(
       child: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.deepCanopy, AppColors.canopyMid],
-          ),
+          color: AppColors.brand,
         ),
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenH, AppSpacing.base, AppSpacing.sm, AppSpacing.base,

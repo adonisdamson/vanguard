@@ -16,7 +16,6 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
@@ -377,10 +376,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
                 ],
               )
             : Text('Register member', style: AppTextStyles.appBarTitle()),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
       ),
       header: _TabStrip(controller: _tabs),
       body: TabBarView(

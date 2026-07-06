@@ -151,30 +151,7 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
           onPressed: onNotificationTap,
         ),
       ],
-      bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(3),
-        child: _FlagStripe(),
-      ),
     );
   }
 }
 
-class _FlagStripe extends StatelessWidget {
-  const _FlagStripe();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 3,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [
-          AppColors.umbrellaRed,
-          AppColors.surface,
-          AppColors.canopyGreen,
-          AppColors.surface,
-          AppColors.umbrellaRed,
-        ]),
-      ),
-    );
-  }
-}

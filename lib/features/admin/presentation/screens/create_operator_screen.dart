@@ -9,7 +9,6 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 
@@ -152,10 +151,6 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text('Create operator', style: AppTextStyles.appBarTitle()),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
       ),
       actionBar: FormActionBar(
         primaryLabel: 'Create Operator Account',

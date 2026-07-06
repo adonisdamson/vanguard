@@ -8,7 +8,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/brand_illustration.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 
 class PendingApprovalScreen extends ConsumerWidget {
@@ -22,7 +21,6 @@ class PendingApprovalScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const CanopyArc(height: 5),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),

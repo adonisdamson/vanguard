@@ -12,7 +12,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/context_menu_sheet.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
@@ -92,10 +91,6 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
             onPressed: () => _loadPage(0),
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.canopyGreen,

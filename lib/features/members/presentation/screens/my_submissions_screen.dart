@@ -11,7 +11,6 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/brand_illustration.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/filter_chip_bar.dart';
 import '../../../../shared/widgets/load_more_button.dart';
@@ -123,10 +122,6 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
                   tooltip: 'Sync offline',
                 ),
               ],
-              bottom: const PreferredSize(
-                preferredSize: Size.fromHeight(4),
-                child: CanopyStripe(height: 4),
-              ),
             )
           : null,
       floatingActionButton: FloatingActionButton.extended(

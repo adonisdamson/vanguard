@@ -7,7 +7,6 @@ import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 
 class CsvImportScreen extends StatefulWidget {
@@ -123,10 +122,6 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text('CSV Bulk Import', style: AppTextStyles.appBarTitle()),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.screenH),

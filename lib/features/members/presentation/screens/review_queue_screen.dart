@@ -10,7 +10,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/canopy_arc.dart';
 import '../widgets/member_avatar.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
@@ -82,10 +81,6 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
             onPressed: () => _loadPage(0),
           ),
         ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(4),
-          child: CanopyStripe(height: 4),
-        ),
       ),
       body: RefreshIndicator(
         color: AppColors.canopyGreen,

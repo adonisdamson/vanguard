@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/auth_provider.dart';
 import '../../application/user_role_provider.dart';
+import '../../../../core/constants/build_info.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -204,6 +205,8 @@ class _InfoSection extends StatelessWidget {
           _InfoRow(icon: PhosphorIconsRegular.shieldStar, label: 'Role', value: _roleText(user?.role)),
           const Divider(color: AppColors.hairline, height: 1),
           _InfoRow(icon: PhosphorIconsRegular.mapPin, label: 'Constituency', value: 'Tema West'),
+          const Divider(color: AppColors.hairline, height: 1),
+          _InfoRow(icon: PhosphorIconsRegular.info, label: 'Build', value: BuildInfo.stamp),
         ],
       ),
     );

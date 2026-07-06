@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/constants/assets.dart';
+import '../../../../core/constants/build_info.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -160,6 +161,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Build stamp — first thing to read off a device when
+                      // triaging "is this install stale?"
+                      Center(
+                        child: Text(
+                          BuildInfo.stamp,
+                          style: AppTextStyles.caption(color: AppColors.mist),
+                        ),
                       ),
                     ],
                   ),

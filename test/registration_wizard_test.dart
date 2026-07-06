@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vanguard/features/members/presentation/screens/registration_screen.dart';
+import 'package:vanguard/shared/theme/app_theme.dart';
 
 // Renders the REAL registration screen (Supabase deliberately uninitialized,
 // so every lookup provider errors — the worst case) and proves the pinned
@@ -9,8 +10,11 @@ import 'package:vanguard/features/members/presentation/screens/registration_scre
 // This is the regression test for "no continue button on the Electoral tab".
 void main() {
   Future<TabController> pumpWizard(WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(
-      child: MaterialApp(home: RegistrationScreen()),
+    // MUST use the real app theme: the production bug (infinite
+    // OutlinedButton minimumSize blowing up Row layout in release) is
+    // invisible under the default test theme.
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(theme: AppTheme.light, home: const RegistrationScreen()),
     ));
     await tester.pump();
     return tester.widget<TabBarView>(find.byType(TabBarView)).controller!;

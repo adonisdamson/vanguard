@@ -115,10 +115,17 @@ class FormActionBar extends StatelessWidget {
               Row(
                 children: [
                   if (onBack != null) ...[
+                    // Width MUST be bounded: this button is a non-flex Row
+                    // child (unbounded width). With the old theme-wide
+                    // infinite minimumSize this demanded infinite width and
+                    // release builds painted the whole bar blank.
                     SizedBox(
+                      width: 64,
                       height: 52,
                       child: OutlinedButton(
                         onPressed: loading ? null : onBack,
+                        style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero),
                         child: const PhosphorIcon(PhosphorIconsFill.arrowLeft,
                             size: 20, color: AppColors.canopyGreen),
                       ),

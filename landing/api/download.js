@@ -3,7 +3,6 @@
 export const config = { runtime: 'edge' };
 
 const REPO = 'adonisdamson/vanguard';
-const ASSET = 'vanguard-latest.apk';
 
 export default async function handler(req) {
   try {
@@ -27,7 +26,8 @@ export default async function handler(req) {
     }
 
     const release = await apiRes.json();
-    const asset = release.assets?.find(a => a.name === ASSET);
+    // One versioned APK per release — grab it by extension.
+    const asset = release.assets?.find(a => a.name.endsWith('.apk'));
 
     if (!asset) {
       return new Response('APK not available yet — check back shortly.', {
@@ -48,7 +48,7 @@ export default async function handler(req) {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.android.package-archive',
-        'Content-Disposition': `attachment; filename="${ASSET}"`,
+        'Content-Disposition': `attachment; filename="${asset.name}"`,
         'Content-Length': String(asset.size),
         'Cache-Control': 'no-store',
       },

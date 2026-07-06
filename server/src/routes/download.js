@@ -5,8 +5,6 @@ const http = require('http');
 const router = express.Router();
 
 const REPO = 'adonisdamson/vanguard';
-const ASSET = 'vanguard-latest.apk';
-const FALLBACK_URL = `https://github.com/${REPO}/releases/latest/download/${ASSET}`;
 
 function streamFollowingRedirects(url, res, depth = 0) {
   if (depth > 8) {
@@ -43,17 +41,55 @@ function streamFollowingRedirects(url, res, depth = 0) {
   });
 }
 
+// Resolve the newest release's single versioned APK via the GitHub API —
+// each build recreates the release, so the asset name changes every version
+// and can never be served stale from any cache.
+function fetchLatestAsset(cb) {
+  const req = https.get(
+    `https://api.github.com/repos/${REPO}/releases/latest`,
+    {
+      headers: {
+        'User-Agent': 'vanguard-api-download/1.0',
+        Accept: 'application/vnd.github+json',
+      },
+    },
+    (resp) => {
+      let body = '';
+      resp.on('data', (c) => (body += c));
+      resp.on('end', () => {
+        try {
+          const release = JSON.parse(body);
+          const asset = (release.assets || []).find((a) => a.name.endsWith('.apk'));
+          cb(null, asset || null);
+        } catch (e) {
+          cb(e);
+        }
+      });
+    }
+  );
+  req.on('error', cb);
+  req.setTimeout(15000, () => {
+    req.destroy();
+    cb(new Error('GitHub API timeout'));
+  });
+}
+
 // GET /download — streams the latest APK with no GitHub exposure
 router.get('/', (req, res) => {
-  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.setHeader('Content-Disposition', 'attachment; filename="Vanguard-NDC.apk"');
-  // NEVER cache: with a constant filename + max-age, phones re-served a stale
-  // APK for every "new" download — users kept reinstalling an old build while
-  // believing they had the latest release.
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  streamFollowingRedirects(FALLBACK_URL, res);
+  fetchLatestAsset((err, asset) => {
+    if (err || !asset) {
+      res.status(503).send('APK unavailable — try again shortly');
+      return;
+    }
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', `attachment; filename="${asset.name}"`);
+    // NEVER cache: phones re-served stale APKs for days when this endpoint
+    // carried a public max-age with a constant filename.
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    streamFollowingRedirects(asset.browser_download_url, res);
+  });
 });
 
 module.exports = router;

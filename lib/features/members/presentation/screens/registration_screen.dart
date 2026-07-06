@@ -436,9 +436,9 @@ class _TabStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = controller.index;
     return Container(
-      color: AppColors.surface,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       decoration: const BoxDecoration(
+        color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.hairline)),
       ),
       child: Row(

@@ -21,11 +21,12 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (bg, fg, label) = switch (status) {
-      MemberStatus.pending   => (AppColors.amberTint, AppColors.statusPending,   'Pending'),
-      MemberStatus.active    => (AppColors.greenTint, AppColors.statusActive,    'Active'),
-      MemberStatus.rejected  => (AppColors.redTint,   AppColors.statusRejected,  'Rejected'),
-      MemberStatus.suspended => (AppColors.fillMuted, AppColors.statusSuspended, 'Suspended'),
+    // LOCKED: outlined pill, colored text — never a filled pastel chip.
+    final (fg, label) = switch (status) {
+      MemberStatus.pending   => (AppColors.warning, 'Pending'),
+      MemberStatus.active    => (AppColors.success, 'Active'),
+      MemberStatus.rejected  => (AppColors.danger,  'Rejected'),
+      MemberStatus.suspended => (AppColors.inkMuted, 'Suspended'),
     };
 
     return Semantics(
@@ -33,8 +34,9 @@ class StatusPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: bg,
+          color: AppColors.surface,
           borderRadius: AppRadii.borderPill,
+          border: Border.all(color: fg.withValues(alpha: 0.45)),
         ),
         child: ExcludeSemantics(
           child: Text(label, style: AppTextStyles.badge(color: fg)),

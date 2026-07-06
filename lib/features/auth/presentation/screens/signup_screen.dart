@@ -127,7 +127,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.screenH, AppSpacing.xl,
-                    AppSpacing.screenH, AppSpacing.xxl),
+                    AppSpacing.screenH, AppSpacing.h2),
                 child: Form(
                   key: _formKey,
                   child: Column(

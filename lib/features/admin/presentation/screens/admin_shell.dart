@@ -14,6 +14,7 @@ import '../../../../features/members/presentation/screens/member_directory_scree
 import '../../../../features/tracker/presentation/screens/tracker_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 import '../../../../shared/widgets/offline_banner.dart';
+import '../../../../shared/widgets/ndc_flag_stripe.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
@@ -92,6 +93,11 @@ class _AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.deepCanopy,
       elevation: 0,
       titleSpacing: 16,
+      // The NDC identity strip — crisp solid segments, main headers only.
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(3),
+        child: NdcFlagStripe(height: 3),
+      ),
       title: Row(
         children: [
           Container(
@@ -124,7 +130,7 @@ class _AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
           margin: const EdgeInsets.only(right: 4),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.umbrellaRed,
+            color: AppColors.surface.withValues(alpha: 0.14),
             borderRadius: AppRadii.borderPill,
           ),
           child: Text('ADMIN', style: AppTextStyles.badge()),

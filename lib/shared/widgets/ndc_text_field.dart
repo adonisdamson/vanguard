@@ -52,6 +52,8 @@ class _NdcTextFieldState extends State<NdcTextField> {
         TextFormField(
           controller: widget.controller,
           obscureText: widget.obscureText && _obscured,
+          enableSuggestions: !widget.obscureText,
+          autocorrect: !widget.obscureText,
           keyboardType: widget.keyboardType,
           validator: widget.validator,
           onChanged: widget.onChanged,

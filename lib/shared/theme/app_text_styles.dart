@@ -14,7 +14,7 @@ import 'app_colors.dart';
 class AppTextStyles {
   // ── Display ───────────────────────────────────────────────────────────────
   static TextStyle display({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: color,
@@ -23,7 +23,7 @@ class AppTextStyles {
       );
 
   static TextStyle displayLarge({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 42,
         fontWeight: FontWeight.w800,
         color: color,
@@ -43,7 +43,7 @@ class AppTextStyles {
 
   // ── Headings ──────────────────────────────────────────────────────────────
   static TextStyle h1({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         color: color,
@@ -52,7 +52,7 @@ class AppTextStyles {
       );
 
   static TextStyle h2({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -61,7 +61,7 @@ class AppTextStyles {
       );
 
   static TextStyle h3({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 17,
         fontWeight: FontWeight.w600,
         color: color,
@@ -145,7 +145,7 @@ class AppTextStyles {
       );
 
   static TextStyle statNumber({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 28,
         fontWeight: FontWeight.w700,
         color: color,
@@ -155,7 +155,7 @@ class AppTextStyles {
       );
 
   static TextStyle statNumberLg({Color color = AppColors.ink}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 20,
         fontWeight: FontWeight.w700,
         color: color,
@@ -166,7 +166,7 @@ class AppTextStyles {
 
   // ── App bar & buttons ─────────────────────────────────────────────────────
   static TextStyle appBarTitle({Color color = AppColors.surface}) =>
-      GoogleFonts.sora(
+      GoogleFonts.plusJakartaSans(
         fontSize: 18,
         fontWeight: FontWeight.w700,
         color: color,

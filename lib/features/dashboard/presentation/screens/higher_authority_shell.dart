@@ -14,6 +14,7 @@ import '../../../../features/members/presentation/screens/member_directory_scree
 import '../../../../features/reports/presentation/screens/reports_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 import '../../../../shared/widgets/offline_banner.dart';
+import '../../../../shared/widgets/ndc_flag_stripe.dart';
 
 class HigherAuthorityShell extends ConsumerStatefulWidget {
   const HigherAuthorityShell({super.key});
@@ -92,6 +93,11 @@ class _HaAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.deepCanopy,
       elevation: 0,
       titleSpacing: 16,
+      // The NDC identity strip — crisp solid segments, main headers only.
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(3),
+        child: NdcFlagStripe(height: 3),
+      ),
       title: Row(
         children: [
           Container(

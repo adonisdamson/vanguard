@@ -41,9 +41,10 @@ class AdminHomeScreen extends ConsumerWidget {
               child: _AdminGreetingHero(userAsync: userAsync, statsAsync: memberStatsAsync),
             ),
             SliverPadding(
+              // Bottom clearance: last row must never sit clipped against the nav.
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenH, AppSpacing.lg,
-                AppSpacing.screenH, AppSpacing.h1,
+                AppSpacing.screenH, AppSpacing.h3,
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
@@ -51,7 +52,13 @@ class AdminHomeScreen extends ConsumerWidget {
                   _SectionLabel(label: 'Member registry'),
                   const SizedBox(height: AppSpacing.md),
                   memberStatsAsync.when(
-                    data: (s) => Row(children: [
+                    data: (s) => s.total == 0
+                        ? const EmptyStatsNote(
+                            icon: PhosphorIconsRegular.usersThree,
+                            message:
+                                'No members in the registry yet — registrations will appear here.',
+                          )
+                        : Row(children: [
                       Expanded(child: StatCard(
                         icon: PhosphorIconsRegular.users,
                         value: '${s.total}',
@@ -223,16 +230,15 @@ class _AdminGreetingHero extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), // intentional: pill badge sizing
                   decoration: BoxDecoration(
-                    color: AppColors.umbrellaRed.withValues(alpha: 0.22),
+                    color: AppColors.surface.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadii.pill),
-                    border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const PhosphorIcon(PhosphorIconsRegular.shieldStar, size: 12, color: AppColors.umbrellaRed),
+                      PhosphorIcon(PhosphorIconsRegular.userGear, size: 12, color: AppColors.surface.withValues(alpha: 0.9)),
                       const SizedBox(width: 5),
-                      Text('Administrator', style: AppTextStyles.caption(color: AppColors.umbrellaRed)),
+                      Text('Administrator', style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.9))),
                     ],
                   ),
                 ),

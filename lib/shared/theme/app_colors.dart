@@ -6,21 +6,22 @@ import 'package:flutter/material.dart';
 /// Do not add colors here without amending the design doc first.
 class AppColors {
   // ── Brand ──────────────────────────────────────────────────────────────────
-  static const brand      = Color(0xFF006B3F); // header bands, primary buttons, active states
+  static const brand      = Color(0xFF006B3F); // NDC green — primary buttons, active states
+  static const brand900   = Color(0xFF0B3D1F); // hero/header bands (deep, rich)
   static const brandDeep  = Color(0xFF00522F); // pressed states, band depth
-  static const brandTint  = Color(0xFFE7F2EC); // selected bg, avatar fallback, icon chips
+  static const brandTint  = Color(0xFFE4F0E8); // selected bg, avatar fallback, icon chips
 
   // ── Neutrals ───────────────────────────────────────────────────────────────
-  static const canvas   = Color(0xFFF4F6F4); // screen background (green-tinted off-white)
+  static const canvas   = Color(0xFFF4F6F5); // screen background (green-tinted off-white)
   static const surface  = Color(0xFFFFFFFF); // cards, sheets, inputs
-  static const ink      = Color(0xFF141C17); // headings, primary text
-  static const inkMuted = Color(0xFF5C6B62); // secondary text, captions, inactive icons
-  static const line     = Color(0xFFE3E8E4); // hairline borders, dividers
+  static const ink      = Color(0xFF14181B); // headings, primary text
+  static const inkMuted = Color(0xFF5B6670); // secondary text, captions, inactive icons
+  static const line     = Color(0xFFD8DEE2); // hairline borders, dividers
   static const fillMuted = Color(0xFFF1F3F1); // idle chip/skeleton fills
 
   // ── Semantic (the only three) ──────────────────────────────────────────────
   static const success = Color(0xFF1B7F4D); // approved
-  static const warning = Color(0xFFB77400); // pending
+  static const warning = Color(0xFFB7791F); // pending
   static const danger  = Color(0xFFB3261E); // rejected / destructive
 
   // ── Gold — ONE use: approved-member checkmark & executive badge ────────────
@@ -35,7 +36,7 @@ class AppColors {
   // ── Established names (every existing screen uses these) ──────────────────
   static const canopyGreen = brand;
   static const canopyMid   = brandDeep;
-  static const deepCanopy  = brand;     // header bands are the BRAND color now
+  static const deepCanopy  = brand900;  // hero/header bands: deep rich green
   static const umbrellaRed = danger;
   static const paper       = canvas;
   static const mist        = inkMuted;

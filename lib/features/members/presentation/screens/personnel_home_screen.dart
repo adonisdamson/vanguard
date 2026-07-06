@@ -49,9 +49,10 @@ class PersonnelHomeScreen extends ConsumerWidget {
               child: _GreetingHero(userAsync: userAsync, statsAsync: statsAsync),
             ),
             SliverPadding(
+              // Bottom clearance: last row must never sit clipped against the nav.
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenH, AppSpacing.lg,
-                AppSpacing.screenH, AppSpacing.h1,
+                AppSpacing.screenH, AppSpacing.h3,
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
@@ -69,7 +70,13 @@ class PersonnelHomeScreen extends ConsumerWidget {
                   _StatsLabel(),
                   const SizedBox(height: AppSpacing.md),
                   statsAsync.when(
-                    data: (stats) => Row(children: [
+                    data: (stats) => stats.total == 0
+                        ? const EmptyStatsNote(
+                            icon: PhosphorIconsRegular.userPlus,
+                            message:
+                                'No members registered yet — tap Register a member to get started.',
+                          )
+                        : Row(children: [
                       Expanded(child: StatCard(
                         icon: PhosphorIconsRegular.users,
                         value: '${stats.total}',

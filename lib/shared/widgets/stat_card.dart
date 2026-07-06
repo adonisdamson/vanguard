@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_radii.dart';
-import '../theme/app_shadows.dart';
 import '../theme/app_text_styles.dart';
 
+/// Stat tile — number-first, flat.
+/// LOCKED (design pass 2): no tinted icon badge above the number. Large H1
+/// number, Label beneath in neutral/600, 1px border, no shadow. The icon is
+/// a single small neutral glyph inline next to the label.
 class StatCard extends StatelessWidget {
   final IconData icon;
   final String value;
   final String label;
+  // Kept for call-site compatibility; tinted boxes are gone by design.
   final Color iconColor;
   final Color iconBg;
   final String? delta;
@@ -17,8 +21,8 @@ class StatCard extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.label,
-    this.iconColor = AppColors.canopyGreen,
-    this.iconBg = AppColors.greenTint,
+    this.iconColor = AppColors.inkMuted,
+    this.iconBg = AppColors.brandTint,
     this.delta,
   });
 
@@ -37,30 +41,61 @@ class StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline, width: 1),
+        border: Border.all(color: AppColors.line, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: AppRadii.borderSm,
-            ),
-            child: Icon(icon, color: iconColor, size: 18),
+          Text(value, style: AppTextStyles.h1()),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(icon, color: AppColors.inkMuted, size: 14),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(label,
+                    style: AppTextStyles.label(color: AppColors.inkMuted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(value, style: AppTextStyles.statNumber(color: AppColors.ink)),
-          const SizedBox(height: 2),
-          Text(label, style: AppTextStyles.label()),
           if (delta != null) ...[
             const SizedBox(height: 4),
             Text(delta!, style: AppTextStyles.caption()),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Replaces a row of bare-zero stat tiles before any real data exists.
+class EmptyStatsNote extends StatelessWidget {
+  final IconData icon;
+  final String message;
+
+  const EmptyStatsNote({super.key, required this.icon, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        border: Border.all(color: AppColors.line, width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.inkMuted),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(message,
+                style: AppTextStyles.body(color: AppColors.inkMuted)),
+          ),
         ],
       ),
     );

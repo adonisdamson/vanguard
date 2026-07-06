@@ -14,6 +14,7 @@ import 'my_submissions_screen.dart';
 import 'member_directory_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 import '../../../../shared/widgets/offline_banner.dart';
+import '../../../../shared/widgets/ndc_flag_stripe.dart';
 
 class PersonnelShell extends ConsumerStatefulWidget {
   const PersonnelShell({super.key});
@@ -106,6 +107,11 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: AppColors.deepCanopy,
       elevation: 0,
       titleSpacing: 16,
+      // The NDC identity strip — crisp solid segments, main headers only.
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(3),
+        child: NdcFlagStripe(height: 3),
+      ),
       title: Row(
         children: [
           Container(

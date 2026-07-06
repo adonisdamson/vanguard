@@ -40,9 +40,10 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
               child: _GreetingHero(userAsync: userAsync, statsAsync: statsAsync),
             ),
             SliverPadding(
+              // Bottom clearance: last row must never sit clipped against the nav.
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.screenH, AppSpacing.lg,
-                AppSpacing.screenH, AppSpacing.h1,
+                AppSpacing.screenH, AppSpacing.h3,
               ),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
@@ -68,7 +69,13 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   statsAsync.when(
-                    data: (s) => Column(children: [
+                    data: (s) => s.total == 0
+                        ? const EmptyStatsNote(
+                            icon: PhosphorIconsRegular.usersThree,
+                            message:
+                                'No members in the registry yet — new registrations will appear here for review.',
+                          )
+                        : Column(children: [
                       Row(children: [
                         Expanded(child: StatCard(
                           icon: PhosphorIconsRegular.users,

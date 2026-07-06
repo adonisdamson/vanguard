@@ -1,0 +1,10 @@
+build/
+android/
+assets/
+*.pdf
+*.png
+*.jpg
+lib/
+test/
+.git/
+.dart_tool/

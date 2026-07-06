@@ -13,16 +13,18 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 
-const _kActions = [
-  'member_created',
-  'member_status_changed',
-  'member_updated',
-  'operator_created',
-  'access_requested',
-  'operator_approved',
-  'role_changed',
-  'account_status_changed',
-];
+// Four human categories — not one chip per database event type.
+const _kFilterGroups = <String, List<String>>{
+  'Members': ['member_created', 'member_updated'],
+  'Reviews': ['member_status_changed'],
+  'Operators': [
+    'operator_created',
+    'access_requested',
+    'operator_approved',
+    'role_changed',
+    'account_status_changed',
+  ],
+};
 
 class AuditLogScreen extends ConsumerStatefulWidget {
   const AuditLogScreen({super.key});
@@ -34,7 +36,7 @@ class AuditLogScreen extends ConsumerStatefulWidget {
 class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
   static const _pageSize = 25;
   final List<AuditEntry> _items = [];
-  String? _filter;
+  String? _filterGroup;
   int _page = 0;
   bool _loading = true;
   bool _loadingMore = false;
@@ -54,7 +56,11 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
       else { _loadingMore = true; }
     });
     try {
-      final items = await AuditRepository().fetchAuditLog(page: page, actionFilter: _filter, pageSize: _pageSize);
+      final items = await AuditRepository().fetchAuditLog(
+        page: page,
+        actions: _filterGroup == null ? null : _kFilterGroups[_filterGroup],
+        pageSize: _pageSize,
+      );
       if (!mounted) return;
       setState(() {
         if (page == 0) _items.clear();
@@ -102,15 +108,15 @@ class _AuditLogScreenState extends ConsumerState<AuditLogScreen> {
                 children: [
                   _FilterChip(
                     label: 'All',
-                    selected: _filter == null,
-                    onTap: () { setState(() => _filter = null); _loadPage(0); },
+                    selected: _filterGroup == null,
+                    onTap: () { setState(() => _filterGroup = null); _loadPage(0); },
                   ),
-                  ..._kActions.map((action) => Padding(
+                  ..._kFilterGroups.keys.map((group) => Padding(
                         padding: const EdgeInsets.only(left: 8),
                         child: _FilterChip(
-                          label: _actionLabel(action),
-                          selected: _filter == action,
-                          onTap: () { setState(() => _filter = action); _loadPage(0); },
+                          label: group,
+                          selected: _filterGroup == group,
+                          onTap: () { setState(() => _filterGroup = group); _loadPage(0); },
                         ),
                       )),
                 ],

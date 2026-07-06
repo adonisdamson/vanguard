@@ -15,6 +15,7 @@ import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
 import '../../../../shared/widgets/hero_crest.dart';
+import '../../../../shared/widgets/hero_summary_card.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key});
@@ -276,7 +277,10 @@ class _AdminGreetingHero extends StatelessWidget {
               ]),
               const SizedBox(height: AppSpacing.xl),
               statsAsync.when(
-                data: (s) => _AdminHeroSummary(total: s.total, pending: s.pending),
+                data: (s) => HeroSummaryCard(items: [
+                  HeroSummaryItem(icon: PhosphorIconsRegular.usersThree, value: '${s.total}', label: 'Total members'),
+                  HeroSummaryItem(icon: PhosphorIconsRegular.listChecks, value: '${s.pending}', label: 'Need review', accent: const Color(0xFFF2CE6B)),
+                ]),
                 loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
                 error: (_, _) => const InlineLoadError(),
               ),
@@ -290,53 +294,7 @@ class _AdminGreetingHero extends StatelessWidget {
   }
 }
 
-class _AdminHeroSummary extends StatelessWidget {
-  final int total;
-  final int pending;
-  const _AdminHeroSummary({required this.total, required this.pending});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: AppColors.surface.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        children: [
-          _InlineStat(value: '$total', label: 'Total members'),
-          Container(width: 1, height: 28, color: AppColors.surface.withValues(alpha: 0.15),
-              margin: const EdgeInsets.symmetric(horizontal: 14)),
-          _InlineStat(
-            value: '$pending',
-            label: 'Need review',
-            color: pending > 0 ? AppColors.gold : AppColors.surface,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InlineStat extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
-  const _InlineStat({required this.value, required this.label, this.color = AppColors.surface});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(value, style: AppTextStyles.statNumberLg(color: color)),
-        Text(label, style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.55))),
-      ],
-    );
-  }
-}
 
 // ── Section label ─────────────────────────────────────────────────────────────
 class _SectionLabel extends StatelessWidget {
@@ -363,62 +321,52 @@ class _SystemActionsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(children: [
-          Expanded(
-            child: _SystemActionTile(
-              icon: PhosphorIconsRegular.usersThree,
-              iconColor: AppColors.canopyGreen,
-              iconBg: AppColors.greenTint,
-              label: 'Operators',
-              subtitle: 'Manage accounts',
-              onTap: () => context.push('/admin/operators'),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: _SystemActionTile(
-              icon: PhosphorIconsRegular.listChecks,
-              iconColor: AppColors.gold,
-              iconBg: AppColors.goldTint,
-              label: 'Review queue',
-              subtitle: pendingCount != null && pendingCount! > 0
-                  ? '$pendingCount pending'
-                  : 'No pending',
-              badge: pendingCount,
-              onTap: () => context.push('/review-queue'),
-            ),
-          ),
-        ]),
+        _SystemActionRow(
+          icon: PhosphorIconsRegular.usersThree,
+          iconColor: AppColors.brand,
+          iconBg: AppColors.brandTint,
+          label: 'Operators',
+          subtitle: 'Create, approve and manage accounts',
+          onTap: () => context.push('/admin/operators'),
+        ),
         const SizedBox(height: AppSpacing.sm),
-        Row(children: [
-          Expanded(
-            child: _SystemActionTile(
-              icon: PhosphorIconsRegular.mapPin,
-              iconColor: AppColors.mist,
-              iconBg: AppColors.fillMuted,
-              label: 'Location Setup',
-              subtitle: 'Regions & stations',
-              onTap: () => context.push('/admin/lookups'),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: _SystemActionTile(
-              icon: PhosphorIconsRegular.scroll,
-              iconColor: AppColors.ink,
-              iconBg: AppColors.fillMuted,
-              label: 'Audit log',
-              subtitle: 'Full history',
-              onTap: () => context.push('/admin/audit'),
-            ),
-          ),
-        ]),
+        _SystemActionRow(
+          icon: PhosphorIconsRegular.listChecks,
+          iconColor: AppColors.warning,
+          iconBg: AppColors.amberTint,
+          label: 'Review queue',
+          subtitle: pendingCount != null && pendingCount! > 0
+              ? '$pendingCount registrations waiting'
+              : 'Nothing waiting for review',
+          badge: pendingCount,
+          onTap: () => context.push('/review-queue'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _SystemActionRow(
+          icon: PhosphorIconsRegular.mapPin,
+          iconColor: AppColors.brand,
+          iconBg: AppColors.brandTint,
+          label: 'Location setup',
+          subtitle: 'Regions, districts and polling stations',
+          onTap: () => context.push('/admin/lookups'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _SystemActionRow(
+          icon: PhosphorIconsRegular.scroll,
+          iconColor: AppColors.ink,
+          iconBg: AppColors.fillMuted,
+          label: 'Audit log',
+          subtitle: 'Every action, who did it, and when',
+          onTap: () => context.push('/admin/audit'),
+        ),
       ],
     );
   }
 }
 
-class _SystemActionTile extends StatelessWidget {
+/// Full-width action row — unmistakably a button: ink ripple, bold title,
+/// and a chevron in its own circle. Not another stat card.
+class _SystemActionRow extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color iconBg;
@@ -427,7 +375,7 @@ class _SystemActionTile extends StatelessWidget {
   final int? badge;
   final VoidCallback onTap;
 
-  const _SystemActionTile({
+  const _SystemActionRow({
     required this.icon,
     required this.iconColor,
     required this.iconBg,
@@ -439,8 +387,6 @@ class _SystemActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Real button affordance: ink ripple on press, chevron that says "this
-    // goes somewhere" — not a static card that happens to be tappable.
     return Material(
       color: AppColors.surface,
       borderRadius: AppRadii.borderMd,
@@ -451,39 +397,58 @@ class _SystemActionTile extends StatelessWidget {
           onTap();
         },
         child: Ink(
-          padding: const EdgeInsets.all(AppSpacing.base),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: AppRadii.borderMd,
             border: Border.all(color: AppColors.line),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34, height: 34,
-                    decoration: BoxDecoration(color: iconBg, borderRadius: AppRadii.borderSm),
-                    child: Icon(icon, size: 17, color: iconColor),
-                  ),
-                  const Spacer(),
-                  if (badge != null && badge! > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: const BoxDecoration(
-                        color: AppColors.gold,
-                        borderRadius: AppRadii.borderPill,
-                      ),
-                      child: Text('$badge', style: AppTextStyles.badge(color: AppColors.surface)),
-                    )
-                  else
-                    const PhosphorIcon(PhosphorIconsRegular.caretRight,
-                        size: 16, color: AppColors.inkMuted),
-                ],
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                    color: iconBg, borderRadius: AppRadii.borderSm),
+                child: Icon(icon, size: 20, color: iconColor),
               ),
-              const SizedBox(height: 10),
-              Text(label, style: AppTextStyles.bodyMedium()),
-              Text(subtitle, style: AppTextStyles.caption(), maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: AppTextStyles.bodyMedium()),
+                    const SizedBox(height: 1),
+                    Text(subtitle,
+                        style: AppTextStyles.caption(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (badge != null && badge! > 0) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: const BoxDecoration(
+                    color: AppColors.warning,
+                    borderRadius: AppRadii.borderPill,
+                  ),
+                  child: Text('$badge',
+                      style: AppTextStyles.badge(color: AppColors.surface)),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                  color: AppColors.fillMuted,
+                  shape: BoxShape.circle,
+                ),
+                child: const PhosphorIcon(PhosphorIconsRegular.caretRight,
+                    size: 15, color: AppColors.ink),
+              ),
             ],
           ),
         ),

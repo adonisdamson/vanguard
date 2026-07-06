@@ -7,7 +7,7 @@ import '../theme/app_colors.dart';
 class HeroCrest extends StatelessWidget {
   final double size;
 
-  const HeroCrest({super.key, this.size = 68});
+  const HeroCrest({super.key, this.size = 92});
 
   @override
   Widget build(BuildContext context) {

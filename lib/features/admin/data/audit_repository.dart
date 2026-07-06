@@ -44,6 +44,7 @@ class AuditRepository {
   Future<List<AuditEntry>> fetchAuditLog({
     int page = 0,
     String? actionFilter,
+    List<String>? actions,
     int pageSize = _pageSize,
   }) async {
     var query = _db
@@ -52,6 +53,9 @@ class AuditRepository {
 
     if (actionFilter != null && actionFilter.isNotEmpty) {
       query = query.eq('action', actionFilter);
+    }
+    if (actions != null && actions.isNotEmpty) {
+      query = query.inFilter('action', actions);
     }
 
     final data = await query

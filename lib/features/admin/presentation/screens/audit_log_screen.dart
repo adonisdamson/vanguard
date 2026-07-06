@@ -18,6 +18,8 @@ const _kActions = [
   'member_status_changed',
   'member_updated',
   'operator_created',
+  'access_requested',
+  'operator_approved',
   'role_changed',
   'account_status_changed',
 ];
@@ -215,9 +217,12 @@ class _AuditTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 3),
-                if (entry.actorName != null) Text('By ${entry.actorName}', style: AppTextStyles.small()),
-                if (entry.targetId != null)
-                  Text('Target: ${entry.targetTable ?? ''} #${_shortId(entry.targetId!)}', style: AppTextStyles.caption()),
+                Text(
+                  entry.actorName != null
+                      ? 'By ${entry.actorName} · ${_targetLabel(entry.targetTable)}'
+                      : _targetLabel(entry.targetTable),
+                  style: AppTextStyles.small(),
+                ),
                 if (entry.metadata.isNotEmpty) _MetadataLine(action: entry.action, metadata: entry.metadata),
               ],
             ),
@@ -227,7 +232,12 @@ class _AuditTile extends StatelessWidget {
     );
   }
 
-  String _shortId(String id) => id.length > 8 ? '${id.substring(0, 8)}…' : id;
+  // Human context only — raw table names and row ids never reach the UI.
+  String _targetLabel(String? table) => switch (table) {
+        'members'   => 'Member record',
+        'app_users' => 'Operator account',
+        _           => 'System record',
+      };
 
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -243,6 +253,8 @@ class _AuditTile extends StatelessWidget {
       case 'member_status_changed': return (PhosphorIconsRegular.arrowsLeftRight, AppColors.statusPending);
       case 'member_updated': return (PhosphorIconsRegular.pencilSimple, AppColors.mist);
       case 'operator_created': return (PhosphorIconsRegular.userCirclePlus, AppColors.canopyGreen);
+      case 'access_requested': return (PhosphorIconsRegular.handWaving, AppColors.statusPending);
+      case 'operator_approved': return (PhosphorIconsRegular.checkCircle, AppColors.canopyGreen);
       case 'role_changed': return (PhosphorIconsRegular.shieldStar, AppColors.statusPending);
       case 'account_status_changed': return (PhosphorIconsRegular.prohibit, AppColors.umbrellaRed);
       default: return (PhosphorIconsRegular.clockCounterClockwise, AppColors.mist);
@@ -317,7 +329,9 @@ String _actionLabel(String action) {
     'member_created' => 'Member registered',
     'member_status_changed' => 'Status changed',
     'member_updated' => 'Member updated',
-    'operator_created' => 'Operator created',
+    'operator_created' => 'Operator account created',
+    'access_requested' => 'Access requested',
+    'operator_approved' => 'Access request approved',
     'role_changed' => 'Role changed',
     'account_status_changed' => 'Account status changed',
     _ => action.replaceAll('_', ' '),

@@ -16,6 +16,7 @@ import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
 import '../../../../shared/widgets/hero_crest.dart';
+import '../../../../shared/widgets/hero_summary_card.dart';
 
 class PersonnelHomeScreen extends ConsumerWidget {
   const PersonnelHomeScreen({super.key});
@@ -234,7 +235,10 @@ class _GreetingHero extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
               // Today summary inline
               statsAsync.when(
-                data: (s) => _TodaySummary(total: s.total, pending: s.pending),
+                data: (s) => HeroSummaryCard(items: [
+                  HeroSummaryItem(icon: PhosphorIconsRegular.usersThree, value: '${s.total}', label: 'Total registered'),
+                  HeroSummaryItem(icon: PhosphorIconsRegular.hourglassMedium, value: '${s.pending}', label: 'Awaiting review', accent: const Color(0xFFF2CE6B)),
+                ]),
                 loading: () => const SkeletonLoader(height: 40, borderRadius: AppRadii.borderSm),
                 error: (_, _) => const InlineLoadError(),
               ),
@@ -282,61 +286,6 @@ class _HeroPill extends StatelessWidget {
   }
 }
 
-class _TodaySummary extends StatelessWidget {
-  final int total;
-  final int pending;
-
-  const _TodaySummary({required this.total, required this.pending});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: AppColors.surface.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        children: [
-          _InlineStat(value: '$total', label: 'Total registered'),
-          Container(width: 1, height: 28, color: AppColors.surface.withValues(alpha: 0.15),
-              margin: const EdgeInsets.symmetric(horizontal: 14)),
-          _InlineStat(value: '$pending', label: 'Awaiting review', color: AppColors.gold),
-        ],
-      ),
-    );
-  }
-}
-
-class _InlineStat extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
-
-  const _InlineStat({
-    required this.value,
-    required this.label,
-    this.color = AppColors.surface,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: AppTextStyles.statNumberLg(color: color),
-        ),
-        Text(
-          label,
-          style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.55)),
-        ),
-      ],
-    );
-  }
-}
 
 // ── Quick register card ───────────────────────────────────────────────────────
 class _QuickRegisterCard extends StatelessWidget {

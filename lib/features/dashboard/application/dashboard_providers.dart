@@ -9,5 +9,11 @@ final dashboardStatsProvider = FutureProvider.autoDispose<DashboardStats>((ref) 
 });
 
 final recentActivityProvider = FutureProvider.autoDispose<List<AuditEntry>>((ref) async {
-  return AuditRepository().fetchAuditLog(page: 0, pageSize: 5);
+  // Home feeds show MEMBER activity only — registrations and reviews.
+  // Operator/account administration stays in the audit log.
+  return AuditRepository().fetchAuditLog(
+    page: 0,
+    pageSize: 5,
+    actions: ['member_created', 'member_status_changed'],
+  );
 });

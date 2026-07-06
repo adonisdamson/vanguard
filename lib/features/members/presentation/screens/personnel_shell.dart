@@ -97,7 +97,7 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 4);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 6);
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +109,8 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 16,
       // The NDC identity strip — crisp solid segments, main headers only.
       bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(4),
-        child: NdcFlagStripe(height: 4),
+        preferredSize: Size.fromHeight(6),
+        child: NdcFlagStripe(height: 6),
       ),
       title: Row(
         children: [

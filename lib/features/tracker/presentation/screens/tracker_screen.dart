@@ -4,10 +4,11 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
-import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/empty_state.dart';
+import '../../../../shared/widgets/inline_load_error.dart';
+import '../../../../shared/widgets/ndc_flag_stripe.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 
 class StationStats {
@@ -27,28 +28,23 @@ class StationStats {
     required this.active,
   });
 
+  bool get covered => total > 0;
   double get ratio => total == 0 ? 0.0 : (active / total).clamp(0.0, 1.0);
+}
 
-  String get statusLabel {
-    if (total == 0) return 'No members yet';
-    if (ratio >= 0.75) return 'Excellent';
-    if (ratio >= 0.40) return 'On track';
-    return 'Needs follow-up';
-  }
+/// One electoral area, aggregated from its stations.
+class AreaGroup {
+  final int? area;
+  final List<StationStats> stations;
+  const AreaGroup(this.area, this.stations);
 
-  Color get statusColor {
-    if (total == 0) return AppColors.mist;
-    if (ratio >= 0.75) return AppColors.canopyGreen;
-    if (ratio >= 0.40) return AppColors.gold;
-    return AppColors.umbrellaRed;
-  }
-
-  Color get statusBg {
-    if (total == 0) return AppColors.fillMuted;
-    if (ratio >= 0.75) return AppColors.greenTint;
-    if (ratio >= 0.40) return AppColors.goldTint;
-    return AppColors.redTint;
-  }
+  String get label => area == null ? 'Unassigned' : 'Electoral Area $area';
+  int get members => stations.fold(0, (s, e) => s + e.total);
+  int get approved => stations.fold(0, (s, e) => s + e.active);
+  int get coveredStations => stations.where((s) => s.covered).length;
+  int get stationCount => stations.length;
+  double get coverage =>
+      stationCount == 0 ? 0.0 : coveredStations / stationCount;
 }
 
 final trackerProvider = FutureProvider<List<StationStats>>((ref) async {
@@ -68,48 +64,14 @@ final trackerProvider = FutureProvider<List<StationStats>>((ref) async {
   }).toList();
 });
 
-// A flattened tracker row: either an area header or a station.
-sealed class _Row {}
-
-class _AreaHeaderRow extends _Row {
-  final int? area;
-  final int stationCount;
-  final int memberCount;
-  _AreaHeaderRow(this.area, this.stationCount, this.memberCount);
-}
-
-class _StationRowData extends _Row {
-  final StationStats station;
-  _StationRowData(this.station);
-}
-
-List<_Row> _flatten(List<StationStats> stations) {
-  final rows = <_Row>[];
-  int? current;
-  var started = false;
-  var idx = 0;
-  while (idx < stations.length) {
-    final area = stations[idx].area;
-    if (!started || area != current) {
-      // Gather this area's slice to compute header counts.
-      final slice = <StationStats>[];
-      var j = idx;
-      while (j < stations.length && stations[j].area == area) {
-        slice.add(stations[j]);
-        j++;
-      }
-      rows.add(_AreaHeaderRow(
-        area,
-        slice.length,
-        slice.fold(0, (s, e) => s + e.total),
-      ));
-      started = true;
-      current = area;
-    }
-    rows.add(_StationRowData(stations[idx]));
-    idx++;
+List<AreaGroup> _group(List<StationStats> stations) {
+  final map = <int?, List<StationStats>>{};
+  for (final s in stations) {
+    map.putIfAbsent(s.area, () => []).add(s);
   }
-  return rows;
+  final keys = map.keys.toList()
+    ..sort((a, b) => (a ?? 9999).compareTo(b ?? 9999));
+  return [for (final k in keys) AreaGroup(k, map[k]!)];
 }
 
 class TrackerScreen extends ConsumerWidget {
@@ -120,35 +82,23 @@ class TrackerScreen extends ConsumerWidget {
     final statsAsync = ref.watch(trackerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: AppColors.canvas,
       body: RefreshIndicator(
-        color: AppColors.canopyGreen,
+        color: AppColors.brand,
         onRefresh: () async => ref.invalidate(trackerProvider),
         child: CustomScrollView(
           slivers: [
-            _TrackerAppBar(onRefresh: () => ref.invalidate(trackerProvider)),
+            const _TrackerHeader(),
             statsAsync.when(
-              data: (stations) => _buildBody(stations),
-              loading: () => SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screenH, AppSpacing.lg, AppSpacing.screenH, AppSpacing.h1,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, _) => const Padding(
-                      padding: EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: SkeletonLoader(height: 64, borderRadius: AppRadii.borderMd),
-                    ),
-                    childCount: 8,
-                  ),
-                ),
-              ),
-              error: (e, _) => SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screenH, AppSpacing.lg, AppSpacing.screenH, AppSpacing.h1,
-                ),
+              data: (stations) => _body(stations),
+              loading: () => const _LoadingSliver(),
+              error: (_, _) => SliverPadding(
+                padding: const EdgeInsets.all(AppSpacing.screenH),
                 sliver: SliverToBoxAdapter(
-                  child: _ErrorCard(onRetry: () => ref.invalidate(trackerProvider)),
+                  child: InlineLoadError(
+                    message: "Couldn't load coverage",
+                    onRetry: () => ref.invalidate(trackerProvider),
+                  ),
                 ),
               ),
             ),
@@ -158,193 +108,266 @@ class TrackerScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBody(List<StationStats> stations) {
-    final totalAll = stations.fold(0, (s, a) => s + a.total);
+  Widget _body(List<StationStats> stations) {
+    final totalMembers = stations.fold(0, (s, e) => s + e.total);
 
-    // No members anywhere yet — show a real empty state, not 283 zero rows.
-    if (totalAll == 0) {
+    if (totalMembers == 0) {
       return const SliverFillRemaining(
         hasScrollBody: false,
         child: EmptyState(
           icon: PhosphorIconsRegular.mapPinLine,
           title: 'No members registered yet',
-          subtitle: 'Once personnel register members, coverage per polling '
-              'station will appear here.',
+          subtitle: 'Once personnel register members, coverage by electoral '
+              'area and polling station will appear here.',
         ),
       );
     }
 
-    final activeAll = stations.fold(0, (s, a) => s + a.active);
-    // Only stations that actually have members can "need follow-up".
-    final needsFollowUp = stations.where((a) => a.total > 0 && a.ratio < 0.40).length;
-    final rows = _flatten(stations);
+    final groups = _group(stations);
+    final coveredStations = stations.where((s) => s.covered).length;
+    final activeAreas = groups.where((g) => g.members > 0).length;
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screenH, AppSpacing.lg, AppSpacing.screenH, AppSpacing.h1,
-      ),
+          AppSpacing.screenH, AppSpacing.lg, AppSpacing.screenH, AppSpacing.h3),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, i) {
             if (i == 0) {
-              return _SummaryHeader(
-                total: totalAll,
-                approved: activeAll,
-                needsFollowUp: needsFollowUp,
+              return _OverviewCard(
+                members: totalMembers,
+                coveredStations: coveredStations,
+                totalStations: stations.length,
+                activeAreas: activeAreas,
               );
             }
-            final row = rows[i - 1];
-            return switch (row) {
-              _AreaHeaderRow() => _AreaHeader(row: row),
-              _StationRowData() => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: _StationRow(station: row.station),
-                ),
-            };
+            final g = groups[i - 1];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _AreaCard(group: g, startExpanded: g.members > 0),
+            );
           },
-          childCount: rows.length + 1,
+          childCount: groups.length + 1,
         ),
       ),
     );
   }
 }
 
-class _TrackerAppBar extends StatelessWidget {
-  final VoidCallback onRefresh;
-  const _TrackerAppBar({required this.onRefresh});
+// ── Header band ───────────────────────────────────────────────────────────────
+class _TrackerHeader extends StatelessWidget {
+  const _TrackerHeader();
 
   @override
   Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
     return SliverToBoxAdapter(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.brand,
-        ),
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.screenH, AppSpacing.base, AppSpacing.sm, AppSpacing.base,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Area Tracker', style: AppTextStyles.h2(color: AppColors.surface)),
-                  Text(
-                    'Coverage by polling station — Tema West',
-                    style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.6)),
-                  ),
-                ],
-              ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            color: AppColors.deepCanopy,
+            padding: EdgeInsets.fromLTRB(
+                AppSpacing.screenH, top + 16, AppSpacing.screenH, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('AREA TRACKER',
+                    style: AppTextStyles.eyebrow(
+                        color: AppColors.surface.withValues(alpha: 0.5))),
+                const SizedBox(height: 4),
+                Text('Coverage by electoral area',
+                    style: AppTextStyles.h1(color: AppColors.surface)),
+                const SizedBox(height: 2),
+                Text('Tema West Constituency · 283 polling stations',
+                    style: AppTextStyles.caption(
+                        color: AppColors.surface.withValues(alpha: 0.6))),
+              ],
             ),
-            IconButton(
-              icon: const PhosphorIcon(
-                PhosphorIconsRegular.arrowCounterClockwise,
-                color: AppColors.surface,
-                size: 20,
-              ),
-              onPressed: onRefresh,
-            ),
-          ],
-        ),
+          ),
+          const NdcFlagStripe(height: 6),
+        ],
       ),
     );
   }
 }
 
-class _SummaryHeader extends StatelessWidget {
-  final int total;
-  final int approved;
-  final int needsFollowUp;
-  const _SummaryHeader({
-    required this.total,
-    required this.approved,
-    required this.needsFollowUp,
+// ── Overview strip ────────────────────────────────────────────────────────────
+class _OverviewCard extends StatelessWidget {
+  final int members;
+  final int coveredStations;
+  final int totalStations;
+  final int activeAreas;
+
+  const _OverviewCard({
+    required this.members,
+    required this.coveredStations,
+    required this.totalStations,
+    required this.activeAreas,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.base),
-      child: Row(
-        children: [
-          Expanded(
-            child: _SumCard(
-              value: '$total',
-              label: 'Total registered',
-              color: AppColors.canopyGreen,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: _SumCard(
-              value: '$approved',
-              label: 'Approved',
-              color: AppColors.canopyGreen,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: _SumCard(
-              value: '$needsFollowUp',
-              label: 'Need follow-up',
-              color: needsFollowUp > 0 ? AppColors.umbrellaRed : AppColors.mist,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SumCard extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
-  const _SumCard({required this.value, required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: AppSpacing.base),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: AppColors.line),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(value, style: AppTextStyles.statNumber(color: color)),
-          const SizedBox(height: 2),
-          Text(label, style: AppTextStyles.caption()),
+          Expanded(
+            child: _Metric(
+                icon: PhosphorIconsRegular.usersThree,
+                value: '$members',
+                label: 'Members'),
+          ),
+          _divider(),
+          Expanded(
+            child: _Metric(
+                icon: PhosphorIconsRegular.mapPin,
+                value: '$coveredStations',
+                label: 'of $totalStations stations'),
+          ),
+          _divider(),
+          Expanded(
+            child: _Metric(
+                icon: PhosphorIconsRegular.stackSimple,
+                value: '$activeAreas',
+                label: 'active areas'),
+          ),
         ],
       ),
     );
   }
+
+  Widget _divider() => Container(
+      width: 1, height: 34, color: AppColors.line,
+      margin: const EdgeInsets.symmetric(horizontal: 12));
 }
 
-class _AreaHeader extends StatelessWidget {
-  final _AreaHeaderRow row;
-  const _AreaHeader({required this.row});
+class _Metric extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  const _Metric({required this.icon, required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final label = row.area == null ? 'Unassigned' : 'Electoral Area ${row.area}';
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.sm),
-      child: Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: AppTextStyles.h1()),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            Icon(icon, size: 13, color: AppColors.inkMuted),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(label,
+                  style: AppTextStyles.caption(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ── Expandable area card ──────────────────────────────────────────────────────
+class _AreaCard extends StatefulWidget {
+  final AreaGroup group;
+  final bool startExpanded;
+  const _AreaCard({required this.group, this.startExpanded = false});
+
+  @override
+  State<_AreaCard> createState() => _AreaCardState();
+}
+
+class _AreaCardState extends State<_AreaCard> {
+  late bool _expanded = widget.startExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final g = widget.group;
+    final hasMembers = g.members > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        border: Border.all(color: AppColors.line),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
         children: [
-          Container(
-            width: 3, height: 14, color: AppColors.canopyGreen,
-            margin: const EdgeInsets.only(right: 8),
+          // Header row (tap to expand)
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: hasMembers ? AppColors.brandTint : AppColors.fillMuted,
+                      borderRadius: AppRadii.borderSm,
+                    ),
+                    child: Icon(PhosphorIconsRegular.mapPinArea,
+                        size: 20,
+                        color: hasMembers ? AppColors.brand : AppColors.inkMuted),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(g.label, style: AppTextStyles.bodyMedium()),
+                        const SizedBox(height: 2),
+                        Text(
+                          hasMembers
+                              ? '${g.members} member${g.members == 1 ? '' : 's'} · ${g.coveredStations}/${g.stationCount} stations covered'
+                              : '${g.stationCount} stations · none covered yet',
+                          style: AppTextStyles.caption(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.25 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: const PhosphorIcon(PhosphorIconsRegular.caretRight,
+                        size: 16, color: AppColors.inkMuted),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Expanded(child: Text(label, style: AppTextStyles.h3())),
-          Text(
-            '${row.memberCount} member${row.memberCount == 1 ? '' : 's'} · ${row.stationCount} stations',
-            style: AppTextStyles.caption(),
-          ),
+          // Coverage bar
+          if (hasMembers)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: g.coverage,
+                  backgroundColor: AppColors.fillMuted,
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.brand),
+                  minHeight: 5,
+                ),
+              ),
+            ),
+          // Expanded station list
+          if (_expanded) ...[
+            const Divider(height: 1, color: AppColors.line),
+            ...g.stations.map((s) => _StationRow(station: s)),
+          ],
         ],
       ),
     );
@@ -357,102 +380,64 @@ class _StationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      child: Row(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      station.name,
-                      style: AppTextStyles.bodyMedium(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (station.code != null) ...[
-                      const SizedBox(height: 2),
-                      Text(station.code!, style: AppTextStyles.memberNumber()),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: station.statusBg,
-                  borderRadius: AppRadii.borderPill,
-                ),
-                child: Text(
-                  station.statusLabel,
-                  style: AppTextStyles.caption(color: station.statusColor)
-                      .copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
+          Container(
+            width: 7, height: 7,
+            margin: const EdgeInsets.only(top: 5, right: 10),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: station.covered ? AppColors.success : AppColors.line,
+            ),
           ),
-          if (station.total > 0) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Row(
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${station.active}/${station.total} approved', style: AppTextStyles.label()),
-                const Spacer(),
-                Text('${(station.ratio * 100).round()}%',
-                    style: AppTextStyles.label(color: station.statusColor)),
+                Text(station.name,
+                    style: AppTextStyles.body(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+                if (station.code != null) ...[
+                  const SizedBox(height: 1),
+                  Text(station.code!, style: AppTextStyles.caption()),
+                ],
               ],
             ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: station.ratio,
-                backgroundColor: AppColors.fillMuted,
-                valueColor: AlwaysStoppedAnimation<Color>(station.statusColor),
-                minHeight: 4,
-              ),
-            ),
-          ],
+          ),
+          const SizedBox(width: 10),
+          Text(
+            station.covered ? '${station.active}/${station.total}' : '—',
+            style: station.covered
+                ? AppTextStyles.label(color: AppColors.ink)
+                : AppTextStyles.label(color: AppColors.inkMuted),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ErrorCard extends StatelessWidget {
-  final VoidCallback onRetry;
-  const _ErrorCard({required this.onRetry});
+// ── Loading ───────────────────────────────────────────────────────────────────
+class _LoadingSliver extends StatelessWidget {
+  const _LoadingSliver();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      margin: const EdgeInsets.only(top: AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.redTint,
-        borderRadius: AppRadii.borderMd,
-        border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          const PhosphorIcon(PhosphorIconsFill.warningCircle, size: 20, color: AppColors.umbrellaRed),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text('Could not load tracker data.', style: AppTextStyles.body()),
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenH, AppSpacing.lg, AppSpacing.screenH, AppSpacing.h1),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (_, i) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: SkeletonLoader(
+                height: i == 0 ? 84 : 68, borderRadius: AppRadii.borderMd),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
+          childCount: 7,
+        ),
       ),
     );
   }

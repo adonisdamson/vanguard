@@ -18,6 +18,7 @@ import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/filter_chip_bar.dart';
 import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/canopy_arc.dart';
+import '../widgets/member_avatar.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/status_pill.dart';
@@ -368,14 +369,7 @@ class _DirectoryTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.greenTint,
-                borderRadius: AppRadii.borderSm,
-              ),
-              child: const PhosphorIcon(PhosphorIconsRegular.person, size: 22, color: AppColors.canopyGreen),
-            ),
+            MemberAvatar(photoPath: member.photoPath),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(

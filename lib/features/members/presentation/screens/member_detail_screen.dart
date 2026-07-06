@@ -478,10 +478,11 @@ class _PhotoAvatar extends ConsumerWidget {
     );
   }
 
+  // Same fallback palette as MemberListTile — one consistent style app-wide.
   Widget _placeholder() => Container(
     width: 88, height: 88,
-    color: AppColors.canopyGreen.withValues(alpha: 0.5),
-    child: const PhosphorIcon(PhosphorIconsRegular.person, size: 42, color: AppColors.surface),
+    color: AppColors.greenTint,
+    child: const PhosphorIcon(PhosphorIconsRegular.person, size: 42, color: AppColors.canopyGreen),
   );
 }
 

@@ -77,6 +77,20 @@ class PendingApprovalScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.h1),
 
+                    // Re-runs the auth gate, which re-fetches the account
+                    // fresh — an approved user gets in RIGHT HERE, without
+                    // having to force-close and reopen the app.
+                    NdcButton(
+                      label: 'Check my status',
+                      icon: const PhosphorIcon(
+                        PhosphorIconsRegular.arrowsClockwise,
+                        size: 18,
+                        color: AppColors.surface,
+                      ),
+                      onPressed: () => context.go('/resolving'),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+
                     NdcButton(
                       label: 'Sign out',
                       variant: NdcButtonVariant.ghost,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +13,6 @@ import '../../../../core/errors/app_error_mapper.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
-import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/filter_chip_bar.dart';
@@ -267,14 +267,27 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
           : const EmptyState.noMembers();
     }
 
+    final countLabel = _hasMore
+        ? '${_items.length}+ members'
+        : '${_items.length} ${_items.length == 1 ? 'member' : 'members'}'
+            '${_activeFilter == 'all' ? '' : ' · $_activeFilter'}';
+
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: _items.length + (_hasMore ? 1 : 0),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      itemCount: _items.length + 1 + (_hasMore ? 1 : 0),
       itemBuilder: (_, i) {
-        if (i == _items.length) {
+        if (i == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12, left: 2),
+            child: Text(countLabel,
+                style: AppTextStyles.label(color: AppColors.inkMuted)),
+          );
+        }
+        final idx = i - 1;
+        if (idx == _items.length) {
           return LoadMoreButton(loading: _loadingMore, onPressed: () => _loadPage(_page + 1));
         }
-        return _DirectoryTile(member: _items[i]);
+        return _DirectoryTile(member: _items[idx]);
       },
     );
   }
@@ -317,14 +330,18 @@ class _SearchBar extends StatelessWidget {
                     )
                   : null,
               isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               filled: true,
-              fillColor: AppColors.fillMuted,
-              border: OutlineInputBorder(borderRadius: AppRadii.borderSm, borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: AppRadii.borderSm, borderSide: BorderSide.none),
+              fillColor: AppColors.canvas,
+              border: OutlineInputBorder(
+                  borderRadius: AppRadii.borderPill,
+                  borderSide: const BorderSide(color: AppColors.line)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: AppRadii.borderPill,
+                  borderSide: const BorderSide(color: AppColors.line)),
               focusedBorder: OutlineInputBorder(
-                borderRadius: AppRadii.borderSm,
-                borderSide: const BorderSide(color: AppColors.canopyGreen, width: 2),
+                borderRadius: AppRadii.borderPill,
+                borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
               ),
             ),
           ),
@@ -351,48 +368,59 @@ class _DirectoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => context.push('/member/${member.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        child: InkWell(
           borderRadius: AppRadii.borderMd,
-          boxShadow: AppShadows.e1,
-          border: Border.all(color: AppColors.hairline, width: 1),
-        ),
-        child: Row(
-          children: [
-            MemberAvatar(photoPath: member.photoPath),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    member.fullName,
-                    style: AppTextStyles.title(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (member.memberNumber != null)
-                    Text(member.memberNumber!, style: AppTextStyles.memberNumber())
-                  else
-                    Text(member.phone ?? '—', style: AppTextStyles.small()),
-                  if (member.constituencyName != null)
-                    Text(
-                      member.constituencyName!,
-                      style: AppTextStyles.caption(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            context.push('/member/${member.id}');
+          },
+          child: Ink(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.base, vertical: AppSpacing.md),
+            decoration: BoxDecoration(
+              borderRadius: AppRadii.borderMd,
+              border: Border.all(color: AppColors.line, width: 1),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            StatusPill.fromString(member.status),
-          ],
+            child: Row(
+              children: [
+                MemberAvatar(photoPath: member.photoPath),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        member.fullName,
+                        style: AppTextStyles.title(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      if (member.memberNumber != null)
+                        Text(member.memberNumber!,
+                            style: AppTextStyles.memberNumber())
+                      else
+                        Text(member.phone ?? '—', style: AppTextStyles.small()),
+                      if (member.constituencyName != null)
+                        Text(
+                          member.constituencyName!,
+                          style: AppTextStyles.caption(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                StatusPill.fromString(member.status),
+              ],
+            ),
+          ),
         ),
       ),
     );

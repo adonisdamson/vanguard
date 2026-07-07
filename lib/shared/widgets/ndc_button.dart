@@ -30,7 +30,7 @@ class NdcButton extends StatelessWidget {
 
     return SizedBox(
       width: width ?? double.infinity,
-      height: 52,
+      height: 54,
       child: switch (variant) {
         NdcButtonVariant.primary => _PrimaryButton(
             label: label,

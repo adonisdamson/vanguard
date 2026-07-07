@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/constants/build_info.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -68,29 +67,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         loading: _loading,
         primaryIcon: const PhosphorIcon(PhosphorIconsFill.arrowLineRight,
             size: 18, color: AppColors.surface),
-        secondaryAction: Column(
-          mainAxisSize: MainAxisSize.min,
+        secondaryAction: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('New here? ', style: AppTextStyles.small()),
-                GestureDetector(
-                  onTap: () => context.push('/signup'),
-                  child: Text(
-                    'Request access',
-                    style: AppTextStyles.small(color: AppColors.canopyGreen)
-                        .copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            // Build stamp — first thing to read off a device when
-            // triaging "is this install stale?"
-            Text(
-              BuildInfo.stamp,
-              style: AppTextStyles.caption(color: AppColors.mist),
+            Text('New here? ', style: AppTextStyles.small()),
+            GestureDetector(
+              onTap: () => context.push('/signup'),
+              child: Text(
+                'Request access',
+                style: AppTextStyles.small(color: AppColors.canopyGreen)
+                    .copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),

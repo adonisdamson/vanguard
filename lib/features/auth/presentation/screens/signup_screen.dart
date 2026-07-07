@@ -199,13 +199,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         const SizedBox(height: AppSpacing.base),
                       ],
 
-                      // Verification selfie — required, camera only.
-                      _SelfieField(
-                        selfiePath: _selfiePath,
-                        onCapture: _captureSelfie,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
                       NdcTextField(
                         label: 'Full name',
                         hint: 'Kwame Mensah',
@@ -294,6 +287,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         onChanged: (v) =>
                             setState(() => _requestedRole = v),
                       ),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Verification selfie — the LAST step, and required.
+                      _SelfieField(
+                        selfiePath: _selfiePath,
+                        onCapture: _captureSelfie,
+                      ),
                     ],
                   ),
                 ),
@@ -334,54 +334,77 @@ class _SelfieField extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        border: Border.all(color: AppColors.line),
+        border: Border.all(
+            color: has ? AppColors.brand : AppColors.line,
+            width: has ? 1.5 : 1),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.brandTint,
-              border: Border.all(color: AppColors.line),
-              image: has
-                  ? DecorationImage(
-                      image: FileImage(File(selfiePath!)), fit: BoxFit.cover)
-                  : null,
-            ),
-            child: has
-                ? null
-                : const PhosphorIcon(PhosphorIconsRegular.userFocus,
-                    size: 26, color: AppColors.brand),
+          Row(
+            children: [
+              const PhosphorIcon(PhosphorIconsFill.shieldCheck,
+                  size: 18, color: AppColors.brand),
+              const SizedBox(width: 8),
+              Text('Identity verification *', style: AppTextStyles.label()),
+            ],
           ),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Verification selfie *', style: AppTextStyles.label()),
-                const SizedBox(height: 2),
-                Text(
-                  has
-                      ? 'Looks good — retake if needed.'
-                      : 'Snap a photo of your face. Camera only, for security.',
-                  style: AppTextStyles.small(),
+          const SizedBox(height: 6),
+          Text(
+            'Required. Take a live photo of your face — this is used only to '
+            'verify you are a real person and prevent impersonation. Your '
+            'request will not be submitted without it.',
+            style: AppTextStyles.small(),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.brandTint,
+                  border: Border.all(color: AppColors.line),
+                  image: has
+                      ? DecorationImage(
+                          image: FileImage(File(selfiePath!)), fit: BoxFit.cover)
+                      : null,
                 ),
-              ],
-            ),
+                child: has
+                    ? null
+                    : const PhosphorIcon(PhosphorIconsRegular.userFocus,
+                        size: 26, color: AppColors.brand),
+              ),
+              const SizedBox(width: AppSpacing.base),
+              Expanded(
+                child: Text(
+                  has
+                      ? 'Selfie captured — tap Retake if it is unclear.'
+                      : 'Camera only — gallery uploads are not allowed.',
+                  style: AppTextStyles.small(
+                      color: has ? AppColors.success : AppColors.inkMuted),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: onCapture,
-            icon: PhosphorIcon(
-                has ? PhosphorIconsRegular.arrowClockwise : PhosphorIconsFill.camera,
-                size: 16, color: AppColors.brand),
-            label: Text(has ? 'Retake' : 'Take selfie',
-                style: AppTextStyles.label(color: AppColors.brand)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppColors.brand),
-              shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onCapture,
+              icon: PhosphorIcon(
+                  has
+                      ? PhosphorIconsRegular.arrowsClockwise
+                      : PhosphorIconsFill.camera,
+                  size: 18, color: AppColors.brand),
+              label: Text(has ? 'Retake selfie' : 'Take selfie',
+                  style: AppTextStyles.buttonText(color: AppColors.brand)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.brand, width: 1.5),
+                minimumSize: const Size(0, 48),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+              ),
             ),
           ),
         ],

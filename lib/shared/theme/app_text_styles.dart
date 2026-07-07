@@ -175,10 +175,10 @@ class AppTextStyles {
 
   static TextStyle buttonText({Color color = AppColors.surface}) =>
       GoogleFonts.plusJakartaSans(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
+        fontSize: 15.5,
+        fontWeight: FontWeight.w700,
         color: color,
-        letterSpacing: 0.1,
+        letterSpacing: 0.2,
       );
 
   static TextStyle badge({Color color = AppColors.surface}) =>

@@ -8,4 +8,7 @@ class BuildInfo {
   static const buildDate =
       String.fromEnvironment('BUILD_DATE', defaultValue: 'unbuilt');
   static const stamp = 'v$version · $gitSha · $buildDate';
+
+  /// Version only — safe to show in-app (no build timestamp / commit).
+  static const versionLabel = 'v$version';
 }

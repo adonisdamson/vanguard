@@ -309,7 +309,7 @@ class _InfoSection extends StatelessWidget {
           const Divider(color: AppColors.hairline, height: 1),
           _InfoRow(icon: PhosphorIconsRegular.mapPin, label: 'Constituency', value: 'Tema West'),
           const Divider(color: AppColors.hairline, height: 1),
-          _InfoRow(icon: PhosphorIconsRegular.info, label: 'Build', value: BuildInfo.stamp),
+          _InfoRow(icon: PhosphorIconsRegular.info, label: 'App version', value: BuildInfo.versionLabel),
         ],
       ),
     );

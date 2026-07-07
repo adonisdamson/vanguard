@@ -82,7 +82,7 @@ class AppTheme {
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          minimumSize: const Size(64, 52),
+          minimumSize: const Size(64, 54),
           // NEVER Size(double.infinity, …) here: an infinite minimum width
           // is fatal for any button laid out with unbounded width (e.g. a
           // non-flex child of a Row) — debug throws, release paints NOTHING.
@@ -96,7 +96,7 @@ class AppTheme {
           side: const BorderSide(color: AppColors.canopyGreen, width: 1.5),
           shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          minimumSize: const Size(64, 52),
+          minimumSize: const Size(64, 54),
           // See elevatedButtonTheme note — infinite minimum width is fatal
           // under unbounded constraints; full width is the call site's job.
         ),

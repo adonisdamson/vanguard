@@ -1,0 +1,28 @@
+name: Supabase keep-alive
+
+# Free Supabase projects pause after 7 days of no database activity.
+# This runs every 2 days and calls the keepalive() RPC (a real DB query),
+# which resets the inactivity timer without adding any data.
+# Comfortably inside the 7-day window even if a run is skipped or delayed.
+
+on:
+  schedule:
+    - cron: '17 6 */2 * *' # 06:17 UTC, every 2 days
+  workflow_dispatch: {} # allow a manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Supabase (keepalive RPC)
+        run: |
+          code=$(curl -s -o /tmp/out.txt -w "%{http_code}" \
+            -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/keepalive" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "HTTP $code — $(cat /tmp/out.txt)"
+          # Fail the run if the DB did not respond, so a broken heartbeat is visible.
+          test "$code" = "200"

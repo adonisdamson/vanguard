@@ -93,7 +93,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                       label: 'Sign out',
                       variant: NdcButtonVariant.ghost,
                       icon: const PhosphorIcon(
-                        PhosphorIconsRegular.signOut,
+                        PhosphorIconsBold.signOut,
                         size: 18,
                         color: AppColors.mist,
                       ),

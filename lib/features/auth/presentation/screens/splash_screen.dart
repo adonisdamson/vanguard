@@ -84,9 +84,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.canopyGreen,
+      backgroundColor: AppColors.deepCanopy,
       body: Stack(
+        fit: StackFit.expand,
         children: [
+          // NDC supporters photo — every fresh launch opens on this.
+          Image.asset('assets/images/splash_hero.jpg', fit: BoxFit.cover),
+          // Brand scrim so the logo + wordmark read cleanly over the photo.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.deepCanopy.withValues(alpha: 0.72),
+                  AppColors.deepCanopy.withValues(alpha: 0.55),
+                  AppColors.deepCanopy.withValues(alpha: 0.88),
+                ],
+                stops: const [0.0, 0.45, 1.0],
+              ),
+            ),
+          ),
           // Canopy arc at top — the signature brand device
           Positioned(
             top: 0, left: 0, right: 0,

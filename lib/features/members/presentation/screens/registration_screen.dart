@@ -404,7 +404,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
         primaryIcon: PhosphorIcon(
             _tabs.index == 2
                 ? PhosphorIconsFill.check
-                : PhosphorIconsFill.arrowRight,
+                : PhosphorIconsFill.arrowLineRight,
             size: 18,
             color: AppColors.surface),
         onBack: _tabs.index > 0 ? _prevTab : null,

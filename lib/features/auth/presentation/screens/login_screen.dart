@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/build_info.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../features/auth/application/auth_provider.dart';
@@ -12,6 +11,7 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
+import '../widgets/auth_hero.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -66,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         primaryLabel: 'Sign in',
         onPrimary: _signIn,
         loading: _loading,
-        primaryIcon: const PhosphorIcon(PhosphorIconsFill.signIn,
+        primaryIcon: const PhosphorIcon(PhosphorIconsFill.arrowLineRight,
             size: 18, color: AppColors.surface),
         secondaryAction: Column(
           mainAxisSize: MainAxisSize.min,
@@ -95,13 +95,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ],
         ),
       ),
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.screenH, AppSpacing.xl,
@@ -170,69 +168,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Compact header band ───────────────────────────────────────────────────────
+// ── Photo hero (login) ────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          color: AppColors.deepCanopy,
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenH, AppSpacing.xl,
-              AppSpacing.screenH, AppSpacing.xxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44, height: 44,
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Image.asset(Assets.ndcUmbrella),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('VANGUARD',
-                          style: AppTextStyles.h2(color: AppColors.surface)
-                              .copyWith(letterSpacing: 3)),
-                      Text('Membership Registry',
-                          style: AppTextStyles.caption(
-                              color: AppColors.surface
-                                  .withValues(alpha: 0.65))),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Welcome back.',
-                  style: AppTextStyles.h1(color: AppColors.surface)),
-              const SizedBox(height: 4),
-              Text('Sign in to access the member registry.',
-                  style: AppTextStyles.body(
-                      color: AppColors.surface.withValues(alpha: 0.72))),
-            ],
-          ),
-        ),
-      ],
+    return AuthHero(
+      title: 'Welcome back.',
+      subtitle: 'Sign in to access the member registry.',
     );
   }
 }

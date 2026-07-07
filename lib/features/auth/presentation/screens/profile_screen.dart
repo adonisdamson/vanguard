@@ -56,7 +56,7 @@ class ProfileScreen extends ConsumerWidget {
                   label: 'Sign out',
                   variant: NdcButtonVariant.ghost,
                   icon: const PhosphorIcon(
-                    PhosphorIconsRegular.signOut,
+                    PhosphorIconsBold.signOut,
                     size: 16,
                     color: AppColors.umbrellaRed,
                   ),

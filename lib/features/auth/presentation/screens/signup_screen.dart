@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../../../core/constants/assets.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -12,6 +11,7 @@ import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
+import '../widgets/auth_hero.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -117,13 +117,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           ],
         ),
       ),
-      body: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Header(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.screenH, AppSpacing.xl,
@@ -238,8 +236,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -251,60 +248,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: AppColors.brand,
-          ),
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenH, AppSpacing.xl,
-              AppSpacing.screenH, AppSpacing.xxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44, height: 44,
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Image.asset(Assets.ndcUmbrella),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('VANGUARD',
-                          style: AppTextStyles.h2(color: AppColors.surface)
-                              .copyWith(letterSpacing: 3)),
-                      Text('Membership Registry',
-                          style: AppTextStyles.caption(
-                              color: AppColors.surface
-                                  .withValues(alpha: 0.65))),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Request access.',
-                  style: AppTextStyles.h1(color: AppColors.surface)),
-              const SizedBox(height: 4),
-              Text(
-                'Create your account — an administrator will activate it and assign your role.',
-                style: AppTextStyles.body(
-                    color: AppColors.surface.withValues(alpha: 0.72)),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return const AuthHero(
+      title: 'Request access.',
+      subtitle:
+          'Create your account — an administrator activates it and assigns your role.',
     );
   }
 }

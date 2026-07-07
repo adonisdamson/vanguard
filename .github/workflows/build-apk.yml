@@ -2,7 +2,7 @@ name: Vanguard — Build & Release APK
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, dev]
   workflow_dispatch:
     inputs:
       release_notes:
@@ -60,6 +60,25 @@ jobs:
           fi
           echo "Secret guard passed — no service_role key or raw tokens in lib/."
 
+      - name: Resolve release channel
+        id: channel
+        run: |
+          if [[ "${{ github.ref_name }}" == "master" || "${{ github.ref_name }}" == "main" ]]; then
+            echo "tag=latest"                    >> "$GITHUB_OUTPUT"
+            echo "apk_name=Vanguard-NDC-v1.0.${{ github.run_number }}.apk"  >> "$GITHUB_OUTPUT"
+            echo "release_name=Vanguard NDC — v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false"              >> "$GITHUB_OUTPUT"
+            echo "make_latest=true"              >> "$GITHUB_OUTPUT"
+            echo "is_prod=true"                  >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=dev-latest"                >> "$GITHUB_OUTPUT"
+            echo "apk_name=Vanguard-NDC-DEV-v1.0.${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+            echo "release_name=Vanguard NDC — DEV v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true"               >> "$GITHUB_OUTPUT"
+            echo "make_latest=false"             >> "$GITHUB_OUTPUT"
+            echo "is_prod=false"                 >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Write .env file
         run: |
           printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\n' \
@@ -97,43 +116,45 @@ jobs:
             --dart-define=GIT_SHA=$(git rev-parse --short HEAD) \
             --dart-define=BUILD_DATE="$(date -u '+%d %b %Y')"
           cp build/app/outputs/flutter-apk/app-release.apk \
-            Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+            "${{ steps.channel.outputs.apk_name }}"
 
       - name: Collect build metadata
         id: meta
         run: |
-          echo "apk_size=$(du -sh Vanguard-NDC-v1.0.${{ github.run_number }}.apk | cut -f1)" >> "$GITHUB_OUTPUT"
+          echo "apk_size=$(du -sh '${{ steps.channel.outputs.apk_name }}' | cut -f1)" >> "$GITHUB_OUTPUT"
           echo "build_date=$(date -u '+%d %B %Y, %H:%M UTC')" >> "$GITHUB_OUTPUT"
           echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           echo "commit_msg=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
 
-      # Recreate the release from scratch every build: the publish date always
-      # reflects THIS build (no more "released 3 days ago" on a fresh APK) and
-      # exactly ONE apk asset ever exists.
+      # Recreate the release from scratch every build so publish date and the
+      # single APK asset always reflect THIS exact build.
+      # Each channel (prod → latest, dev → dev-latest) manages its own release
+      # independently — they never touch each other.
       - name: Delete previous release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release delete latest --cleanup-tag --yes --repo ${{ github.repository }} || true
+        run: gh release delete "${{ steps.channel.outputs.tag }}" --cleanup-tag --yes --repo ${{ github.repository }} || true
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Vanguard-NDC-v1.0.${{ github.run_number }}
-          path: Vanguard-NDC-v1.0.${{ github.run_number }}.apk
+          name: ${{ steps.channel.outputs.apk_name }}
+          path: ${{ steps.channel.outputs.apk_name }}
           retention-days: 90
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: "Vanguard NDC — v1.0.${{ github.run_number }}"
+          tag_name: ${{ steps.channel.outputs.tag }}
+          name: "${{ steps.channel.outputs.release_name }}"
           body: |
             # Vanguard NDC Membership App
             > NDC Tema West Constituency — Member Registration & Management
+            ${{ steps.channel.outputs.is_prod == 'false' && '> ⚠️ **DEV BUILD** — for testing only. The production APK is on the `latest` release.' || '' }}
 
             ## How to install
 
-            1. **Download** `Vanguard-NDC-v1.0.${{ github.run_number }}.apk` from the **Assets** section below
+            1. **Download** `${{ steps.channel.outputs.apk_name }}` from the **Assets** section below
             2. Open the file on your Android phone
             3. If prompted, tap **Settings → Install unknown apps** and allow your file manager
             4. Tap **Install** — takes about 10 seconds
@@ -166,17 +187,16 @@ jobs:
             | Field | Value |
             |---|---|
             | Version | `1.0.${{ github.run_number }}` |
+            | Channel | `${{ github.ref_name }}` |
             | APK size | ${{ steps.meta.outputs.apk_size }} |
             | Commit | [`${{ steps.meta.outputs.short_sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |
-            | Branch | `${{ github.ref_name }}` |
             | Built | ${{ steps.meta.outputs.build_date }} |
 
             ---
 
             > **Minimum Android:** 10 (API 29) &nbsp;·&nbsp; **Architecture:** arm64-v8a
             > Built specifically for modern Android phones — smaller APK, faster install.
-            > This is the only current APK — previous builds have been removed.
           files: |
-            Vanguard-NDC-v1.0.${{ github.run_number }}.apk
-          prerelease: false
-          make_latest: true
+            ${{ steps.channel.outputs.apk_name }}
+          prerelease: ${{ steps.channel.outputs.prerelease }}
+          make_latest: ${{ steps.channel.outputs.make_latest }}

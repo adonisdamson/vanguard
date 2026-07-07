@@ -38,6 +38,7 @@ dependencies:
 
   # Offline queue
   hive_flutter: ^1.1.0
+  flutter_secure_storage: ^10.0.0
 
   # Utils
   flutter_dotenv: ^5.2.1

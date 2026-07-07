@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router.dart';
+import 'features/members/application/offline_queue.dart';
 import 'shared/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -14,7 +15,7 @@ Future<void> main() async {
     publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
   await Hive.initFlutter();
-  await Hive.openBox<String>('offline_registrations');
+  await OfflineQueue.init();
   runApp(const ProviderScope(child: VanguardApp()));
 }
 

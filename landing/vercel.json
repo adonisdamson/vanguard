@@ -1,5 +1,19 @@
 {
   "rewrites": [
     { "source": "/download", "destination": "/api/download" }
+  ],
+  "headers": [
+    {
+      "source": "/download",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/api/download",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    }
   ]
 }

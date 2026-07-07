@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
 
@@ -52,15 +52,8 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () => context.push('/change-password'),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                NdcButton(
-                  label: 'Sign out',
-                  variant: NdcButtonVariant.danger,
-                  icon: const PhosphorIcon(
-                    PhosphorIconsBold.signOut,
-                    size: 18,
-                    color: AppColors.surface,
-                  ),
-                  onPressed: () async {
+                _SignOutButton(
+                  onTap: () async {
                     await ref.read(authServiceProvider).signOut();
                     if (context.mounted) context.go('/login');
                   },
@@ -69,6 +62,148 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A deliberate, restrained sign-out — red as an accent, not a slab. Reads as a
+/// settings action: an icon chip, a label with a quiet supporting line, and a
+/// trailing affordance. Confirms before ending the session.
+class _SignOutButton extends StatelessWidget {
+  final Future<void> Function() onTap;
+  const _SignOutButton({required this.onTap});
+
+  Future<void> _confirm(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.line,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.umbrellaRed.withValues(alpha: 0.10),
+                      borderRadius: AppRadii.borderSm,
+                    ),
+                    child: const Icon(PhosphorIconsBold.signOut,
+                        size: 22, color: AppColors.umbrellaRed),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Sign out?', style: AppTextStyles.bodyMedium()),
+                        const SizedBox(height: 2),
+                        Text("You'll need to sign in again on this device.",
+                            style: AppTextStyles.caption()),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+                      ),
+                      child: Text('Stay',
+                          style: AppTextStyles.buttonText(color: AppColors.canopyGreen)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        backgroundColor: AppColors.umbrellaRed,
+                        foregroundColor: AppColors.surface,
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+                      ),
+                      child: Text('Sign out', style: AppTextStyles.buttonText()),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok == true) await onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadii.borderMd,
+      child: InkWell(
+        borderRadius: AppRadii.borderMd,
+        onTap: () => _confirm(context),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.borderMd,
+            border: Border.all(color: AppColors.umbrellaRed.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.umbrellaRed.withValues(alpha: 0.10),
+                  borderRadius: AppRadii.borderSm,
+                ),
+                child: const Icon(PhosphorIconsBold.signOut,
+                    size: 20, color: AppColors.umbrellaRed),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Sign out',
+                        style: AppTextStyles.bodyMedium(color: AppColors.umbrellaRed)),
+                    const SizedBox(height: 1),
+                    Text('End this session on this device',
+                        style: AppTextStyles.caption()),
+                  ],
+                ),
+              ),
+              const Icon(PhosphorIconsRegular.caretRight,
+                  size: 18, color: AppColors.umbrellaRed),
+            ],
+          ),
+        ),
       ),
     );
   }

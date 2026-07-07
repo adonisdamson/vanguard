@@ -234,39 +234,69 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final appUser = ref.watch(appUserProvider).valueOrNull;
     final canReview = appUser?.role == AppUserRole.higherAuthority ||
         appUser?.role == AppUserRole.admin;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.screenH, AppSpacing.base, AppSpacing.screenH, AppSpacing.h1),
-      children: [
-        // Header card: photo + name + status
-        _HeaderCard(member: member),
-        const SizedBox(height: AppSpacing.base),
+    final showReviewBar = member.status == 'pending' && canReview;
 
-        // Approve/Reject actions (only for reviewers, only if pending)
-        if (member.status == 'pending' && canReview) ...[
-          Row(
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.zero,
             children: [
-              Expanded(
-                child: NdcButton(
-                  label: 'Approve',
-                  loading: _submitting,
-                  icon: const PhosphorIcon(PhosphorIconsFill.checkCircle, size: 18, color: AppColors.surface),
-                  onPressed: _approve,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: NdcButton(
-                  label: 'Reject',
-                  variant: NdcButtonVariant.danger,
-                  loading: _submitting,
-                  onPressed: _reject,
+              // Edge-to-edge brand header: photo + name + status
+              _HeaderCard(member: member),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.screenH, AppSpacing.base, AppSpacing.screenH, AppSpacing.h1),
+                child: Column(
+                  children: _sections(member),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.base),
-        ],
+        ),
+        // Pinned review actions — always reachable, never scrolled away.
+        if (showReviewBar)
+          Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(top: BorderSide(color: AppColors.line)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: NdcButton(
+                        label: 'Reject',
+                        variant: NdcButtonVariant.secondary,
+                        loading: _submitting,
+                        onPressed: _reject,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      flex: 2,
+                      child: NdcButton(
+                        label: 'Approve member',
+                        loading: _submitting,
+                        icon: const PhosphorIcon(PhosphorIconsFill.check,
+                            size: 18, color: AppColors.surface),
+                        onPressed: _approve,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
+  List<Widget> _sections(MemberDetail member) {
+    return [
         // Rejection reason (if rejected)
         if (member.status == 'rejected' && member.rejectionReason != null) ...[
           Container(
@@ -355,8 +385,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
 
         // Audit history
         _AuditSection(auditAsync: widget.auditAsync),
-      ],
-    );
+    ];
   }
 }
 
@@ -367,12 +396,10 @@ class _HeaderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.brand,
-        borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
-      ),
+      width: double.infinity,
+      color: AppColors.deepCanopy,
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.base, AppSpacing.xl, AppSpacing.base, AppSpacing.xl,
+        AppSpacing.base, AppSpacing.lg, AppSpacing.base, AppSpacing.xl,
       ),
       child: Column(
         children: [
@@ -492,21 +519,25 @@ class _Section extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              PhosphorIcon(icon, size: 16, color: AppColors.canopyGreen),
-              const SizedBox(width: 8),
+              Container(
+                  width: 3, height: 16, margin: const EdgeInsets.only(right: 9),
+                  decoration: BoxDecoration(
+                      color: AppColors.brand,
+                      borderRadius: BorderRadius.circular(2))),
+              PhosphorIcon(icon, size: 16, color: AppColors.inkMuted),
+              const SizedBox(width: 7),
               Text(title, style: AppTextStyles.h3()),
             ],
           ),
           const SizedBox(height: 12),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.line),
           const SizedBox(height: 12),
           ...rows,
         ],
@@ -547,8 +578,7 @@ class _AuditSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: AppColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

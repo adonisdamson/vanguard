@@ -106,15 +106,33 @@ class _ReviewQueueScreenState extends ConsumerState<ReviewQueueScreen> {
     }
     if (_items.isEmpty) return const EmptyState.reviewQueueEmpty();
 
+    final countLabel = _hasMore
+        ? '${_items.length}+ awaiting review'
+        : '${_items.length} ${_items.length == 1 ? 'member' : 'members'} awaiting review';
+
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: _items.length + (_hasMore ? 1 : 0),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      itemCount: _items.length + 1 + (_hasMore ? 1 : 0),
       itemBuilder: (_, i) {
-        if (i == _items.length) {
+        if (i == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Row(
+              children: [
+                const PhosphorIcon(PhosphorIconsRegular.stamp,
+                    size: 16, color: AppColors.inkMuted),
+                const SizedBox(width: 8),
+                Text(countLabel, style: AppTextStyles.label(color: AppColors.inkMuted)),
+              ],
+            ),
+          );
+        }
+        final idx = i - 1;
+        if (idx == _items.length) {
           return LoadMoreButton(loading: _loadingMore, onPressed: () => _loadPage(_page + 1));
         }
         return _ReviewTile(
-          member: _items[i],
+          member: _items[idx],
           onChanged: () => _loadPage(0),
         );
       },
@@ -169,11 +187,11 @@ class _ReviewTile extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                Expanded(child: _QuickAction(label: 'Approve', icon: PhosphorIconsRegular.checkCircle, color: AppColors.canopyGreen, onTap: () => _confirmApprove(context, member, onChanged))),
+                Expanded(child: _QuickAction(label: 'Approve', icon: PhosphorIconsRegular.check, color: AppColors.brand, filled: true, onTap: () => _confirmApprove(context, member, onChanged))),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: _QuickAction(label: 'Reject', icon: PhosphorIconsRegular.xCircle, color: AppColors.umbrellaRed, onTap: () => _showRejectDialog(context, member, onChanged))),
+                Expanded(child: _QuickAction(label: 'Reject', icon: PhosphorIconsRegular.x, color: AppColors.danger, onTap: () => _showRejectDialog(context, member, onChanged))),
                 const SizedBox(width: AppSpacing.sm),
-                _QuickAction(label: 'View', icon: PhosphorIconsRegular.eye, color: AppColors.mist, onTap: () => context.push('/member/${member.id}')),
+                Expanded(child: _QuickAction(label: 'View', icon: PhosphorIconsRegular.eye, color: AppColors.inkMuted, onTap: () => context.push('/member/${member.id}'))),
               ],
             ),
           ],
@@ -274,26 +292,43 @@ class _QuickAction extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  const _QuickAction({required this.label, required this.icon, required this.color, required this.onTap});
+  final bool filled; // primary action = solid fill
+  const _QuickAction({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.filled = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: AppRadii.borderSm,
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            PhosphorIcon(icon, size: 16, color: color),
-            const SizedBox(width: 6),
-            Text(label, style: AppTextStyles.small(color: color)),
-          ],
+    final fg = filled ? AppColors.surface : color;
+    return Material(
+      color: filled ? color : AppColors.surface,
+      borderRadius: AppRadii.borderSm,
+      child: InkWell(
+        borderRadius: AppRadii.borderSm,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Ink(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.borderSm,
+            border: filled ? null : Border.all(color: AppColors.line),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              PhosphorIcon(icon, size: 16, color: fg),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: AppTextStyles.small(color: fg)
+                      .copyWith(fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
       ),
     );

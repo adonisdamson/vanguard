@@ -18,6 +18,7 @@ import '../features/members/presentation/screens/review_queue_screen.dart';
 import '../features/members/presentation/screens/member_detail_screen.dart';
 import '../features/members/presentation/screens/member_directory_screen.dart';
 import '../features/dashboard/presentation/screens/higher_authority_shell.dart';
+import '../features/tracker/presentation/screens/tracker_screen.dart';
 import '../features/admin/presentation/screens/admin_shell.dart';
 import '../features/admin/presentation/screens/operator_list_screen.dart';
 import '../features/admin/presentation/screens/create_operator_screen.dart';
@@ -77,6 +78,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => MemberDetailScreen(memberId: state.pathParameters['id']!),
       ),
       GoRoute(path: '/member-directory', builder: (context, _) => const MemberDirectoryScreen()),
+      GoRoute(path: '/tracker', builder: (context, _) => const TrackerScreen()),
 
       // Admin (shell provides bottom nav + IndexedStack)
       GoRoute(path: '/admin', builder: (context, _) => const AdminShell()),

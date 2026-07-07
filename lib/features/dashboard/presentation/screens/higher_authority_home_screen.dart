@@ -16,6 +16,7 @@ import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/stat_card.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
 import '../../../../shared/widgets/hero_crest.dart';
+import '../widgets/status_donut.dart';
 
 class HigherAuthorityHomeScreen extends ConsumerWidget {
   const HigherAuthorityHomeScreen({super.key});
@@ -146,6 +147,21 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
                     )),
                   ]),
                   const SizedBox(height: AppSpacing.xl),
+
+                  // Status breakdown donut
+                  statsAsync.when(
+                    data: (s) => (s.total > 0)
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.base),
+                            child: StatusDonut(
+                                active: s.active,
+                                pending: s.pending,
+                                rejected: s.rejected),
+                          )
+                        : const SizedBox.shrink(),
+                    loading: () => const SkeletonLoader(height: 160, borderRadius: AppRadii.borderMd),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
 
                   // Trend chart
                   statsAsync.when(

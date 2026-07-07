@@ -21,6 +21,7 @@ import '../widgets/member_avatar.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/status_pill.dart';
+import 'package:share_plus/share_plus.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
   final bool showAppBar;
@@ -158,20 +159,22 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       final bytes = chunks.expand((c) => c).toList();
       client.close();
 
-      final dir = await getApplicationDocumentsDirectory();
-      final ts = DateTime.now().toIso8601String().replaceAll(':', '-').substring(0, 19);
+      // Temp file + OS share sheet so the user can save/send it — the app's
+      // private documents dir is invisible in any file manager.
+      final dir = await getTemporaryDirectory();
+      final ts = DateTime.now().toIso8601String().substring(0, 10);
       final ext = format == 'pdf' ? 'pdf' : 'csv';
-      final file = File('${dir.path}/members_$ts.$ext');
+      final file = File('${dir.path}/NDC_members_$ts.$ext');
       await file.writeAsBytes(bytes);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.canopyGreen,
-          content: Text(
-            '${format.toUpperCase()} saved — ${(bytes.length / 1024).toStringAsFixed(1)} KB',
-            style: AppTextStyles.body(color: AppColors.surface),
-          ),
-          duration: const Duration(seconds: 5),
+        await SharePlus.instance.share(ShareParams(
+          files: [
+            XFile(file.path,
+                mimeType: format == 'pdf' ? 'application/pdf' : 'text/csv')
+          ],
+          subject: 'NDC member register ($ts)',
+          text: 'NDC Tema West member register — ${format.toUpperCase()} export ($ts).',
         ));
       }
     } catch (e) {

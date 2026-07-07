@@ -172,6 +172,15 @@ class _TrackerHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (Navigator.of(context).canPop())
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: const PhosphorIcon(PhosphorIconsRegular.arrowLeft,
+                          size: 22, color: AppColors.surface),
+                    ),
+                  ),
                 Text('AREA TRACKER',
                     style: AppTextStyles.eyebrow(
                         color: AppColors.surface.withValues(alpha: 0.5))),

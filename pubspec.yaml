@@ -29,6 +29,7 @@ dependencies:
   google_fonts: ^6.2.1
   fl_chart: ^0.69.0
   path_provider: ^2.1.5
+  share_plus: ^13.2.0
 
   # Device
   connectivity_plus: ^6.1.0

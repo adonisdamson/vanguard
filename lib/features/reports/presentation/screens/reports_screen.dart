@@ -16,6 +16,8 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../dashboard/presentation/widgets/status_donut.dart';
 
 class _ReportTileData {
   final IconData icon;
@@ -64,21 +66,18 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         chunks.add(chunk);
       }
       final bytes = chunks.expand((x) => x).toList();
-      final dir = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final file = File('${dir.path}/members_export_$timestamp.csv');
+      // Write to a temp file and open the OS share sheet so the user can
+      // actually save/send it (the app's private dir is invisible to them).
+      final dir = await getTemporaryDirectory();
+      final stamp = DateTime.now().toIso8601String().substring(0, 10);
+      final file = File('${dir.path}/NDC_members_$stamp.csv');
       await file.writeAsBytes(bytes);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Saved: ${file.path.split('/').last}',
-              style: AppTextStyles.bodyMedium(color: AppColors.surface),
-            ),
-            backgroundColor: AppColors.canopyGreen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        await SharePlus.instance.share(ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: 'NDC member register ($stamp)',
+          text: 'NDC Tema West member register — CSV export ($stamp).',
+        ));
       }
     } catch (e) {
       if (mounted) {
@@ -110,10 +109,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       _ReportTileData(
         icon: PhosphorIconsRegular.mapPin,
         title: 'Area performance',
-        subtitle: 'Per electoral area breakdown',
+        subtitle: 'Coverage per electoral area',
         color: AppColors.gold,
         bg: AppColors.goldTint,
-        onTap: () {},
+        onTap: () => context.push('/tracker'),
       ),
       _ReportTileData(
         icon: PhosphorIconsRegular.userPlus,
@@ -168,6 +167,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   error: (_, _) => InlineLoadError(
                     onRetry: () => ref.invalidate(dashboardStatsProvider),
                   ),
+                ),
+                const SizedBox(height: AppSpacing.base),
+
+                // Status breakdown donut (pie) — appears once there's data
+                statsAsync.when(
+                  data: (s) => (s.total > 0)
+                      ? StatusDonut(
+                          active: s.active, pending: s.pending, rejected: s.rejected)
+                      : const SizedBox.shrink(),
+                  loading: () => const SkeletonLoader(height: 160, borderRadius: AppRadii.borderMd),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: AppSpacing.xl),
 

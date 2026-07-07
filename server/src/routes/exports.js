@@ -37,6 +37,27 @@ const SELECT_CLAUSE = `
   highest_academic_qualification, status, created_at
 `;
 
+// Resolve the caller's data jurisdiction. Admins are national (no scope).
+// A higher_authority/personnel with an assignment is pinned to it; a null
+// assignment means national. This is read from the DB, never the client — the
+// export runs under the service key (RLS off), so scope MUST be enforced here.
+async function jurisdictionFor(ctx) {
+  if (ctx.role === 'admin') return {};
+  const { data, error } = await serviceClient()
+    .from('app_users')
+    .select('assigned_region_id, assigned_constituency_id')
+    .eq('id', ctx.user.id)
+    .single();
+  if (error || !data) {
+    // Fail closed: if we can't resolve the scope, don't hand over data.
+    throw new Error('Could not resolve caller jurisdiction');
+  }
+  const scope = {};
+  if (data.assigned_region_id)       scope.region_id = data.assigned_region_id;
+  if (data.assigned_constituency_id) scope.constituency_id = data.assigned_constituency_id;
+  return scope;
+}
+
 function applyFilters(query, { region_id, district_id, constituency_id, membership_type, status, search }) {
   if (region_id)       query = query.eq('region_id', region_id);
   if (district_id)     query = query.eq('district_id', district_id);
@@ -87,10 +108,16 @@ router.post('/members', async (req, res) => {
   const { format = 'csv', ...filters } = req.body;
 
   try {
+    // Pin the caller's jurisdiction LAST so it overrides any region/constituency
+    // the client tried to widen to. Client filters (district/status/search) may
+    // still narrow further within scope.
+    const scope = await jurisdictionFor(ctx);
+    const effective = { ...filters, ...scope };
+
     if (format === 'pdf') {
-      await streamPdf(res, filters);
+      await streamPdf(res, effective);
     } else {
-      await streamCsv(res, filters);
+      await streamCsv(res, effective);
     }
   } catch (err) {
     // Only send error header if headers haven't been flushed yet

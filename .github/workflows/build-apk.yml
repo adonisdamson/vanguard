@@ -43,6 +43,23 @@ jobs:
           key: pub-${{ hashFiles('pubspec.lock') }}
           restore-keys: pub-
 
+      - name: Secret leak guard
+        run: |
+          # Fail the build immediately if any Flutter source file contains the
+          # Supabase service_role key name or a raw JWT that looks like a long
+          # eyJ… token (anon keys are fine; the service_role key must NEVER
+          # appear in lib/).
+          if grep -rn --include="*.dart" "service_role" lib/; then
+            echo "::error::service_role key found in Flutter source — remove it before merging."
+            exit 1
+          fi
+          # Catch accidentally committed long Bearer tokens / JWT strings.
+          if grep -rEn --include="*.dart" 'eyJ[A-Za-z0-9_-]{40,}' lib/; then
+            echo "::error::Raw JWT/token string detected in Flutter source — use --dart-define or .env."
+            exit 1
+          fi
+          echo "Secret guard passed — no service_role key or raw tokens in lib/."
+
       - name: Write .env file
         run: |
           printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\n' \

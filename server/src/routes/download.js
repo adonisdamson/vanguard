@@ -113,7 +113,7 @@ router.get('/version', (req, res) => {
     if (err || !asset) {
       return res.status(503).json({ error: 'Version info unavailable' });
     }
-    const match = asset.name.match(/v([\d.]+)/);
+    const match = asset.name.match(/v(\d+(?:\.\d+)*)/);
     res.setHeader('Cache-Control', 'public, max-age=300'); // 5-min CDN cache is fine for version info
     res.json({
       version: match ? match[1] : null,

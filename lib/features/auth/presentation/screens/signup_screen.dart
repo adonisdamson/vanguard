@@ -12,6 +12,9 @@ import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 import '../widgets/auth_hero.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -31,12 +34,38 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   String? _error;
   String? _requestedRole;
 
+  // Verification selfie — CAMERA ONLY, no gallery (anti-impersonation).
+  String? _selfiePath;
+
   // Inline live-validation state
   bool _passLengthOk = false;
   bool _passMatch    = false;
 
   // After success: email confirmation needed?
   bool _awaitingEmailConfirm = false;
+
+  Future<void> _captureSelfie() async {
+    try {
+      final img = await ImagePicker().pickImage(
+        source: ImageSource.camera,        // camera only — never gallery
+        preferredCameraDevice: CameraDevice.front,
+        maxWidth: 700,
+        maxHeight: 700,
+        imageQuality: 80,
+      );
+      if (img != null) {
+        setState(() {
+          _selfiePath = img.path;
+          _error = null;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error =
+            'Camera not available. Grant camera permission and try again.');
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -54,6 +83,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     });
   }
 
+  // Best-effort: the account already exists; a failed photo upload must not
+  // block the request. It syncs as the avatar if it succeeds.
+  Future<void> _uploadSelfie() async {
+    try {
+      final client = Supabase.instance.client;
+      final uid = client.auth.currentUser?.id;
+      if (uid == null || _selfiePath == null) return;
+      final path = '$uid/selfie_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await client.storage.from('member-photos').uploadBinary(
+            path,
+            await File(_selfiePath!).readAsBytes(),
+            fileOptions: const FileOptions(contentType: 'image/jpeg'),
+          );
+      await client.from('app_users').update({'avatar_path': path}).eq('id', uid);
+    } catch (_) {/* non-blocking */}
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -65,6 +111,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selfiePath == null) {
+      setState(() => _error =
+          'A verification selfie is required. Tap "Take selfie" above.');
+      return;
+    }
     setState(() { _loading = true; _error = null; });
     try {
       final hasSession = await ref.read(authServiceProvider).signUp(
@@ -75,6 +126,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       );
       if (!mounted) return;
       if (hasSession) {
+        // Signed in now — upload the verification selfie as the profile photo
+        // so the admin sees the requester's face when approving.
+        await _uploadSelfie();
+        if (!mounted) return;
         context.go('/pending-approval');
       } else {
         // Email confirmation is required — show inline confirmation state
@@ -143,6 +198,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                         const SizedBox(height: AppSpacing.base),
                       ],
+
+                      // Verification selfie — required, camera only.
+                      _SelfieField(
+                        selfiePath: _selfiePath,
+                        onCapture: _captureSelfie,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
 
                       NdcTextField(
                         label: 'Full name',
@@ -252,6 +314,78 @@ class _Header extends StatelessWidget {
       title: 'Request access.',
       subtitle:
           'Create your account — an administrator activates it and assigns your role.',
+    );
+  }
+}
+
+// ── Verification selfie (camera only) ─────────────────────────────────────────
+
+class _SelfieField extends StatelessWidget {
+  final String? selfiePath;
+  final VoidCallback onCapture;
+
+  const _SelfieField({required this.selfiePath, required this.onCapture});
+
+  @override
+  Widget build(BuildContext context) {
+    final has = selfiePath != null;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.brandTint,
+              border: Border.all(color: AppColors.line),
+              image: has
+                  ? DecorationImage(
+                      image: FileImage(File(selfiePath!)), fit: BoxFit.cover)
+                  : null,
+            ),
+            child: has
+                ? null
+                : const PhosphorIcon(PhosphorIconsRegular.userFocus,
+                    size: 26, color: AppColors.brand),
+          ),
+          const SizedBox(width: AppSpacing.base),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Verification selfie *', style: AppTextStyles.label()),
+                const SizedBox(height: 2),
+                Text(
+                  has
+                      ? 'Looks good — retake if needed.'
+                      : 'Snap a photo of your face. Camera only, for security.',
+                  style: AppTextStyles.small(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: onCapture,
+            icon: PhosphorIcon(
+                has ? PhosphorIconsRegular.arrowClockwise : PhosphorIconsFill.camera,
+                size: 16, color: AppColors.brand),
+            label: Text(has ? 'Retake' : 'Take selfie',
+                style: AppTextStyles.label(color: AppColors.brand)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: AppColors.brand),
+              shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

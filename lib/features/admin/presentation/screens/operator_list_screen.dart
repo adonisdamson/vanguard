@@ -17,6 +17,7 @@ import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/status_pill.dart';
+import '../../../members/presentation/widgets/member_avatar.dart';
 
 class OperatorListScreen extends ConsumerStatefulWidget {
   const OperatorListScreen({super.key});
@@ -398,18 +399,9 @@ class _PendingTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.amberTint,
-              borderRadius: AppRadii.borderSm,
-            ),
-            child: const PhosphorIcon(
-              PhosphorIconsFill.clock,
-              size: 22,
-              color: AppColors.statusPending,
-            ),
-          ),
+          // Verification selfie — the whole point of the access-request flow
+          // is the admin confirming a real face before approving.
+          MemberAvatar(photoPath: operator.avatarPath, size: 48),
           const SizedBox(width: AppSpacing.base),
           Expanded(
             child: Column(

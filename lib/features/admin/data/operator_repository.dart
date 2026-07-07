@@ -82,6 +82,7 @@ class PendingOperator {
   final String fullName;
   final String email;
   final String? requestedRole;
+  final String? avatarPath;
   final DateTime createdAt;
 
   const PendingOperator({
@@ -89,6 +90,7 @@ class PendingOperator {
     required this.fullName,
     required this.email,
     this.requestedRole,
+    this.avatarPath,
     required this.createdAt,
   });
 
@@ -98,6 +100,7 @@ class PendingOperator {
       fullName: m['full_name'] as String,
       email: m['email'] as String,
       requestedRole: m['requested_role'] as String?,
+      avatarPath: m['avatar_path'] as String?,
       createdAt: DateTime.parse(m['created_at'] as String),
     );
   }
@@ -110,7 +113,7 @@ class OperatorRepository {
   Future<List<PendingOperator>> listPendingOperators() async {
     final data = await _db
         .from('app_users')
-        .select('id, full_name, email, requested_role, created_at')
+        .select('id, full_name, email, requested_role, avatar_path, created_at')
         .isFilter('role', null)
         .eq('is_active', false)
         .order('created_at', ascending: true)

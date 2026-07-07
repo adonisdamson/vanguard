@@ -13,6 +13,7 @@ class AppUser {
   final AppUserRole role;
   final bool isActive;
   final String? avatarPath;
+  final bool mustChangePassword;
 
   const AppUser({
     required this.id,
@@ -21,6 +22,7 @@ class AppUser {
     required this.role,
     required this.isActive,
     this.avatarPath,
+    this.mustChangePassword = false,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -31,6 +33,7 @@ class AppUser {
       role: _parseRole(map['role'] as String?),
       isActive: map['is_active'] as bool? ?? false,
       avatarPath: map['avatar_path'] as String?,
+      mustChangePassword: map['must_change_password'] as bool? ?? false,
     );
   }
 
@@ -61,7 +64,7 @@ final appUserProvider = FutureProvider<AppUser?>((ref) async {
   // gate screen, never as an indefinite loading state.
   final response = await supabase
       .from('app_users')
-      .select('id, full_name, email, role, is_active, avatar_path')
+      .select('id, full_name, email, role, is_active, avatar_path, must_change_password')
       .eq('id', session.user.id)
       .maybeSingle()
       .timeout(const Duration(seconds: 10));

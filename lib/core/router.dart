@@ -64,7 +64,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/signup', builder: (context, _) => const SignUpScreen()),
       GoRoute(path: '/forgot-password', builder: (context, _) => const ForgotPasswordScreen()),
       GoRoute(path: '/pending-approval', builder: (context, _) => const PendingApprovalScreen()),
-      GoRoute(path: '/change-password', builder: (context, _) => const ChangePasswordScreen()),
+      GoRoute(
+        path: '/change-password',
+        builder: (context, state) =>
+            ChangePasswordScreen(forced: state.uri.queryParameters['forced'] == '1'),
+      ),
       GoRoute(path: '/notifications', builder: (context, _) => const NotificationsScreen()),
 
       // Personnel (shell provides bottom nav + IndexedStack)
@@ -101,6 +105,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 /// AuthGateScreen — nothing else should duplicate this switch.
 String roleHomePath(AppUser? user) {
   if (user == null || !user.isActive) return '/pending-approval';
+  // Admin-set password: force the operator to replace it before anything else.
+  if (user.mustChangePassword) return '/change-password?forced=1';
   return switch (user.role) {
     AppUserRole.admin => '/admin',
     AppUserRole.higherAuthority => '/dashboard',

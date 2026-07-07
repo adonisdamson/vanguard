@@ -10,11 +10,16 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
+import '../../application/user_role_provider.dart';
 
 /// In-app password change for the signed-in user. No emails, no links, no
 /// leaving the app — the session is already proof of identity.
 class ChangePasswordScreen extends ConsumerStatefulWidget {
-  const ChangePasswordScreen({super.key});
+  /// Forced first-login change: the operator can't leave until they replace the
+  /// admin-set password. No back button, and success routes them to their home
+  /// after clearing the must_change_password flag.
+  final bool forced;
+  const ChangePasswordScreen({super.key, this.forced = false});
 
   @override
   ConsumerState<ChangePasswordScreen> createState() =>
@@ -42,16 +47,33 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.auth
-          .updateUser(UserAttributes(password: _passCtrl.text));
+      final client = Supabase.instance.client;
+      await client.auth.updateUser(UserAttributes(password: _passCtrl.text));
+
+      if (widget.forced) {
+        // Clear the flag on our own row (trigger allows self-updates that don't
+        // touch role/is_active/email), then re-gate to the role home.
+        final uid = client.auth.currentUser!.id;
+        await client
+            .from('app_users')
+            .update({'must_change_password': false}).eq('id', uid);
+        ref.invalidate(appUserProvider);
+      }
       HapticFeedback.mediumImpact();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppColors.brand,
-        content: Text('Password updated. Use it on your next sign-in.',
+        content: Text(
+            widget.forced
+                ? 'Password set. Welcome to Vanguard.'
+                : 'Password updated. Use it on your next sign-in.',
             style: AppTextStyles.body(color: AppColors.surface)),
       ));
-      context.pop();
+      if (widget.forced) {
+        context.go('/resolving');
+      } else {
+        context.pop();
+      }
     } catch (e, st) {
       if (mounted) {
         setState(() {
@@ -71,13 +93,18 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.deepCanopy,
         elevation: 0,
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft,
-              color: AppColors.surface, size: 22),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('Change password', style: AppTextStyles.appBarTitle()),
+        automaticallyImplyLeading: false,
+        // No escape in forced mode — the operator must set their own password.
+        leading: widget.forced
+            ? null
+            : IconButton(
+                tooltip: 'Back',
+                icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft,
+                    color: AppColors.surface, size: 22),
+                onPressed: () => context.pop(),
+              ),
+        title: Text(widget.forced ? 'Set your password' : 'Change password',
+            style: AppTextStyles.appBarTitle()),
       ),
       actionBar: FormActionBar(
         primaryLabel: 'Update password',
@@ -94,7 +121,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Choose a new password. It takes effect immediately — no email involved.',
+                widget.forced
+                    ? 'Your account was created with a temporary password. Set '
+                        'your own now to continue — only you should know it.'
+                    : 'Choose a new password. It takes effect immediately — no email involved.',
                 style: AppTextStyles.body(color: AppColors.inkMuted),
               ),
               const SizedBox(height: AppSpacing.xl),

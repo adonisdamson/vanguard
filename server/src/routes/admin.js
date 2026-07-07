@@ -58,6 +58,9 @@ router.post('/', async (req, res) => {
     assigned_region_id: assigned_region_id || null,
     assigned_district_id: assigned_district_id || null,
     assigned_constituency_id: assigned_constituency_id || null,
+    // Admin-chosen password → force the operator to set their own on first
+    // sign-in. Invite flow (no password here) sets their own from the link.
+    must_change_password: password ? true : false,
   }, { onConflict: 'id' });
 
   if (upsertError) {
@@ -127,6 +130,22 @@ router.post('/:id/password', async (req, res) => {
 
   const { error } = await serviceClient().auth.admin.updateUserById(req.params.id, { password });
   if (error) return res.status(400).json({ error: error.message });
+
+  // Force the operator to replace this admin-known password on next sign-in.
+  await serviceClient()
+    .from('app_users')
+    .update({ must_change_password: true })
+    .eq('id', req.params.id);
+
+  // Audit the reset. The service key has no auth.uid(), so the audit RPC/trigger
+  // path can't attribute it — write the row directly with the acting admin.
+  await serviceClient().from('audit_log').insert({
+    actor_id: ctx.user.id,
+    action: 'operator_password_reset',
+    target_table: 'app_users',
+    target_id: req.params.id,
+    metadata: {},
+  });
 
   res.json({ ok: true });
 });

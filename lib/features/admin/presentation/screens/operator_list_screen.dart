@@ -646,18 +646,12 @@ class _OperatorTile extends StatelessWidget {
     if (password == null || !context.mounted) return;
     try {
       await OperatorRepository().setOperatorPassword(operator.id, password);
-      // Copy the new password so the admin can paste it straight to the
-      // operator — the snackbar text can't be selected.
-      await Clipboard.setData(ClipboardData(text: password));
       HapticFeedback.mediumImpact();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.canopyGreen,
-          content: Text(
-              'Password for ${operator.fullName} updated and copied: $password',
-              style: AppTextStyles.body(color: AppColors.surface)),
-          duration: const Duration(seconds: 8),
-        ));
+        // Never splash the password in a snackbar (it lingers on screen and in
+        // the notification shade). Show a controlled dialog that keeps it
+        // masked until the admin explicitly reveals or copies it.
+        await _showPasswordResultDialog(context, operator.fullName, password);
       }
     } catch (e) {
       if (context.mounted) {
@@ -668,6 +662,85 @@ class _OperatorTile extends StatelessWidget {
         ));
       }
     }
+  }
+
+  // Post-reset confirmation: password stays masked behind an explicit reveal,
+  // with a copy button for secure hand-off. It is not echoed anywhere else.
+  Future<void> _showPasswordResultDialog(
+      BuildContext context, String name, String password) async {
+    bool revealed = false;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
+          title: Text('Password updated', style: AppTextStyles.h3()),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "New password for $name takes effect immediately. Share it "
+                "securely — it won't be shown again after you close this.",
+                style: AppTextStyles.body(),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.paper,
+                  borderRadius: AppRadii.borderSm,
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        revealed ? password : '•' * password.length,
+                        style: AppTextStyles.bodyLarge()
+                            .copyWith(letterSpacing: revealed ? 0.5 : 2),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: revealed ? 'Hide' : 'Reveal',
+                      icon: PhosphorIcon(
+                        revealed
+                            ? PhosphorIconsRegular.eyeSlash
+                            : PhosphorIconsRegular.eye,
+                        size: 20,
+                        color: AppColors.mist,
+                      ),
+                      onPressed: () => setState(() => revealed = !revealed),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: password));
+                HapticFeedback.selectionClick();
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                    content: Text('Password copied'),
+                    duration: Duration(seconds: 2),
+                  ));
+                }
+              },
+              child: Text('Copy',
+                  style: TextStyle(color: AppColors.canopyGreen)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Done',
+                  style: TextStyle(color: AppColors.canopyGreen)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _changeRole(BuildContext context) async {

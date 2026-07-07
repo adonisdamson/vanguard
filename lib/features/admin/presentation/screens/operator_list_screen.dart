@@ -654,12 +654,15 @@ class _OperatorTile extends StatelessWidget {
     if (password == null || !context.mounted) return;
     try {
       await OperatorRepository().setOperatorPassword(operator.id, password);
+      // Copy the new password so the admin can paste it straight to the
+      // operator — the snackbar text can't be selected.
+      await Clipboard.setData(ClipboardData(text: password));
       HapticFeedback.mediumImpact();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
           content: Text(
-              'Password updated for ${operator.fullName}. New password: $password',
+              'Password for ${operator.fullName} updated and copied: $password',
               style: AppTextStyles.body(color: AppColors.surface)),
           duration: const Duration(seconds: 8),
         ));

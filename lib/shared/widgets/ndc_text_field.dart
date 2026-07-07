@@ -52,6 +52,9 @@ class _NdcTextFieldState extends State<NdcTextField> {
         TextFormField(
           controller: widget.controller,
           obscureText: widget.obscureText && _obscured,
+          // Explicit: long-press select / copy / paste always available
+          // (paste into password fields works even while masked).
+          enableInteractiveSelection: true,
           enableSuggestions: !widget.obscureText,
           autocorrect: !widget.obscureText,
           keyboardType: widget.keyboardType,

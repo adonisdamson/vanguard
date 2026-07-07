@@ -29,10 +29,21 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
   bool _loading = false;
 
   // Readable temp password: NDC- + 6 digits (10 chars, meets the 8+ rule).
+  // Auto-copied so the admin can paste it straight into a message to the
+  // operator — no manual selection needed.
   void _generatePassword() {
     final seed = DateTime.now().microsecondsSinceEpoch;
     final digits = (seed % 900000 + 100000).toString();
-    setState(() => _passCtrl.text = 'NDC-$digits');
+    final pw = 'NDC-$digits';
+    setState(() => _passCtrl.text = pw);
+    Clipboard.setData(ClipboardData(text: pw));
+    HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: AppColors.ink,
+      duration: const Duration(seconds: 2),
+      content: Text('Password generated and copied to clipboard',
+          style: AppTextStyles.body(color: AppColors.surface)),
+    ));
   }
 
   // Jurisdiction — optional; null means national/unrestricted scope

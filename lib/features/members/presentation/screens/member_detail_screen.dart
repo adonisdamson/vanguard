@@ -528,7 +528,8 @@ class _Row extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(width: 110, child: Text(label, style: AppTextStyles.small())),
-          Expanded(child: Text(value, style: AppTextStyles.bodyMedium())),
+          // Selectable so member number, phone, email etc. can be copied.
+          Expanded(child: SelectableText(value, style: AppTextStyles.bodyMedium())),
         ],
       ),
     );

@@ -77,7 +77,6 @@ class _PrimaryButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
         shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
       ),
       child: loading
@@ -85,30 +84,13 @@ class _PrimaryButton extends StatelessWidget {
               width: 20, height: 20,
               child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.surface),
             )
-          : icon == null
-              // No symbol — a clean, centred label.
-              ? Center(child: Text(label, style: AppTextStyles.buttonText()))
-              // With a symbol — label stays optically centred, the icon rides
-              // in a soft circular chip pinned to the trailing edge. Reads as a
-              // considered "proceed" affordance rather than a decoration.
-              : Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(label, style: AppTextStyles.buttonText()),
-                    Positioned(
-                      right: 4,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface.withValues(alpha: 0.16),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(child: icon!),
-                      ),
-                    ),
-                  ],
-                ),
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[icon!, const SizedBox(width: 8)],
+                Text(label, style: AppTextStyles.buttonText()),
+              ],
+            ),
     );
   }
 }
@@ -126,7 +108,6 @@ class _SecondaryButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
         shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
       ),
       child: loading
@@ -134,31 +115,13 @@ class _SecondaryButton extends StatelessWidget {
               width: 20, height: 20,
               child: CircularProgressIndicator(strokeWidth: 2.5),
             )
-          : icon == null
-              ? Center(
-                  child: Text(label,
-                      style: AppTextStyles.buttonText(color: AppColors.canopyGreen)))
-              // Mirrors the primary CTA: centred label, symbol in a soft
-              // brand-tinted chip on the trailing edge.
-              : Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(label,
-                        style: AppTextStyles.buttonText(color: AppColors.canopyGreen)),
-                    Positioned(
-                      right: 4,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: AppColors.brandTint,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(child: icon!),
-                      ),
-                    ),
-                  ],
-                ),
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[icon!, const SizedBox(width: 8)],
+                Text(label, style: AppTextStyles.buttonText(color: AppColors.canopyGreen)),
+              ],
+            ),
     );
   }
 }

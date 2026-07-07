@@ -27,6 +27,13 @@ class FormScaffold extends StatelessWidget {
 
   final Color backgroundColor;
 
+  /// When true (default) the whole column insets above the keyboard so the
+  /// pinned action bar stays visible while typing — the right behaviour for a
+  /// multi-field wizard. Screens with only a field or two (e.g. login) set
+  /// this false so the buttons stay anchored at the bottom and the keyboard
+  /// simply overlays them, instead of the CTAs riding up on the keyboard.
+  final bool resizeToAvoidBottomInset;
+
   const FormScaffold({
     super.key,
     this.appBar,
@@ -34,13 +41,14 @@ class FormScaffold extends StatelessWidget {
     required this.body,
     required this.actionBar,
     this.backgroundColor = AppColors.paper,
+    this.resizeToAvoidBottomInset = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       appBar: appBar,
       body: Column(
         children: [

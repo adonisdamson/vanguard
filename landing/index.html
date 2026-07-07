@@ -1000,12 +1000,12 @@
       <h2 class="reveal reveal-delay-1">Download Vanguard for Android</h2>
       <p class="download-sub reveal reveal-delay-1">Free for all NDC Tema West personnel. Install in under a minute.</p>
 
-      <a href="/download" class="btn btn-download reveal reveal-delay-2">
+      <a href="/download" class="btn btn-download reveal reveal-delay-2" id="dl-btn">
         <i class="ph-fill ph-android-logo"></i>
-        Get the App
+        <span id="dl-label">Get the App</span>
       </a>
 
-      <p class="download-note reveal reveal-delay-3">Android 10+ (API 29) · arm64 · Enable "Install unknown apps" in Settings</p>
+      <p class="download-note reveal reveal-delay-3" id="dl-note">Android 10+ (API 29) · arm64 · Enable "Install unknown apps" in Settings</p>
     </div>
   </section>
 
@@ -1032,6 +1032,18 @@
       { threshold: 0.1, rootMargin: '0px 0px -32px 0px' }
     );
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Show live version on the download CTA — silent fail keeps fallback text.
+    fetch('/download/version')
+      .then(r => r.ok ? r.json() : null)
+      .then(v => {
+        if (!v || !v.version) return;
+        document.getElementById('dl-label').textContent = 'Get the App — v' + v.version;
+        const d = v.updated_at ? new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        document.getElementById('dl-note').textContent =
+          'Latest build: v' + v.version + (d ? ' · Released ' + d : '') + ' · Android 10+ · arm64';
+      })
+      .catch(() => {});
   </script>
 
 </body>

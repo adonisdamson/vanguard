@@ -15,6 +15,7 @@ import '../../../../features/tracker/presentation/screens/tracker_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 import '../../../../shared/widgets/offline_banner.dart';
 import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   const AdminShell({super.key});
@@ -146,6 +147,7 @@ class _AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(PhosphorIconsRegular.scroll, color: AppColors.surface, size: 20),
           onPressed: () => context.push('/admin/audit'),
         ),
+        const NotificationBell(),
       ],
     );
   }

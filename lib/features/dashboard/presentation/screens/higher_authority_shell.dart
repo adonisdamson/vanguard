@@ -15,6 +15,7 @@ import '../../../../features/reports/presentation/screens/reports_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 import '../../../../shared/widgets/offline_banner.dart';
 import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class HigherAuthorityShell extends ConsumerStatefulWidget {
   const HigherAuthorityShell({super.key});
@@ -134,6 +135,7 @@ class _HaAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           child: Text('COORDINATOR', style: AppTextStyles.badge(color: AppColors.surface)),
         ),
+        const NotificationBell(),
       ],
     );
   }

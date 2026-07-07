@@ -54,11 +54,11 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xl),
                 NdcButton(
                   label: 'Sign out',
-                  variant: NdcButtonVariant.ghost,
+                  variant: NdcButtonVariant.danger,
                   icon: const PhosphorIcon(
                     PhosphorIconsBold.signOut,
-                    size: 16,
-                    color: AppColors.umbrellaRed,
+                    size: 18,
+                    color: AppColors.surface,
                   ),
                   onPressed: () async {
                     await ref.read(authServiceProvider).signOut();

@@ -11,6 +11,7 @@ import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/change_password_screen.dart';
 import '../features/auth/presentation/screens/pending_approval_screen.dart';
+import '../features/notifications/presentation/screens/notifications_screen.dart';
 import '../features/members/presentation/screens/personnel_shell.dart';
 import '../features/members/presentation/screens/registration_screen.dart';
 import '../features/members/presentation/screens/my_submissions_screen.dart';
@@ -64,6 +65,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/forgot-password', builder: (context, _) => const ForgotPasswordScreen()),
       GoRoute(path: '/pending-approval', builder: (context, _) => const PendingApprovalScreen()),
       GoRoute(path: '/change-password', builder: (context, _) => const ChangePasswordScreen()),
+      GoRoute(path: '/notifications', builder: (context, _) => const NotificationsScreen()),
 
       // Personnel (shell provides bottom nav + IndexedStack)
       GoRoute(path: '/home', builder: (context, _) => const PersonnelShell()),

@@ -15,6 +15,7 @@ import 'member_directory_screen.dart';
 import '../../../../features/auth/presentation/screens/profile_screen.dart';
 import '../../../../shared/widgets/offline_banner.dart';
 import '../../../../shared/widgets/ndc_flag_stripe.dart';
+import '../../../notifications/presentation/widgets/notification_bell.dart';
 
 class PersonnelShell extends ConsumerStatefulWidget {
   const PersonnelShell({super.key});
@@ -149,6 +150,7 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           child: Text(roleLabel.toUpperCase(), style: AppTextStyles.badge(color: AppColors.surface)),
         ),
+        const NotificationBell(),
       ],
     );
   }

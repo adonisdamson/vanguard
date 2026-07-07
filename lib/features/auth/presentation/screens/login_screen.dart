@@ -11,6 +11,7 @@ import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 import '../widgets/auth_hero.dart';
+import '../../../../shared/widgets/ndc_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -67,19 +68,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         loading: _loading,
         primaryIcon: const PhosphorIcon(PhosphorIconsFill.arrowLineRight,
             size: 18, color: AppColors.surface),
-        secondaryAction: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('New here? ', style: AppTextStyles.small()),
-            GestureDetector(
-              onTap: () => context.push('/signup'),
-              child: Text(
-                'Request access',
-                style: AppTextStyles.small(color: AppColors.canopyGreen)
-                    .copyWith(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
+        secondaryAction: NdcButton(
+          label: 'Request access',
+          variant: NdcButtonVariant.secondary,
+          icon: const PhosphorIcon(PhosphorIconsRegular.userPlus,
+              size: 18, color: AppColors.brand),
+          onPressed: () => context.push('/signup'),
         ),
       ),
       body: SingleChildScrollView(

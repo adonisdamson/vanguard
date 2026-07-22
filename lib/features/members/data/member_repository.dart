@@ -57,6 +57,20 @@ class MemberStats {
 class MemberRepository {
   final _db = Supabase.instance.client;
 
+  // Full member row for the edit form (all columns).
+  Future<Map<String, dynamic>> fetchFullMember(String id) async {
+    final data =
+        await _db.from('members').select().eq('id', id).single().dbTimeout();
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  // Update an existing member's editable fields. RLS + the DB trigger enforce
+  // that Personnel may only touch their own PENDING records and never change
+  // status/reviewed_by/registered_by.
+  Future<void> updateMember(String id, Map<String, dynamic> data) async {
+    await _db.from('members').update(data).eq('id', id).dbTimeout();
+  }
+
   // Insert member row, returning the new member ID and member_number
   Future<Map<String, String>> insertMember(Map<String, dynamic> data) async {
     final result = await _db

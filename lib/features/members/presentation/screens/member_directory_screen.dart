@@ -329,6 +329,7 @@ class _SearchBar extends StatelessWidget {
               prefixIconConstraints: const BoxConstraints(minWidth: 48),
               suffixIcon: controller.text.isNotEmpty
                   ? IconButton(
+                      tooltip: 'Clear search',
                       icon: const PhosphorIcon(PhosphorIconsRegular.x, size: 18, color: AppColors.mist),
                       onPressed: () { controller.clear(); onChanged(''); },
                     )

@@ -185,6 +185,59 @@ class RegistrationFormData {
     map.remove('photo_path'); // will be set on sync
     return map;
   }
+
+  // Editable fields only, for an update. Excludes registered_by and status —
+  // Personnel can never change those (DB trigger enforces this too).
+  Map<String, dynamic> toUpdateMap() {
+    final map = toInsertMap('')
+      ..remove('registered_by')
+      ..remove('status');
+    return map;
+  }
+
+  // Seed the form from an existing member row (edit flow). The electoral tab
+  // restores its cascading dropdowns from the *_id fields on init.
+  factory RegistrationFormData.fromMember(Map<String, dynamic> m) {
+    DateTime? dob;
+    final rawDob = m['date_of_birth'];
+    if (rawDob is String && rawDob.isNotEmpty) {
+      dob = DateTime.tryParse(rawDob);
+    }
+    List<String> skills = const [];
+    final rawSkills = m['skills'];
+    if (rawSkills is List) {
+      skills = rawSkills.map((e) => e.toString()).toList();
+    }
+    String? asStr(dynamic v) => v?.toString();
+    int? asInt(dynamic v) => (v as num?)?.toInt();
+
+    return RegistrationFormData(
+      firstName: (m['first_name'] as String?) ?? '',
+      lastName: (m['last_name'] as String?) ?? '',
+      dateOfBirth: dob,
+      gender: asStr(m['gender']),
+      phone: (m['phone'] as String?) ?? '',
+      email: asStr(m['email']),
+      ghanaCardId: asStr(m['ghana_card_id']),
+      regionId: asInt(m['region_id']),
+      districtId: asInt(m['district_id']),
+      constituencyId: asInt(m['constituency_id']),
+      pollingStationId: asInt(m['polling_station_id']),
+      ward: asStr(m['ward']),
+      branch: asStr(m['branch']),
+      residentialAddress: asStr(m['residential_address']),
+      residenceTown: asStr(m['residence_town']),
+      membershipType: asStr(m['membership_type']),
+      preferredRole: asStr(m['preferred_role']),
+      profession: asStr(m['profession']),
+      partyPosition: asStr(m['party_position']),
+      otherParty: asStr(m['other_party']),
+      employmentStatus: asStr(m['employment_status']),
+      highestQualification: asStr(m['highest_academic_qualification']),
+      skills: skills,
+      photoStoragePath: asStr(m['photo_path']),
+    );
+  }
 }
 
 class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
@@ -297,6 +350,12 @@ class RegistrationFormNotifier extends StateNotifier<RegistrationFormData> {
 
   void reset() {
     state = const RegistrationFormData();
+  }
+
+  // Seed the whole form (edit flow). Call before the tab widgets build so their
+  // initState reads the seeded values.
+  void seed(RegistrationFormData data) {
+    state = data;
   }
 }
 

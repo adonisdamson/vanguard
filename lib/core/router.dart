@@ -74,6 +74,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Personnel (shell provides bottom nav + IndexedStack)
       GoRoute(path: '/home', builder: (context, _) => const PersonnelShell()),
       GoRoute(path: '/register-member', builder: (context, _) => const RegistrationScreen()),
+      GoRoute(
+        path: '/edit-member/:id',
+        builder: (context, state) =>
+            RegistrationScreen(memberId: state.pathParameters['id']!),
+      ),
       GoRoute(path: '/my-submissions', builder: (context, _) => const MySubmissionsScreen()),
 
       // Higher Authority (shell provides bottom nav + IndexedStack)

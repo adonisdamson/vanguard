@@ -23,7 +23,10 @@ import 'registration_tab_personal.dart';
 const _tabLabels = ['Personal', 'Electoral', 'Party & Livelihood'];
 
 class RegistrationScreen extends ConsumerStatefulWidget {
-  const RegistrationScreen({super.key});
+  /// When set, the screen edits an existing (pending) member instead of
+  /// creating a new one. Personnel may only edit their own pending records.
+  final String? memberId;
+  const RegistrationScreen({super.key, this.memberId});
 
   @override
   ConsumerState<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -36,6 +39,10 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
   bool _submitting = false;
   String? _submitError;
 
+  bool get _isEdit => widget.memberId != null;
+  bool _loadingMember = false;
+  String? _loadError;
+
   final _formKeys = List.generate(3, (_) => GlobalKey<FormState>());
 
   @override
@@ -43,6 +50,31 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
     super.initState();
     _tabs = TabController(length: 3, vsync: this);
     _tabs.addListener(() => setState(() {}));
+    if (_isEdit) {
+      _loadingMember = true;
+      _loadForEdit();
+    }
+  }
+
+  // Fetch the member row and seed the form BEFORE the tabs build, so each tab's
+  // initState reads the prefilled values (the electoral tab restores its
+  // cascading dropdowns from the seeded *_id fields).
+  Future<void> _loadForEdit() async {
+    try {
+      final row = await MemberRepository().fetchFullMember(widget.memberId!);
+      if (!mounted) return;
+      ref
+          .read(registrationFormProvider.notifier)
+          .seed(RegistrationFormData.fromMember(row));
+      setState(() => _loadingMember = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loadingMember = false;
+        _loadError =
+            "Couldn't load this submission. Check your connection and try again.";
+      });
+    }
   }
 
   @override
@@ -172,6 +204,69 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
     final updatedForm = ref.read(registrationFormProvider);
     final result = await repo.insertMember(updatedForm.toInsertMap(userId));
     return (result['id'], photoFailed);
+  }
+
+  // Save edits to an existing pending member. No duplicate check, no metadata
+  // capture, no offline queue — editing requires connectivity.
+  Future<void> _submitEdit() async {
+    if (!_validateAll()) {
+      setState(() => _submitError = 'Please fix errors before saving.');
+      return;
+    }
+    _saveAll();
+
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      setState(() =>
+          _submitError = 'Your session has expired. Sign in again to save.');
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    final repo = MemberRepository();
+    try {
+      final form = ref.read(registrationFormProvider);
+      var photoFailed = false;
+      // Upload only if the operator picked a NEW photo this session.
+      if (form.photoLocalPath != null) {
+        try {
+          final path = await repo.uploadPhoto(form.photoLocalPath!, session.user.id);
+          ref.read(registrationFormProvider.notifier).setPhotoStoragePath(path);
+        } catch (_) {
+          photoFailed = true;
+        }
+      }
+      final updated = ref.read(registrationFormProvider);
+      await repo.updateMember(widget.memberId!, updated.toUpdateMap());
+
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+      ref.read(registrationFormProvider.notifier).reset();
+      if (photoFailed) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            'Changes saved — but the new photo failed to upload. Try again later.',
+            style: AppTextStyles.bodyMedium(color: AppColors.surface),
+          ),
+          backgroundColor: AppColors.umbrellaRed,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ));
+      }
+      context.pop(true); // signal my-submissions to refresh
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _submitError = _isNetworkError(e)
+            ? 'You appear to be offline. Reconnect to save your changes.'
+            : 'Could not save changes. Please try again.';
+      });
+    }
   }
 
   void _captureMetadata(String memberId) async {
@@ -349,6 +444,52 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_isEdit && _loadingMember) {
+      return const Scaffold(
+        backgroundColor: AppColors.canvas,
+        body: Center(child: LottieLoader(size: 96)),
+      );
+    }
+    if (_isEdit && _loadError != null) {
+      return Scaffold(
+        backgroundColor: AppColors.canvas,
+        appBar: AppBar(
+          backgroundColor: AppColors.deepCanopy,
+          elevation: 0,
+          leading: IconButton(
+            tooltip: 'Back',
+            icon: const PhosphorIcon(PhosphorIconsRegular.arrowLeft,
+                color: AppColors.surface, size: 22),
+            onPressed: () => context.pop(),
+          ),
+          title: Text('Edit member', style: AppTextStyles.appBarTitle()),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const PhosphorIcon(PhosphorIconsRegular.warningCircle,
+                    size: 48, color: AppColors.inkMuted),
+                const SizedBox(height: 16),
+                Text(_loadError!,
+                    textAlign: TextAlign.center, style: AppTextStyles.body()),
+                const SizedBox(height: 20),
+                OutlinedButton(
+                  onPressed: () => setState(() {
+                    _loadError = null;
+                    _loadingMember = true;
+                    _loadForEdit();
+                  }),
+                  child: const Text('Try again'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return FormScaffold(
       appBar: AppBar(
         backgroundColor: AppColors.deepCanopy,
@@ -366,20 +507,23 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
                     color: AppColors.surface, size: 22),
                 onPressed: () => _confirmExit(context),
               ),
-        title: _sessionCount > 0
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Register member', style: AppTextStyles.appBarTitle()),
-                  Text(
-                    'Session · $_sessionCount saved',
-                    style: AppTextStyles.caption(
-                        color: AppColors.surface.withValues(alpha: 0.7)),
-                  ),
-                ],
-              )
-            : Text('Register member', style: AppTextStyles.appBarTitle()),
+        title: _isEdit
+            ? Text('Edit member', style: AppTextStyles.appBarTitle())
+            : _sessionCount > 0
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Register member',
+                          style: AppTextStyles.appBarTitle()),
+                      Text(
+                        'Session · $_sessionCount saved',
+                        style: AppTextStyles.caption(
+                            color: AppColors.surface.withValues(alpha: 0.7)),
+                      ),
+                    ],
+                  )
+                : Text('Register member', style: AppTextStyles.appBarTitle()),
       ),
       header: _TabStrip(controller: _tabs),
       body: TabBarView(
@@ -393,8 +537,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
         ],
       ),
       actionBar: FormActionBar(
-        primaryLabel: _tabs.index == 2 ? 'Submit' : 'Continue',
-        onPrimary: _tabs.index == 2 ? () => _submit() : _nextTab,
+        primaryLabel: _tabs.index == 2
+            ? (_isEdit ? 'Save changes' : 'Submit')
+            : 'Continue',
+        onPrimary: _tabs.index == 2
+            ? () => (_isEdit ? _submitEdit() : _submit())
+            : _nextTab,
         loading: _submitting,
         primaryIcon: PhosphorIcon(
             _tabs.index == 2
@@ -404,7 +552,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen>
             color: AppColors.surface),
         onBack: _tabs.index > 0 ? _prevTab : null,
         error: _submitError,
-        secondaryAction: _tabs.index == 2
+        secondaryAction: (_tabs.index == 2 && !_isEdit)
             ? SizedBox(
                 width: double.infinity,
                 height: 44,

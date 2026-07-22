@@ -32,18 +32,25 @@ class MemberAvatar extends ConsumerWidget {
     return urlAsync.when(
       data: (url) => url == null
           ? _fallback()
-          : GestureDetector(
-              onTap: () => openPhotoViewer(context, photoPath, label: viewerLabel),
-              child: ClipRRect(
-                borderRadius: AppRadii.borderSm,
-                child: CachedNetworkImage(
-                  imageUrl: url,
-                  httpHeaders: PhotoService.authHeaders(),
-                  width: size,
-                  height: size,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => _fallback(),
-                  errorWidget: (_, _, _) => _fallback(),
+          : Semantics(
+              button: true,
+              label: viewerLabel != null
+                  ? 'View photo of $viewerLabel'
+                  : 'View photo',
+              child: GestureDetector(
+                onTap: () =>
+                    openPhotoViewer(context, photoPath, label: viewerLabel),
+                child: ClipRRect(
+                  borderRadius: AppRadii.borderSm,
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    httpHeaders: PhotoService.authHeaders(),
+                    width: size,
+                    height: size,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => _fallback(),
+                    errorWidget: (_, _, _) => _fallback(),
+                  ),
                 ),
               ),
             ),

@@ -73,6 +73,34 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
     }
   }
 
+  // Personnel may edit only their own PENDING submissions. Pending → open the
+  // edit form; anything reviewed is read-only (DB trigger enforces this too).
+  Future<void> _openSubmission(MemberSummary m) async {
+    if (m.status != 'pending') {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          'Only pending submissions can be edited — this one is ${m.status}.',
+          style: AppTextStyles.bodyMedium(color: AppColors.surface),
+        ),
+        backgroundColor: AppColors.inkMuted,
+        behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
+    final saved = await context.push<bool>('/edit-member/${m.id}');
+    if (saved == true && mounted) {
+      await _loadPage(0);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Changes saved.',
+              style: AppTextStyles.bodyMedium(color: AppColors.surface)),
+          backgroundColor: AppColors.canopyGreen,
+          behavior: SnackBarBehavior.floating,
+        ));
+      }
+    }
+  }
+
   Future<void> _refresh() async => _loadPage(0);
 
   Future<void> _syncOfflineQueue() async {
@@ -174,7 +202,11 @@ class _MySubmissionsScreenState extends ConsumerState<MySubmissionsScreen> {
             onPressed: () => _loadPage(_page + 1),
           );
         }
-        return MemberListTile(member: _items[i]);
+        final m = _items[i];
+        return MemberListTile(
+          member: m,
+          onTap: () => _openSubmission(m),
+        );
       },
     );
   }

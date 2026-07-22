@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/router.dart';
 import 'core/update/update_gate.dart';
+import 'core/web/web_frame.dart';
 import 'features/members/application/offline_queue.dart';
 import 'shared/theme/app_theme.dart';
 
@@ -32,7 +34,11 @@ class VanguardApp extends ConsumerWidget {
       theme: AppTheme.light,
       routerConfig: router,
       // Global in-app update prompt, overlaid above whatever route is active.
-      builder: (context, child) => UpdateGate(child: child ?? const SizedBox()),
+      // On wide web screens, center the app in a phone-width frame.
+      builder: (context, child) {
+        final content = UpdateGate(child: child ?? const SizedBox());
+        return kIsWeb ? WebFrame(child: content) : content;
+      },
     );
   }
 }

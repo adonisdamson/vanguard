@@ -22,7 +22,7 @@ enabled = true
 [vars]
 # Comma-separated browser origins allowed to call the API (e.g. the download
 # landing page). The native app sends no Origin header and is always allowed.
-ALLOWED_ORIGINS = ""
+ALLOWED_ORIGINS = "https://temawest-app.vercel.app,https://vanguard-web-delta.vercel.app"
 
 # Member photos live in R2, accessed via this native binding (no S3 keys needed
 # in the Worker). Private bucket — bytes are only ever served through the

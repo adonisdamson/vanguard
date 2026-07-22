@@ -12,16 +12,30 @@ import photos from './routes/photos.js';
 const app = new Hono();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// The API is consumed by the native app (no Origin header — always allowed) and
-// by the download landing page. Browsers get no cross-origin access unless the
-// origin is listed in ALLOWED_ORIGINS (comma-separated env var).
+// Consumed by the native app (no Origin header — always allowed), the web PWA,
+// and the landing page. Browser origins must be listed in ALLOWED_ORIGINS
+// (comma-separated env var). *.vercel.app preview URLs for our projects are also
+// allowed so the PWA works across deploys. Authorization + Content-Type headers
+// are permitted so authed image/data fetches succeed cross-origin.
 app.use('*', cors({
   origin: (origin, c) => {
     if (!origin) return origin; // native app / curl — no Origin header
     const allowed = (c.env.ALLOWED_ORIGINS || '')
       .split(',').map((s) => s.trim()).filter(Boolean);
-    return allowed.includes(origin) ? origin : null;
+    if (allowed.includes(origin)) return origin;
+    // Allow our own Vercel PWA/landing deploys (temawest-* / vanguard-web-*).
+    try {
+      const host = new URL(origin).hostname;
+      if (host.endsWith('.vercel.app') &&
+          (host.startsWith('temawest') || host.startsWith('vanguard-web'))) {
+        return origin;
+      }
+    } catch (_) { /* invalid origin */ }
+    return null;
   },
+  allowHeaders: ['Authorization', 'Content-Type'],
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  maxAge: 86400,
 }));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────

@@ -69,9 +69,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return FormScaffold(
-      // Only two fields — let the keyboard overlay the CTAs instead of shoving
-      // them up on top of it.
-      resizeToAvoidBottomInset: false,
+      // Inset above the keyboard so the password field + Sign in button stay
+      // visible and the focused field auto-scrolls into view (the keyboard must
+      // never cover the password).
+      resizeToAvoidBottomInset: true,
       actionBar: FormActionBar(
         primaryLabel: 'Sign in',
         onPrimary: _signIn,

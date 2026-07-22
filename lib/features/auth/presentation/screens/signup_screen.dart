@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,10 +13,9 @@ import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 import '../widgets/auth_hero.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/net/photo_service.dart';
-import '../../../../shared/widgets/local_image.dart';
+import '../../../../core/camera/selfie_capture.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -35,8 +35,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   String? _error;
   String? _requestedRole;
 
-  // Verification selfie — CAMERA ONLY, no gallery (anti-impersonation).
-  String? _selfiePath;
+  // Verification selfie — LIVE CAMERA ONLY, no gallery (anti-impersonation).
+  // Bytes so it works identically on mobile (image_picker) and web (getUserMedia).
+  Uint8List? _selfieBytes;
 
   // Inline live-validation state
   bool _passLengthOk = false;
@@ -47,16 +48,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _captureSelfie() async {
     try {
-      final img = await ImagePicker().pickImage(
-        source: ImageSource.camera,        // camera only — never gallery
-        preferredCameraDevice: CameraDevice.front,
-        maxWidth: 700,
-        maxHeight: 700,
-        imageQuality: 80,
-      );
-      if (img != null) {
+      final bytes = await captureSelfie(context); // live camera, no gallery
+      if (bytes != null && mounted) {
         setState(() {
-          _selfiePath = img.path;
+          _selfieBytes = bytes;
           _error = null;
         });
       }
@@ -90,11 +85,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     try {
       final client = Supabase.instance.client;
       final uid = client.auth.currentUser?.id;
-      if (uid == null || _selfiePath == null) return;
+      if (uid == null || _selfieBytes == null) return;
       final path = '$uid/selfie_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await PhotoService.upload(
         key: path,
-        bytes: await XFile(_selfiePath!).readAsBytes(),
+        bytes: _selfieBytes!,
         contentType: 'image/jpeg',
       );
       await client.from('app_users').update({'avatar_path': path}).eq('id', uid);
@@ -112,7 +107,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selfiePath == null) {
+    if (_selfieBytes == null) {
       setState(() => _error =
           'A verification selfie is required. Tap "Take selfie" above.');
       return;
@@ -292,7 +287,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
                       // Verification selfie — the LAST step, and required.
                       _SelfieField(
-                        selfiePath: _selfiePath,
+                        selfieBytes: _selfieBytes,
                         onCapture: _captureSelfie,
                       ),
                     ],
@@ -322,14 +317,14 @@ class _Header extends StatelessWidget {
 // ── Verification selfie (camera only) ─────────────────────────────────────────
 
 class _SelfieField extends StatelessWidget {
-  final String? selfiePath;
+  final Uint8List? selfieBytes;
   final VoidCallback onCapture;
 
-  const _SelfieField({required this.selfiePath, required this.onCapture});
+  const _SelfieField({required this.selfieBytes, required this.onCapture});
 
   @override
   Widget build(BuildContext context) {
-    final has = selfiePath != null;
+    final has = selfieBytes != null;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
@@ -370,8 +365,8 @@ class _SelfieField extends StatelessWidget {
                   border: Border.all(color: AppColors.line),
                 ),
                 child: has
-                    ? LocalImage(
-                        path: selfiePath!,
+                    ? Image.memory(
+                        selfieBytes!,
                         width: 64,
                         height: 64,
                         fit: BoxFit.cover,

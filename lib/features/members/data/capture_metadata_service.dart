@@ -9,7 +9,8 @@ class CaptureMetadataService {
     final token = Supabase.instance.client.auth.currentSession?.accessToken;
     if (token == null) return;
 
-    final baseUrl = dotenv.env['RAILWAY_API_URL'] ?? '';
+    final baseUrl =
+        dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
     final uri = Uri.parse('$baseUrl/api/members/$memberId/capture-metadata');
 
     final client = HttpClient();

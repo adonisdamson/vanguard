@@ -1,0 +1,14 @@
+# Local dev secrets for `wrangler dev`. Copy to `.dev.vars` (gitignored) and fill in.
+# In production these are set with `wrangler secret put NAME` — never committed.
+
+# WARNING: service_role key bypasses all RLS — keep it ONLY here (and in the
+# deployed Worker's secrets), never in the Flutter app or any committed file.
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+
+# Optional — GitHub personal access token (read-only: contents).
+# Without it: 60 GitHub API req/hr shared. With it: 5000/hr.
+GITHUB_TOKEN=
+
+# Optional — Firebase service account JSON (single line) for FCM push.
+# Leave blank to disable push (sendToTopic silently no-ops).
+FIREBASE_SERVICE_ACCOUNT=

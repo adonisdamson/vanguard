@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../../../core/net/photo_service.dart';
 import '../../application/auth_provider.dart';
 import '../../../members/application/member_providers.dart';
 import '../../application/user_role_provider.dart';
@@ -270,12 +271,11 @@ class _AvatarHeader extends ConsumerWidget {
       if (picked == null) return;
       final uid = Supabase.instance.client.auth.currentUser!.id;
       final path = '$uid/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await Supabase.instance.client.storage.from('member-photos').uploadBinary(
-            path,
-            await File(picked.path).readAsBytes(),
-            fileOptions:
-                const FileOptions(contentType: 'image/jpeg', upsert: false),
-          );
+      await PhotoService.upload(
+        key: path,
+        bytes: await File(picked.path).readAsBytes(),
+        contentType: 'image/jpeg',
+      );
       await Supabase.instance.client
           .from('app_users')
           .update({'avatar_path': path}).eq('id', uid);
@@ -306,7 +306,11 @@ class _AvatarHeader extends ConsumerWidget {
             ? _initialsCircle(initials)
             : ClipOval(
                 child: CachedNetworkImage(
-                    imageUrl: url, width: 80, height: 80, fit: BoxFit.cover),
+                    imageUrl: url,
+                    httpHeaders: PhotoService.authHeaders(),
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover),
               ),
         loading: () => _initialsCircle(initials),
         error: (_, _) => _initialsCircle(initials),

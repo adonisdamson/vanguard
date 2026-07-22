@@ -1,0 +1,21 @@
+{
+  "name": "vanguard-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vanguard backend on Cloudflare Workers — the only place the Supabase service_role key lives.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
+    "aws4fetch": "^1.0.20",
+    "hono": "^4.6.14",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "wrangler": "^3.95.0"
+  }
+}

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/member_repository.dart';
 import '../../auth/application/auth_provider.dart';
+import '../../../core/net/photo_service.dart';
 
 final _repo = MemberRepository();
 
@@ -31,13 +31,11 @@ final myStatsProvider = FutureProvider.autoDispose<MemberStats>((ref) async {
   return _repo.fetchMyStats(session.user.id);
 });
 
-// Signed URL for a photo path (1 hour TTL)
+// Authenticated Worker view URL for a photo key (R2-backed). Deterministic —
+// the bytes are fetched by the image widget with PhotoService.authHeaders().
 final photoUrlProvider = FutureProvider.autoDispose.family<String?, String>((ref, path) async {
   if (path.isEmpty) return null;
-  final response = await Supabase.instance.client.storage
-      .from('member-photos')
-      .createSignedUrl(path, 3600);
-  return response;
+  return PhotoService.viewUrl(path);
 });
 
 // Recent submissions for the personnel activity feed.

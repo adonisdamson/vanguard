@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/member_providers.dart';
 import '../../data/member_repository.dart';
+import '../../../../core/net/photo_service.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -91,6 +92,7 @@ class _Avatar extends StatelessWidget {
               borderRadius: AppRadii.borderSm,
               child: CachedNetworkImage(
                 imageUrl: url,
+                httpHeaders: PhotoService.authHeaders(),
                 width: 44,
                 height: 44,
                 fit: BoxFit.cover,

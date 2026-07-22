@@ -81,10 +81,10 @@ jobs:
 
       - name: Write .env file
         run: |
-          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nRAILWAY_API_URL=%s\n' \
+          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nAPI_BASE_URL=%s\n' \
             "${{ secrets.SUPABASE_URL }}" \
             "${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.RAILWAY_API_URL }}" > .env
+            "${{ secrets.API_BASE_URL }}" > .env
 
 
       - name: Install dependencies

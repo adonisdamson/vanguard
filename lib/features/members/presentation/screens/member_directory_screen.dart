@@ -136,7 +136,8 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
       final token = Supabase.instance.client.auth.currentSession?.accessToken;
       if (token == null) throw Exception('Not authenticated');
 
-      final baseUrl = dotenv.env['RAILWAY_API_URL'] ?? '';
+      final baseUrl =
+          dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
       final uri = Uri.parse('$baseUrl/api/exports/members');
       final client = HttpClient();
       final request = await client.postUrl(uri);

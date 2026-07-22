@@ -8,6 +8,7 @@ import '../../application/review_providers.dart';
 import '../../application/member_providers.dart';
 import '../../data/review_repository.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../../core/net/photo_service.dart';
 import '../../../auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -473,6 +474,7 @@ class _PhotoAvatar extends ConsumerWidget {
         data: (url) => url != null
             ? CachedNetworkImage(
                 imageUrl: url,
+                httpHeaders: PhotoService.authHeaders(),
                 width: 88,
                 height: 88,
                 fit: BoxFit.cover,

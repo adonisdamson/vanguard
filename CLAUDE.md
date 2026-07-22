@@ -54,19 +54,19 @@ Do not re-litigate these without an explicit instruction to change them:
 | Client | Flutter (Riverpod, go_router) | Android app |
 | Auth | Firebase | **Auth only** — Google Sign-In + email/password. No Firestore, no Firebase Storage. |
 | Database | Supabase (Postgres) | All relational data: members, operators, roles, lookup tables, audit log |
-| File storage | Supabase Storage | Member photos only, private bucket, accessed via signed URLs |
-| Backend service | Railway (Node/Express or Python/FastAPI) | The *only* place the Supabase `service_role` key is ever loaded. Handles operator account creation, IP capture, exports — anything requiring elevated privilege or server-verified data. |
+| File storage | Cloudinary (member photos) — *migration pending, Phase B*. Supabase Storage still in use until the swap lands. | Member photos only. Private/authenticated delivery via signed URLs — never a public URL. |
+| Backend service | Cloudflare Workers (Hono) — lives in `worker/`. *(Was Railway/Express in `server/`, retained until the Workers cutover is verified in prod.)* | The *only* place the Supabase `service_role` key is ever loaded. Handles operator account creation, IP capture, exports, APK download proxy — anything requiring elevated privilege or server-verified data. |
 | Icons | `phosphor_flutter` | Every icon in the app. Never Material default icons. |
 | Loading/animation | `lottie`, recolored to NDC palette | Never generic spinners |
 | Local offline queue | Hive | Registration submissions only, keep it simple |
 
 **Security rule that must never be violated:** the Supabase `service_role`
 key never appears in the Flutter app or gets committed anywhere client-side.
-It lives only in the Railway server's environment variables.
+It lives only in the Cloudflare Worker's secrets (`wrangler secret put`).
 
 **Why IP capture is server-side:** a phone cannot reliably determine its own
-public IP (NAT/proxies/spoofing). It's captured by the Railway backend
-reading request headers, not by an on-device lookup.
+public IP (NAT/proxies/spoofing). It's captured by the Cloudflare Worker
+reading the `CF-Connecting-IP` header, not by an on-device lookup.
 
 ---
 
@@ -107,7 +107,7 @@ Flow: Personnel submits → `status='pending'` → Higher Authority
 approves/rejects → `active` / `rejected`.
 
 There is **no public self-registration** for operator accounts — only Admin
-(via the Railway backend) creates Personnel/Higher Authority/Admin accounts.
+(via the Cloudflare Worker backend) creates Personnel/Higher Authority/Admin accounts.
 
 ---
 
@@ -413,7 +413,7 @@ private — always display via `createSignedUrl(path, 3600)`, never a public URL
 
 ---
 
-## 6. Railway Backend API Contract
+## 6. Backend API Contract (Cloudflare Workers)
 
 The only place the Supabase `service_role` key lives. Every route verifies
 the caller's Supabase JWT before doing anything privileged.
@@ -441,7 +441,7 @@ new id. If that call fails (offline), the member row still exists as
 - Every WHERE/ORDER BY used in a query must be backed by an index in Section 5.
   If a new query pattern needs a new index, add the migration — don't just
   ship a slow query.
-- `service_role` key: Railway server env only. If you ever find yourself
+- `service_role` key: Cloudflare Worker secrets only. If you ever find yourself
   about to put it in a Flutter file or a committed config, stop and flag it.
 - Column-level permission logic lives in Postgres triggers (Section 5), not
   just client-side checks — the client-side check is a UX nicety, the
@@ -559,7 +559,7 @@ v1-vs-deferred summary.
 ## 10. Assumptions Already Locked (don't re-ask about these)
 
 - Firebase is Auth-only; everything else is Supabase.
-- IP capture happens server-side via Railway, not on-device.
-- Registration writes go client → Supabase directly, then client → Railway
+- IP capture happens server-side via the Cloudflare Worker (`CF-Connecting-IP`), not on-device.
+- Registration writes go client → Supabase directly, then client → the Cloudflare Worker
   for metadata capture (not routed entirely through the backend).
 - No public operator self-registration.

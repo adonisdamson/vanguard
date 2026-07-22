@@ -15,6 +15,7 @@ import '../widgets/auth_hero.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/net/photo_service.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -91,11 +92,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       final uid = client.auth.currentUser?.id;
       if (uid == null || _selfiePath == null) return;
       final path = '$uid/selfie_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await client.storage.from('member-photos').uploadBinary(
-            path,
-            await File(_selfiePath!).readAsBytes(),
-            fileOptions: const FileOptions(contentType: 'image/jpeg'),
-          );
+      await PhotoService.upload(
+        key: path,
+        bytes: await File(_selfiePath!).readAsBytes(),
+        contentType: 'image/jpeg',
+      );
       await client.from('app_users').update({'avatar_path': path}).eq('id', uid);
     } catch (_) {/* non-blocking */}
   }

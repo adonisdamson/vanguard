@@ -52,9 +52,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     try {
       final token = Supabase.instance.client.auth.currentSession?.accessToken;
       if (token == null) throw Exception('Not authenticated');
-      final railwayUrl = dotenv.env['RAILWAY_API_URL'] ?? '';
+      final apiBaseUrl =
+          dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
       final client = HttpClient();
-      final uri = Uri.parse('$railwayUrl/api/exports/members');
+      final uri = Uri.parse('$apiBaseUrl/api/exports/members');
       final request = await client.postUrl(uri);
       request.headers.set('Authorization', 'Bearer $token');
       request.headers.set('Content-Type', 'application/json');

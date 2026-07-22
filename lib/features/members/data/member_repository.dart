@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/net/db_timeout.dart';
+import '../../../core/net/photo_service.dart';
 
 class MemberSummary {
   final String id;
@@ -69,23 +70,18 @@ class MemberRepository {
     };
   }
 
-  // Upload photo to Supabase Storage; returns storage path
+  // Upload photo to R2 via the Worker; returns the object key (== photo_path)
   Future<String> uploadPhoto(String localPath, String userId) async {
     final file = File(localPath);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final ext = localPath.split('.').last.toLowerCase();
     final storagePath = '$userId/${timestamp}_member.$ext';
 
-    await _db.storage
-        .from('member-photos')
-        .uploadBinary(
-          storagePath,
-          await file.readAsBytes(),
-          fileOptions: FileOptions(
-            contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
-            upsert: false,
-          ),
-        ).dbTimeout();
+    await PhotoService.upload(
+      key: storagePath,
+      bytes: await file.readAsBytes(),
+      contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
+    );
     return storagePath;
   }
 

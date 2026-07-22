@@ -47,6 +47,8 @@ app.*.map.json
 # Secrets — never commit real values
 .env
 server/.env
+worker/.dev.vars
+.secrets.local.md
 android/app/google-services.json
 google-services.json
 *.keystore

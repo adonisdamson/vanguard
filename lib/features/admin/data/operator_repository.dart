@@ -210,8 +210,9 @@ class OperatorRepository {
     final token = _db.auth.currentSession?.accessToken;
     if (token == null) throw Exception('Not authenticated');
 
-    final baseUrl = dotenv.env['RAILWAY_API_URL'] ?? '';
-    if (baseUrl.isEmpty) throw Exception('RAILWAY_API_URL not configured');
+    final baseUrl =
+        dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
+    if (baseUrl.isEmpty) throw Exception('API_BASE_URL not configured');
     final uri = Uri.parse('$baseUrl$path');
 
     final client = HttpClient();

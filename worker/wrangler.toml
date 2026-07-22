@@ -1,0 +1,47 @@
+# Vanguard API — Cloudflare Workers deployment config.
+#
+# Replaces the former Railway/Express service. This Worker is the ONLY place
+# the Supabase service_role key is ever loaded (set it as a secret, never a var).
+#
+# All Supabase values are set as SECRETS (this file is committed to a public
+# repo), via `wrangler secret put NAME` — never as committed vars:
+#   SUPABASE_URL
+#   SUPABASE_ANON_KEY
+#   SUPABASE_SERVICE_ROLE_KEY   — bypasses RLS; keep it here and nowhere else
+#   GITHUB_TOKEN                — optional, raises GitHub API limit 60 → 5000/hr
+#   FIREBASE_SERVICE_ACCOUNT    — optional, JSON string for FCM push (HTTP v1)
+
+name = "vanguard-api"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[vars]
+# Comma-separated browser origins allowed to call the API (e.g. the download
+# landing page). The native app sends no Origin header and is always allowed.
+ALLOWED_ORIGINS = ""
+
+# Member photos live in R2, accessed via this native binding (no S3 keys needed
+# in the Worker). Private bucket — bytes are only ever served through the
+# authenticated /api/photos/* routes, never a public URL.
+[[r2_buckets]]
+binding = "MEMBER_PHOTOS"
+bucket_name = "member-photos"
+
+# Native Cloudflare rate limiting (one binding per distinct limit).
+# Blunt global limit on the whole public surface.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }
+
+# Tighter limit on the privileged admin surface (account creation, resets).
+[[unsafe.bindings]]
+name = "ADMIN_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 20, period = 60 }

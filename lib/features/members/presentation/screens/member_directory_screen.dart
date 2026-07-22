@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../../core/net/file_saver.dart';
 import '../../data/review_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -21,7 +21,6 @@ import '../widgets/member_avatar.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/status_pill.dart';
-import 'package:share_plus/share_plus.dart';
 
 class MemberDirectoryScreen extends ConsumerStatefulWidget {
   final bool showAppBar;
@@ -138,46 +137,32 @@ class _MemberDirectoryScreenState extends ConsumerState<MemberDirectoryScreen> {
 
       final baseUrl =
           dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
-      final uri = Uri.parse('$baseUrl/api/exports/members');
-      final client = HttpClient();
-      final request = await client.postUrl(uri);
-      request.headers.set('Authorization', 'Bearer $token');
-      request.headers.set('Content-Type', 'application/json');
-      request.write(jsonEncode({
-        'format': format,
-        if (_activeFilter != 'all') 'status': _activeFilter,
-        if (_activeSearch.isNotEmpty) 'search': _activeSearch,
-      }));
-
-      final response = await request.close().timeout(const Duration(seconds: 120));
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/exports/members'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'format': format,
+          if (_activeFilter != 'all') 'status': _activeFilter,
+          if (_activeSearch.isNotEmpty) 'search': _activeSearch,
+        }),
+      ).timeout(const Duration(seconds: 120));
       if (response.statusCode != 200) {
         throw Exception('Server error ${response.statusCode}');
       }
-      final chunks = <List<int>>[];
-      await for (final chunk in response) {
-        chunks.add(chunk);
-      }
-      final bytes = chunks.expand((c) => c).toList();
-      client.close();
 
-      // Temp file + OS share sheet so the user can save/send it — the app's
-      // private documents dir is invisible in any file manager.
-      final dir = await getTemporaryDirectory();
       final ts = DateTime.now().toIso8601String().substring(0, 10);
       final ext = format == 'pdf' ? 'pdf' : 'csv';
-      final file = File('${dir.path}/NDC_members_$ts.$ext');
-      await file.writeAsBytes(bytes);
-
-      if (mounted) {
-        await SharePlus.instance.share(ShareParams(
-          files: [
-            XFile(file.path,
-                mimeType: format == 'pdf' ? 'application/pdf' : 'text/csv')
-          ],
-          subject: 'NDC member register ($ts)',
-          text: 'NDC Tema West member register — ${format.toUpperCase()} export ($ts).',
-        ));
-      }
+      // Mobile: temp file + share sheet. Web: browser download.
+      await saveOrShareBytes(
+        response.bodyBytes,
+        filename: 'NDC_members_$ts.$ext',
+        mime: format == 'pdf' ? 'application/pdf' : 'text/csv',
+        subject: 'NDC member register ($ts)',
+        text: 'NDC Tema West member register — ${format.toUpperCase()} export ($ts).',
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

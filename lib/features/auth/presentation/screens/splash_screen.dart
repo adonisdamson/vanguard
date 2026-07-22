@@ -155,7 +155,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     child: Column(
                       children: [
                         Text(
-                          'VANGUARD',
+                          'TEMA WEST',
                           style: AppTextStyles.displayLarge(color: AppColors.surface)
                               .copyWith(letterSpacing: 6),
                         ),

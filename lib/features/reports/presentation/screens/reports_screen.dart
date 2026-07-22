@@ -1,13 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../../core/net/file_saver.dart';
 import '../../../../features/dashboard/application/dashboard_providers.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -16,7 +16,6 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../dashboard/presentation/widgets/status_donut.dart';
 
 class _ReportTileData {
@@ -54,32 +53,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       if (token == null) throw Exception('Not authenticated');
       final apiBaseUrl =
           dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
-      final client = HttpClient();
-      final uri = Uri.parse('$apiBaseUrl/api/exports/members');
-      final request = await client.postUrl(uri);
-      request.headers.set('Authorization', 'Bearer $token');
-      request.headers.set('Content-Type', 'application/json');
-      request.add(utf8.encode(jsonEncode({'format': 'csv'})));
-      final response = await request.close().timeout(const Duration(seconds: 120));
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/api/exports/members'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'format': 'csv'}),
+      ).timeout(const Duration(seconds: 120));
       if (response.statusCode != 200) throw Exception('Export failed');
-      final chunks = <List<int>>[];
-      await for (final chunk in response) {
-        chunks.add(chunk);
-      }
-      final bytes = chunks.expand((x) => x).toList();
-      // Write to a temp file and open the OS share sheet so the user can
-      // actually save/send it (the app's private dir is invisible to them).
-      final dir = await getTemporaryDirectory();
+
       final stamp = DateTime.now().toIso8601String().substring(0, 10);
-      final file = File('${dir.path}/NDC_members_$stamp.csv');
-      await file.writeAsBytes(bytes);
-      if (mounted) {
-        await SharePlus.instance.share(ShareParams(
-          files: [XFile(file.path, mimeType: 'text/csv')],
-          subject: 'NDC member register ($stamp)',
-          text: 'NDC Tema West member register — CSV export ($stamp).',
-        ));
-      }
+      // Mobile: temp file + share sheet. Web: browser download.
+      await saveOrShareBytes(
+        response.bodyBytes,
+        filename: 'NDC_members_$stamp.csv',
+        mime: 'text/csv',
+        subject: 'NDC member register ($stamp)',
+        text: 'NDC Tema West member register — CSV export ($stamp).',
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

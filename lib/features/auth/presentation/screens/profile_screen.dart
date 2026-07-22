@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,6 +46,15 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
+                _SettingsTile(
+                  icon: PhosphorIconsRegular.userGear,
+                  label: 'Edit profile',
+                  onTap: () async {
+                    await context.push('/profile/edit');
+                    ref.invalidate(appUserProvider);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
                 _SettingsTile(
                   icon: PhosphorIconsRegular.lock,
                   label: 'Change password',
@@ -273,7 +281,7 @@ class _AvatarHeader extends ConsumerWidget {
       final path = '$uid/avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await PhotoService.upload(
         key: path,
-        bytes: await File(picked.path).readAsBytes(),
+        bytes: await picked.readAsBytes(),
         contentType: 'image/jpeg',
       );
       await Supabase.instance.client
@@ -400,13 +408,7 @@ class _AvatarHeader extends ConsumerWidget {
     return 'U';
   }
 
-  static String _roleLabel(AppUserRole? role) {
-    return switch (role) {
-      AppUserRole.admin => 'System Administrator',
-      AppUserRole.higherAuthority => 'Higher Authority',
-      _ => 'Personnel',
-    };
-  }
+  static String _roleLabel(AppUserRole? role) => role?.label ?? 'Personnel';
 }
 
 class _AvatarSkeleton extends StatelessWidget {
@@ -442,9 +444,19 @@ class _InfoSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _InfoRow(icon: PhosphorIconsRegular.envelope, label: 'Email', value: user?.email ?? '—'),
-          const Divider(color: AppColors.hairline, height: 1),
+          if (user?.phone != null && user!.phone!.isNotEmpty) ...[
+            _InfoRow(icon: PhosphorIconsRegular.phone, label: 'Phone', value: user!.phone!),
+            const Divider(color: AppColors.hairline, height: 1),
+          ],
           _InfoRow(icon: PhosphorIconsRegular.shieldStar, label: 'Role', value: _roleText(user?.role)),
+          if (user?.partyPosition != null && user!.partyPosition!.isNotEmpty) ...[
+            const Divider(color: AppColors.hairline, height: 1),
+            _InfoRow(icon: PhosphorIconsRegular.identificationBadge, label: 'Position', value: user!.partyPosition!),
+          ],
+          if (user?.branch != null && user!.branch!.isNotEmpty) ...[
+            const Divider(color: AppColors.hairline, height: 1),
+            _InfoRow(icon: PhosphorIconsRegular.buildings, label: 'Branch', value: user!.branch!),
+          ],
           const Divider(color: AppColors.hairline, height: 1),
           _InfoRow(icon: PhosphorIconsRegular.mapPin, label: 'Constituency', value: 'Tema West'),
           const Divider(color: AppColors.hairline, height: 1),
@@ -454,13 +466,7 @@ class _InfoSection extends StatelessWidget {
     );
   }
 
-  static String _roleText(AppUserRole? role) {
-    return switch (role) {
-      AppUserRole.admin => 'Administrator',
-      AppUserRole.higherAuthority => 'Higher Authority',
-      _ => 'Personnel',
-    };
-  }
+  static String _roleText(AppUserRole? role) => role?.label ?? 'Personnel';
 }
 
 class _InfoRow extends StatelessWidget {

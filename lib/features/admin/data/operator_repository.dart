@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../auth/application/user_role_provider.dart';
 import '../../../core/net/db_timeout.dart';
@@ -9,6 +9,8 @@ AppUserRole _parseRole(String role) {
   switch (role) {
     case 'admin':
       return AppUserRole.admin;
+    case 'manager':
+      return AppUserRole.manager;
     case 'higher_authority':
       return AppUserRole.higherAuthority;
     default:
@@ -20,6 +22,8 @@ String roleToString(AppUserRole role) {
   switch (role) {
     case AppUserRole.admin:
       return 'admin';
+    case AppUserRole.manager:
+      return 'manager';
     case AppUserRole.higherAuthority:
       return 'higher_authority';
     case AppUserRole.personnel:
@@ -36,6 +40,8 @@ class OperatorDetail {
   final bool isActive;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  final String? partyPosition;
+  final String? branch;
 
   const OperatorDetail({
     required this.id,
@@ -46,6 +52,8 @@ class OperatorDetail {
     required this.isActive,
     required this.createdAt,
     this.lastLoginAt,
+    this.partyPosition,
+    this.branch,
   });
 
   factory OperatorDetail.fromMap(Map<String, dynamic> m) {
@@ -60,6 +68,8 @@ class OperatorDetail {
       lastLoginAt: m['last_login_at'] != null
           ? DateTime.parse(m['last_login_at'] as String)
           : null,
+      partyPosition: m['party_position'] as String?,
+      branch: m['branch'] as String?,
     );
   }
 
@@ -121,11 +131,18 @@ class OperatorRepository {
     return (data as List).map((m) => PendingOperator.fromMap(m as Map<String, dynamic>)).toList();
   }
 
-  Future<List<OperatorDetail>> listOperators({int page = 0}) async {
-    final data = await _db
+  Future<List<OperatorDetail>> listOperators({int page = 0, String? search}) async {
+    var query = _db
         .from('app_users')
-        .select('id, full_name, email, phone, role, is_active, created_at, last_login_at')
-        .not('role', 'is', null)  // exclude pending self-signups
+        .select('id, full_name, email, phone, role, is_active, created_at, last_login_at, party_position, branch')
+        .not('role', 'is', null); // exclude pending self-signups
+    final q = (search ?? '').trim();
+    if (q.isNotEmpty) {
+      // Match name, phone or email (case-insensitive).
+      final esc = q.replaceAll(',', ' ');
+      query = query.or('full_name.ilike.%$esc%,phone.ilike.%$esc%,email.ilike.%$esc%');
+    }
+    final data = await query
         .order('created_at', ascending: false)
         .range(page * _pageSize, (page + 1) * _pageSize - 1).dbTimeout();
     return (data as List).map((m) => OperatorDetail.fromMap(m as Map<String, dynamic>)).toList();
@@ -136,14 +153,16 @@ class OperatorRepository {
     final results = await Future.wait([
       base.count(CountOption.exact),
       base.eq('role', 'admin').count(CountOption.exact),
+      base.eq('role', 'manager').count(CountOption.exact),
       base.eq('role', 'higher_authority').count(CountOption.exact),
       base.eq('role', 'personnel').count(CountOption.exact),
     ]).dbTimeout();
     return {
       'total': results[0].count,
       'admin': results[1].count,
-      'higher_authority': results[2].count,
-      'personnel': results[3].count,
+      'manager': results[2].count,
+      'higher_authority': results[3].count,
+      'personnel': results[4].count,
     };
   }
 
@@ -153,6 +172,8 @@ class OperatorRepository {
     required String role,
     required String password,
     String? phone,
+    String? partyPosition,
+    String? branch,
     int? assignedRegionId,
     int? assignedDistrictId,
     int? assignedConstituencyId,
@@ -165,6 +186,8 @@ class OperatorRepository {
       // with no dependence on invite-email deliverability.
       'password': password,
       if (phone != null && phone.isNotEmpty) 'phone': phone,
+      if (partyPosition != null && partyPosition.isNotEmpty) 'party_position': partyPosition,
+      if (branch != null && branch.isNotEmpty) 'branch': branch,
       'assigned_region_id': ?assignedRegionId,
       'assigned_district_id': ?assignedDistrictId,
       'assigned_constituency_id': ?assignedConstituencyId,
@@ -215,31 +238,26 @@ class OperatorRepository {
     if (baseUrl.isEmpty) throw Exception('API_BASE_URL not configured');
     final uri = Uri.parse('$baseUrl$path');
 
-    final client = HttpClient();
-    try {
-      final request = await client.postUrl(uri).dbTimeout();
-      request.headers.set('Authorization', 'Bearer $token');
-      request.headers.set('Content-Type', 'application/json');
-      request.write(jsonEncode(body));
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
 
-      final response = await request.close().timeout(const Duration(seconds: 30));
-      final responseBody = await response.transform(const Utf8Decoder()).join().dbTimeout();
-
-      if (response.statusCode >= 400) {
-        // The body may not be JSON (proxy/HTML error pages) — never let the
-        // decode failure eat the real cause.
-        String message;
-        try {
-          final decoded = jsonDecode(responseBody) as Map<String, dynamic>;
-          message = (decoded['error'] ?? 'Request failed (${response.statusCode})').toString();
-        } on FormatException {
-          message = 'Server error ${response.statusCode}'
-              '${responseBody.isNotEmpty ? ': ${responseBody.substring(0, responseBody.length > 120 ? 120 : responseBody.length)}' : ''}';
-        }
-        throw Exception(message);
+    if (response.statusCode >= 400) {
+      // Only surface our API's own safe `error` field — never a raw server or
+      // HTML error body (which could reveal backend internals).
+      var message = 'Request failed (${response.statusCode})';
+      try {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        if (decoded['error'] != null) message = decoded['error'].toString();
+      } catch (_) {
+        // keep the generic message
       }
-    } finally {
-      client.close();
+      throw Exception(message);
     }
   }
 }

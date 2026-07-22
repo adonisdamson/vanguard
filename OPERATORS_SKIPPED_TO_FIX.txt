@@ -1,0 +1,19 @@
+skipped (13):
+   - OTHER MEMBER   ISSAKA ABU ALIYU           phone=''  [missing/invalid phone]
+   - ORGANISER      THEOPHILUS AKPAKLI         phone='024420252'  [missing/invalid phone]
+   - CHAIRMAN       KINGSLEY MATANAWUI ASARE   phone='024356947'  [missing/invalid phone]
+   - YOUTH ORG.     WILLIAM AKPADEY            phone='0553905136'  [duplicate phone (first: SARAH KUMATIA)]
+   - OTHER MEMBER   ELIZABETH TSRAHINE         phone=''  [missing/invalid phone]
+   - WOMEN ORG.     ATIATA ISSAH               phone='0244250558'  [duplicate phone (first: NATURAL TETTEH)]
+   - OTHER MEMBER   F. ODAI AFOTEY             phone='0503991463'  [duplicate phone (first: ANTHONY SIKA)]
+   - YOUTH ORG.     VERONICA ESIBO             phone='055676953'  [missing/invalid phone]
+   - OTHER MEMBER   AGBEKO ASHIAGBOR           phone='0207360366'  [duplicate phone (first: CHRISTIAN AMEDI)]
+   - COMMUNICATION  MUSTAPHA ISMAILA           phone='0244936620'  [duplicate phone (first: MUSTAPHA ISMAILA)]
+   - COMMUNICATION  GEORGE GYAMFI              phone='05458084'  [missing/invalid phone]
+   - OTHER MEMBER   FAUSTINA DERY              phone='050080192'  [missing/invalid phone]
+   - CHAIRMAN       ISAAC ASAMPANA             phone='054999784'  [missing/invalid phone]
+
+DRY RUN — nothing created. Sample of first 3 to be created:
+    {'name': 'GERSHON DUNYAH', 'phone': '0244976174', 'email': '0244976174@temawest.local', 'role': 'higher_authority', 'position': 'Chairman', 'branch': 'I C G C'}
+    {'name': 'ANTHONY EKLU', 'phone': '0244012431', 'email': '0244012431@temawest.local', 'role': 'higher_authority', 'position': 'Secretary', 'branch': 'I C G C'}
+    {'name': 'THEOPHILUS AKPAKLI', 'phone': '0242202527', 'email': '0242202527@temawest.local', 'role': 'manager', 'position': 'Organiser', 'branch': 'I C G C'}

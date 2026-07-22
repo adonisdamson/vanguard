@@ -1,4 +1,4 @@
-name: Vanguard — Build & Release APK
+name: Tema West — Build & Release APK
 
 on:
   push:
@@ -65,15 +65,15 @@ jobs:
         run: |
           if [[ "${{ github.ref_name }}" == "master" || "${{ github.ref_name }}" == "main" ]]; then
             echo "tag=latest"                    >> "$GITHUB_OUTPUT"
-            echo "apk_name=Vanguard-NDC-v1.0.${{ github.run_number }}.apk"  >> "$GITHUB_OUTPUT"
-            echo "release_name=Vanguard NDC — v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "apk_name=TemaWest-NDC-v1.0.${{ github.run_number }}.apk"  >> "$GITHUB_OUTPUT"
+            echo "release_name=Tema West NDC — v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
             echo "prerelease=false"              >> "$GITHUB_OUTPUT"
             echo "make_latest=true"              >> "$GITHUB_OUTPUT"
             echo "is_prod=true"                  >> "$GITHUB_OUTPUT"
           else
             echo "tag=dev-latest"                >> "$GITHUB_OUTPUT"
-            echo "apk_name=Vanguard-NDC-DEV-v1.0.${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
-            echo "release_name=Vanguard NDC — DEV v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+            echo "apk_name=TemaWest-NDC-DEV-v1.0.${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+            echo "release_name=Tema West NDC — DEV v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
             echo "prerelease=true"               >> "$GITHUB_OUTPUT"
             echo "make_latest=false"             >> "$GITHUB_OUTPUT"
             echo "is_prod=false"                 >> "$GITHUB_OUTPUT"
@@ -148,7 +148,7 @@ jobs:
           tag_name: ${{ steps.channel.outputs.tag }}
           name: "${{ steps.channel.outputs.release_name }}"
           body: |
-            # Vanguard NDC Membership App
+            # Tema West NDC Membership App
             > NDC Tema West Constituency — Member Registration & Management
             ${{ steps.channel.outputs.is_prod == 'false' && '> ⚠️ **DEV BUILD** — for testing only. The production APK is on the `latest` release.' || '' }}
 
@@ -158,7 +158,7 @@ jobs:
             2. Open the file on your Android phone
             3. If prompted, tap **Settings → Install unknown apps** and allow your file manager
             4. Tap **Install** — takes about 10 seconds
-            5. Open **Vanguard** and sign in with your credentials
+            5. Open **Tema West** and sign in with your credentials
 
             ---
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../../core/auth/phone_identity.dart';
 import '../../../../features/auth/application/auth_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -41,10 +42,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
+    // Phone → synthetic email; real emails (admins) pass through unchanged.
+    final email = PhoneIdentity.resolveToEmail(_emailCtrl.text);
+    if (email == null) {
+      setState(() => _error = 'Enter a valid phone number.');
+      return;
+    }
     setState(() { _loading = true; _error = null; });
     try {
       await ref.read(authServiceProvider).signInWithEmail(
-        _emailCtrl.text.trim(), _passwordCtrl.text,
+        email, _passwordCtrl.text,
       );
       // Navigate explicitly — never wait for an auth-stream tick or a
       // provider rebuild to move the user. Role resolution happens on the
@@ -102,17 +109,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ],
 
                       NdcTextField(
-                        label: 'Email address',
-                        hint: 'you@ndc.org.gh',
-                        icon: PhosphorIconsRegular.envelope,
+                        label: 'Phone number',
+                        hint: 'e.g. 0244123456',
+                        icon: PhosphorIconsRegular.phone,
                         controller: _emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
+                        keyboardType: TextInputType.text,
                         focusNode: _emailFocus,
                         textInputAction: TextInputAction.next,
                         onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'Email is required';
-                          if (!v.contains('@')) return 'Enter a valid email address';
+                          final s = (v ?? '').trim();
+                          if (s.isEmpty) return 'Phone number is required';
+                          if (s.contains('@')) return null; // admin email
+                          if (PhoneIdentity.normalize(s) == null) {
+                            return 'Enter a valid phone number';
+                          }
                           return null;
                         },
                       ),

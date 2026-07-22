@@ -129,7 +129,7 @@ class _VanguardAppBar extends StatelessWidget implements PreferredSizeWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('VANGUARD', style: AppTextStyles.appBarTitle()),
+              Text('TEMA WEST', style: AppTextStyles.appBarTitle()),
               if (firstName.isNotEmpty)
                 Text(
                   'Hello, $firstName',

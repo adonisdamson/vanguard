@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CaptureMetadataService {
@@ -13,18 +13,17 @@ class CaptureMetadataService {
         dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
     final uri = Uri.parse('$baseUrl/api/members/$memberId/capture-metadata');
 
-    final client = HttpClient();
     try {
-      final request = await client.postUrl(uri);
-      request.headers.set('Authorization', 'Bearer $token');
-      request.headers.set('Content-Type', 'application/json');
-      request.write(jsonEncode({'lat': lat, 'lng': lng}));
-      final response = await request.close().timeout(const Duration(seconds: 15));
-      await response.drain<void>();
+      await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'lat': lat, 'lng': lng}),
+      ).timeout(const Duration(seconds: 15));
     } catch (_) {
       // Non-fatal — member row exists, metadata capture is best-effort
-    } finally {
-      client.close();
     }
   }
 

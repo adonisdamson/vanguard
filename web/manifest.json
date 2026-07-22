@@ -1,0 +1,39 @@
+{
+    "name": "TemaWestNDC — Membership",
+    "short_name": "TemaWest",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#006B3F",
+    "theme_color": "#006B3F",
+    "description": "NDC Tema West Constituency — member registration & management.",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "categories": [
+        "productivity",
+        "government"
+    ],
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

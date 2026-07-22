@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="NDC Tema West Constituency — member registration & management.">
+  <meta name="theme-color" content="#006B3F">
+
+  <!-- iOS / mobile web-app -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TemaWest">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>TemaWest</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* NDC-green boot screen so the PWA never flashes blank white while
+       Flutter initialises — matches the native splash (deep canopy green). */
+    html, body { margin: 0; padding: 0; height: 100%; background: #0A3D2A; }
+    #boot {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; flex-direction: column; gap: 22px;
+      background: #0A3D2A; z-index: 9999;
+      transition: opacity .4s ease; font-family: system-ui, sans-serif;
+    }
+    #boot.hide { opacity: 0; pointer-events: none; }
+    #boot .mark {
+      color: #FFFFFF; font-size: 26px; font-weight: 800; letter-spacing: 3px;
+    }
+    #boot .sub { color: rgba(255,255,255,.62); font-size: 12px; letter-spacing: 1px; }
+    #boot .ring {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.18); border-top-color: #FFC700;
+      animation: spin .9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    <div class="ring"></div>
+    <div class="mark">TEMA WEST</div>
+    <div class="sub">NDC MEMBERSHIP</div>
+  </div>
+  <script>
+    // Remove the boot screen once Flutter has painted the first frame.
+    window.addEventListener('flutter-first-frame', function () {
+      var b = document.getElementById('boot');
+      if (b) { b.classList.add('hide'); setTimeout(function () { b.remove(); }, 450); }
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

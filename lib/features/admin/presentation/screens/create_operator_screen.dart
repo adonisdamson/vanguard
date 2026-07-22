@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../../core/auth/phone_identity.dart';
 import '../../data/operator_repository.dart';
 import '../../../members/data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -25,6 +26,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _branchCtrl = TextEditingController();
   String _selectedRole = 'personnel';
   bool _loading = false;
 
@@ -74,6 +76,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
+    _branchCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
@@ -115,14 +118,21 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Phone is the login ID → synthetic email unless a real email was given.
+    final normPhone = PhoneIdentity.normalize(_phoneCtrl.text.trim());
+    final typedEmail = _emailCtrl.text.trim().toLowerCase();
+    final email =
+        typedEmail.isNotEmpty ? typedEmail : PhoneIdentity.emailForPhone(normPhone!);
+
     setState(() => _loading = true);
     try {
       await OperatorRepository().createOperator(
         fullName: _nameCtrl.text.trim(),
-        email: _emailCtrl.text.trim().toLowerCase(),
+        email: email,
         role: _selectedRole,
         password: _passCtrl.text,
-        phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        phone: normPhone,
+        branch: _branchCtrl.text.trim().isEmpty ? null : _branchCtrl.text.trim(),
         assignedRegionId: _region?.id,
         assignedDistrictId: _district?.id,
         assignedConstituencyId: _constituency?.id,
@@ -132,7 +142,7 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.canopyGreen,
           content: Text(
-            'Account created. ${_emailCtrl.text.trim()} can sign in now with the temporary password.',
+            'Account created. They can sign in now with phone ${_phoneCtrl.text.trim()} and the temporary password.',
             style: AppTextStyles.body(color: AppColors.surface),
           ),
           duration: const Duration(seconds: 6),
@@ -212,25 +222,42 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
               const SizedBox(height: 16),
 
               NdcTextField(
-                label: 'Email Address',
-                hint: 'operator@ndc.gh',
-                controller: _emailCtrl,
-                icon: PhosphorIconsRegular.envelope,
-                keyboardType: TextInputType.emailAddress,
+                label: 'Phone Number',
+                hint: 'e.g. 0244123456',
+                controller: _phoneCtrl,
+                icon: PhosphorIconsRegular.phone,
+                keyboardType: TextInputType.phone,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Email is required';
-                  if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+                  final s = (v ?? '').trim();
+                  if (s.isEmpty) return 'Phone number is required';
+                  if (PhoneIdentity.normalize(s) == null) {
+                    return 'Enter a valid phone number';
+                  }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
               NdcTextField(
-                label: 'Phone Number (optional)',
-                hint: '+233 XX XXX XXXX',
-                controller: _phoneCtrl,
-                icon: PhosphorIconsRegular.phone,
-                keyboardType: TextInputType.phone,
+                label: 'Branch (optional)',
+                hint: 'e.g. Good Shepherd A',
+                controller: _branchCtrl,
+                icon: PhosphorIconsRegular.buildings,
+              ),
+              const SizedBox(height: 16),
+
+              NdcTextField(
+                label: 'Email (optional)',
+                hint: 'only if they have one',
+                controller: _emailCtrl,
+                icon: PhosphorIconsRegular.envelope,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  final s = (v ?? '').trim();
+                  if (s.isEmpty) return null; // phone is the login ID
+                  if (!s.contains('@') || !s.contains('.')) return 'Enter a valid email';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -281,18 +308,28 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                     _RoleOption(
                       value: 'higher_authority',
                       selected: _selectedRole == 'higher_authority',
-                      title: 'Higher Authority (Coordinator)',
-                      subtitle: 'Review pending registrations, view all members, export data',
+                      title: 'Coordinator',
+                      subtitle: 'Chairman/Secretary — review, view all members, dashboards, export',
                       icon: PhosphorIconsFill.userCircleCheck,
                       color: AppColors.statusPending,
                       onTap: () => setState(() => _selectedRole = 'higher_authority'),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     _RoleOption(
+                      value: 'manager',
+                      selected: _selectedRole == 'manager',
+                      title: 'Administrator',
+                      subtitle: 'Organiser/Treasurer/Comms — manage & approve members, dashboards (no operator admin)',
+                      icon: PhosphorIconsFill.shieldCheck,
+                      color: AppColors.deepCanopy,
+                      onTap: () => setState(() => _selectedRole = 'manager'),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    _RoleOption(
                       value: 'admin',
                       selected: _selectedRole == 'admin',
-                      title: 'Administrator',
-                      subtitle: 'Full system access including operator management',
+                      title: 'System Admin',
+                      subtitle: 'Full control including operator management — grant sparingly',
                       icon: PhosphorIconsFill.shieldStar,
                       color: AppColors.umbrellaRed,
                       onTap: () => setState(() => _selectedRole = 'admin'),

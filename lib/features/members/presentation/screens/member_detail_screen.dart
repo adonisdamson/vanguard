@@ -235,6 +235,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final member = widget.member;
     final appUser = ref.watch(appUserProvider).valueOrNull;
     final canReview = appUser?.role == AppUserRole.higherAuthority ||
+        appUser?.role == AppUserRole.manager ||
         appUser?.role == AppUserRole.admin;
     final showReviewBar = member.status == 'pending' && canReview;
 

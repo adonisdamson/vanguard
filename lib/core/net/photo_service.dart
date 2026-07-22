@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Member photos live in a private Cloudflare R2 bucket, reached only through
@@ -28,21 +28,19 @@ class PhotoService {
 
     final uri = Uri.parse(
         '$_base/api/photos/upload?key=${Uri.encodeQueryComponent(key)}');
-    final client = HttpClient();
-    try {
-      final req = await client.postUrl(uri);
-      req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
-      req.headers.set(HttpHeaders.contentTypeHeader, contentType);
-      req.add(bytes);
-      final resp = await req.close().timeout(const Duration(seconds: 30));
-      final body = await resp.transform(utf8.decoder).join();
-      if (resp.statusCode != 200) {
-        throw Exception('Photo upload failed (${resp.statusCode}): $body');
-      }
-      return (jsonDecode(body) as Map<String, dynamic>)['key'] as String;
-    } finally {
-      client.close();
+    final resp = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': contentType,
+      },
+      body: bytes,
+    ).timeout(const Duration(seconds: 30));
+    if (resp.statusCode != 200) {
+      // Don't surface the server response body to callers/UI.
+      throw Exception('Photo upload failed (${resp.statusCode})');
     }
+    return (jsonDecode(resp.body) as Map<String, dynamic>)['key'] as String;
   }
 
   /// The authenticated view URL for [key]. Load with [authHeaders].

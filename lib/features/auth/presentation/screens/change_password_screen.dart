@@ -65,7 +65,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         backgroundColor: AppColors.brand,
         content: Text(
             widget.forced
-                ? 'Password set. Welcome to Vanguard.'
+                ? 'Password set. Welcome to Tema West.'
                 : 'Password updated. Use it on your next sign-in.',
             style: AppTextStyles.body(color: AppColors.surface)),
       ));

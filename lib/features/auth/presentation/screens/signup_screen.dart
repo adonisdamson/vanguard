@@ -12,10 +12,10 @@ import '../../../../shared/widgets/form_scaffold.dart';
 import '../../../../shared/widgets/ndc_button.dart';
 import '../../../../shared/widgets/ndc_text_field.dart';
 import '../widgets/auth_hero.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/net/photo_service.dart';
+import '../../../../shared/widgets/local_image.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -94,7 +94,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       final path = '$uid/selfie_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await PhotoService.upload(
         key: path,
-        bytes: await File(_selfiePath!).readAsBytes(),
+        bytes: await XFile(_selfiePath!).readAsBytes(),
         contentType: 'image/jpeg',
       );
       await client.from('app_users').update({'avatar_path': path}).eq('id', uid);
@@ -363,17 +363,19 @@ class _SelfieField extends StatelessWidget {
               Container(
                 width: 64,
                 height: 64,
+                clipBehavior: has ? Clip.antiAlias : Clip.none,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.brandTint,
                   border: Border.all(color: AppColors.line),
-                  image: has
-                      ? DecorationImage(
-                          image: FileImage(File(selfiePath!)), fit: BoxFit.cover)
-                      : null,
                 ),
                 child: has
-                    ? null
+                    ? LocalImage(
+                        path: selfiePath!,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                      )
                     : const PhosphorIcon(PhosphorIconsRegular.userFocus,
                         size: 26, color: AppColors.brand),
               ),

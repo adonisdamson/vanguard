@@ -10,6 +10,7 @@ import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/change_password_screen.dart';
+import '../features/auth/presentation/screens/edit_profile_screen.dart';
 import '../features/auth/presentation/screens/pending_approval_screen.dart';
 import '../features/notifications/presentation/screens/notifications_screen.dart';
 import '../features/members/presentation/screens/personnel_shell.dart';
@@ -70,6 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ChangePasswordScreen(forced: state.uri.queryParameters['forced'] == '1'),
       ),
       GoRoute(path: '/notifications', builder: (context, _) => const NotificationsScreen()),
+      GoRoute(path: '/profile/edit', builder: (context, _) => const EditProfileScreen()),
 
       // Personnel (shell provides bottom nav + IndexedStack)
       GoRoute(path: '/home', builder: (context, _) => const PersonnelShell()),
@@ -114,6 +116,9 @@ String roleHomePath(AppUser? user) {
   if (user.mustChangePassword) return '/change-password?forced=1';
   return switch (user.role) {
     AppUserRole.admin => '/admin',
+    // Administrator (manager) shares the Coordinator dashboard — same member
+    // powers, no operator administration.
+    AppUserRole.manager => '/dashboard',
     AppUserRole.higherAuthority => '/dashboard',
     AppUserRole.personnel => '/home',
   };

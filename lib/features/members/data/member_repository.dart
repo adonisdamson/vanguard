@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:cross_file/cross_file.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/net/db_timeout.dart';
 import '../../../core/net/photo_service.dart';
@@ -84,17 +84,18 @@ class MemberRepository {
     };
   }
 
-  // Upload photo to R2 via the Worker; returns the object key (== photo_path)
+  // Upload photo to R2 via the Worker; returns the object key (== photo_path).
+  // Uses XFile so it works on both mobile (file path) and web (blob URL).
   Future<String> uploadPhoto(String localPath, String userId) async {
-    final file = File(localPath);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final ext = localPath.split('.').last.toLowerCase();
-    final storagePath = '$userId/${timestamp}_member.$ext';
+    final isPng = ext == 'png';
+    final storagePath = '$userId/${timestamp}_member.${isPng ? 'png' : 'jpg'}';
 
     await PhotoService.upload(
       key: storagePath,
-      bytes: await file.readAsBytes(),
-      contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
+      bytes: await XFile(localPath).readAsBytes(),
+      contentType: isPng ? 'image/png' : 'image/jpeg',
     );
     return storagePath;
   }

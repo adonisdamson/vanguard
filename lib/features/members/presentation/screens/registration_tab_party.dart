@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/registration_form_notifier.dart';
+import '../../../../shared/widgets/local_image.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_spacing.dart';
@@ -353,12 +353,12 @@ class _PhotoPicker extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: AppRadii.borderMd,
-                child: Image.file(
-                  File(localPath!),
+                child: LocalImage(
+                  path: localPath!,
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _placeholder(),
+                  placeholder: (_) => _placeholder(),
                 ),
               ),
               Positioned(

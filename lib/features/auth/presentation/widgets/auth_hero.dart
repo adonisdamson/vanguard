@@ -58,7 +58,7 @@ class AuthHero extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Text('VANGUARD',
+                    Text('TEMA WEST',
                         style: AppTextStyles.h2(color: AppColors.surface)
                             .copyWith(letterSpacing: 3)),
                   ],

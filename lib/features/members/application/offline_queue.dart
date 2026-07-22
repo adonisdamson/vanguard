@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../data/member_repository.dart';
 import '../data/capture_metadata_service.dart';
+import '../../../core/net/local_file.dart';
 
 const _boxName = 'offline_registrations';
 const _keyName = 'offline_queue_key_v1';
@@ -150,7 +150,7 @@ class OfflineQueue {
       try {
         String? storagePath;
         if (reg.photoLocalPath != null &&
-            File(reg.photoLocalPath!).existsSync()) {
+            localFileExists(reg.photoLocalPath!)) {
           try {
             storagePath =
                 await repo.uploadPhoto(reg.photoLocalPath!, reg.registeredBy);

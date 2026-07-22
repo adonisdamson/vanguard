@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,10 +37,26 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
   bool _hasMore = false;
   String? _error;
 
+  final _searchCtrl = TextEditingController();
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     _loadAll(0);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String _) {
+    setState(() {}); // toggle the clear button
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () => _loadAll(0));
   }
 
   Future<void> _loadAll(int page) async {
@@ -49,9 +66,13 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
       else { _loadingMore = true; }
     });
     try {
+      final search = _searchCtrl.text.trim();
       final results = await Future.wait([
-        OperatorRepository().listPendingOperators(),
-        OperatorRepository().listOperators(page: page),
+        // Hide the pending self-signup section while searching.
+        search.isEmpty
+            ? OperatorRepository().listPendingOperators()
+            : Future.value(<PendingOperator>[]),
+        OperatorRepository().listOperators(page: page, search: search),
       ]);
       if (!mounted) return;
       setState(() {
@@ -92,6 +113,38 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
             onPressed: () => _loadPage(0),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(58),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: _onSearchChanged,
+              textInputAction: TextInputAction.search,
+              style: AppTextStyles.body(),
+              decoration: InputDecoration(
+                hintText: 'Search by phone, name or email',
+                prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.inkMuted),
+                suffixIcon: _searchCtrl.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear',
+                        icon: const PhosphorIcon(PhosphorIconsRegular.x, size: 16, color: AppColors.inkMuted),
+                        onPressed: () {
+                          _searchCtrl.clear();
+                          _loadAll(0);
+                          setState(() {});
+                        },
+                      ),
+                isDense: true,
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                border: OutlineInputBorder(borderRadius: AppRadii.borderSm, borderSide: BorderSide.none),
+              ),
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.canopyGreen,
@@ -209,7 +262,8 @@ class _PendingTile extends StatelessWidget {
   const _PendingTile({required this.operator, required this.onChanged});
 
   String _roleLabel(String? r) => switch (r) {
-    'admin'            => 'Administrator',
+    'admin'            => 'System Admin',
+    'manager'          => 'Administrator',
     'higher_authority' => 'Coordinator',
     'personnel'        => 'Personnel',
     _                  => 'Not specified',
@@ -246,7 +300,7 @@ class _PendingTile extends StatelessWidget {
                   groupValue: selectedRole,
                   onChanged: (v) => setS(() => selectedRole = v!),
                   child: Column(
-                    children: ['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
+                    children: ['personnel', 'higher_authority', 'manager', 'admin'].map((r) => RadioListTile<String>(
                       dense: true,
                       value: r,
                       title: Text(_roleLabel(r), style: AppTextStyles.body()),
@@ -516,11 +570,25 @@ class _OperatorTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    operator.email,
+                    // Phone is the login ID; the email is a synthetic internal one.
+                    operator.phone ?? operator.email,
                     style: AppTextStyles.body(color: AppColors.mist),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if ([operator.partyPosition, operator.branch]
+                      .any((s) => s != null && s.isNotEmpty))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        [operator.partyPosition, operator.branch]
+                            .where((s) => s != null && s.isNotEmpty)
+                            .join(' · '),
+                        style: AppTextStyles.small(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   if (!operator.isActive)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
@@ -576,6 +644,7 @@ class _OperatorTile extends StatelessWidget {
 
   IconData _roleIcon(AppUserRole role) => switch (role) {
     AppUserRole.admin          => PhosphorIconsFill.shieldStar,
+    AppUserRole.manager        => PhosphorIconsFill.shieldCheck,
     AppUserRole.higherAuthority => PhosphorIconsFill.userCircleCheck,
     AppUserRole.personnel      => PhosphorIconsFill.userCircle,
   };
@@ -756,7 +825,7 @@ class _OperatorTile extends StatelessWidget {
             onChanged: (v) => setState(() => selected = v!),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: ['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
+              children: ['personnel', 'higher_authority', 'manager', 'admin'].map((r) => RadioListTile<String>(
                 value: r,
                 title: Text(_roleLabel(r), style: AppTextStyles.body()),
                 activeColor: AppColors.canopyGreen,
@@ -789,8 +858,9 @@ class _OperatorTile extends StatelessWidget {
   }
 
   String _roleLabel(String r) => switch (r) {
-    'admin'           => 'Administrator',
-    'higher_authority' => 'Higher Authority (Coordinator)',
+    'admin'           => 'System Admin',
+    'manager'         => 'Administrator',
+    'higher_authority' => 'Coordinator',
     _                  => 'Personnel',
   };
 }
@@ -803,6 +873,7 @@ class _RolePill extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color, bg) = switch (role) {
       AppUserRole.admin          => ('Admin',     AppColors.umbrellaRed,  AppColors.redTint),
+      AppUserRole.manager        => ('Admin’r', AppColors.deepCanopy, AppColors.greenTint),
       AppUserRole.higherAuthority => ('Coord.',   AppColors.statusPending, AppColors.amberTint),
       AppUserRole.personnel      => ('Personnel', AppColors.canopyGreen,  AppColors.greenTint),
     };

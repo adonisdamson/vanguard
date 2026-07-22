@@ -2,7 +2,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_provider.dart';
 
-enum AppUserRole { admin, higherAuthority, personnel }
+enum AppUserRole { admin, manager, higherAuthority, personnel }
+
+extension AppUserRoleLabel on AppUserRole {
+  /// User-facing title (party-oriented wording).
+  String get label {
+    switch (this) {
+      case AppUserRole.admin:
+        return 'System Admin';
+      case AppUserRole.manager:
+        return 'Administrator';
+      case AppUserRole.higherAuthority:
+        return 'Coordinator';
+      case AppUserRole.personnel:
+        return 'Personnel';
+    }
+  }
+}
 
 enum UserLookupStatus { loading, noRow, active, suspended }
 
@@ -14,6 +30,9 @@ class AppUser {
   final bool isActive;
   final String? avatarPath;
   final bool mustChangePassword;
+  final String? partyPosition;
+  final String? phone;
+  final String? branch;
 
   const AppUser({
     required this.id,
@@ -23,6 +42,9 @@ class AppUser {
     required this.isActive,
     this.avatarPath,
     this.mustChangePassword = false,
+    this.partyPosition,
+    this.phone,
+    this.branch,
   });
 
   factory AppUser.fromMap(Map<String, dynamic> map) {
@@ -34,6 +56,9 @@ class AppUser {
       isActive: map['is_active'] as bool? ?? false,
       avatarPath: map['avatar_path'] as String?,
       mustChangePassword: map['must_change_password'] as bool? ?? false,
+      partyPosition: map['party_position'] as String?,
+      phone: map['phone'] as String?,
+      branch: map['branch'] as String?,
     );
   }
 
@@ -43,6 +68,8 @@ class AppUser {
     switch (role) {
       case 'admin':
         return AppUserRole.admin;
+      case 'manager':
+        return AppUserRole.manager;
       case 'higher_authority':
         return AppUserRole.higherAuthority;
       default:
@@ -64,7 +91,7 @@ final appUserProvider = FutureProvider<AppUser?>((ref) async {
   // gate screen, never as an indefinite loading state.
   final response = await supabase
       .from('app_users')
-      .select('id, full_name, email, role, is_active, avatar_path, must_change_password')
+      .select('id, full_name, email, role, is_active, avatar_path, must_change_password, party_position, phone, branch')
       .eq('id', session.user.id)
       .maybeSingle()
       .timeout(const Duration(seconds: 10));

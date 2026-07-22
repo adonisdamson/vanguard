@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vanguard/features/members/presentation/screens/registration_screen.dart';
-import 'package:vanguard/shared/theme/app_theme.dart';
+import 'package:tema_west_ndc/features/members/presentation/screens/registration_screen.dart';
+import 'package:tema_west_ndc/shared/theme/app_theme.dart';
 
 // Renders the REAL registration screen (Supabase deliberately uninitialized,
 // so every lookup provider errors — the worst case) and proves the pinned

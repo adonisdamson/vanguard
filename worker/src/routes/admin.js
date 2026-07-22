@@ -10,7 +10,7 @@ admin.post('/', async (c) => {
   const ctx = await requireRole(c, ['admin']);
   const svc = serviceClient(c.env);
 
-  const { full_name, email, role, phone, password,
+  const { full_name, email, role, phone, password, party_position, branch,
           assigned_region_id, assigned_district_id, assigned_constituency_id } =
     await c.req.json().catch(() => ({}));
   if (!full_name || !email || !role) {
@@ -62,6 +62,8 @@ admin.post('/', async (c) => {
     assigned_region_id: assigned_region_id || null,
     assigned_district_id: assigned_district_id || null,
     assigned_constituency_id: assigned_constituency_id || null,
+    party_position: party_position || null,
+    branch: branch || null,
     // Admin-chosen password → force the operator to set their own on first
     // sign-in. Invite flow (no password here) sets their own from the link.
     must_change_password: password ? true : false,

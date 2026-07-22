@@ -55,13 +55,16 @@ class UpdateService {
       final json = jsonDecode(body) as Map<String, dynamic>;
 
       final latest = json['version'] as String?;
-      final url = json['download_url'] as String?;
-      if (latest == null || url == null) return null;
+      // download_url presence confirms a real release exists, but we download
+      // through our own Worker /download (which streams from Cloudflare and
+      // preserves Content-Length) — GitHub is never referenced in the flow.
+      final hasAsset = json['download_url'] != null;
+      if (latest == null || !hasAsset) return null;
       if (compareVersions(latest, current) <= 0) return null;
 
       return UpdateInfo(
         version: latest,
-        downloadUrl: url,
+        downloadUrl: '$_base/download',
         sizeBytes: (json['size_bytes'] as num?)?.toInt(),
       );
     } catch (_) {

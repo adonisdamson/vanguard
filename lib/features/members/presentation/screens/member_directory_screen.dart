@@ -392,7 +392,7 @@ class _DirectoryTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                MemberAvatar(photoPath: member.photoPath),
+                MemberAvatar(photoPath: member.photoPath, viewerLabel: member.fullName),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(

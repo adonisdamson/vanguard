@@ -55,7 +55,7 @@ Do not re-litigate these without an explicit instruction to change them:
 | Auth | Firebase | **Auth only** — Google Sign-In + email/password. No Firestore, no Firebase Storage. |
 | Database | Supabase (Postgres) | All relational data: members, operators, roles, lookup tables, audit log |
 | File storage | Cloudinary (member photos) — *migration pending, Phase B*. Supabase Storage still in use until the swap lands. | Member photos only. Private/authenticated delivery via signed URLs — never a public URL. |
-| Backend service | Cloudflare Workers (Hono) — lives in `worker/`. *(Was Railway/Express in `server/`, retained until the Workers cutover is verified in prod.)* | The *only* place the Supabase `service_role` key is ever loaded. Handles operator account creation, IP capture, exports, APK download proxy — anything requiring elevated privilege or server-verified data. |
+| Backend service | Cloudflare Workers (Hono) — lives in `worker/`. *(Replaced the old Railway/Express `server/`, now removed. Deploy via `wrangler`.)* | The *only* place the Supabase `service_role` key is ever loaded. Handles operator account creation, IP capture, exports, APK download proxy — anything requiring elevated privilege or server-verified data. |
 | Icons | `phosphor_flutter` | Every icon in the app. Never Material default icons. |
 | Loading/animation | `lottie`, recolored to NDC palette | Never generic spinners |
 | Local offline queue | Hive | Registration submissions only, keep it simple |

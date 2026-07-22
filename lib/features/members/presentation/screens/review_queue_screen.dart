@@ -164,7 +164,7 @@ class _ReviewTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                MemberAvatar(photoPath: member.photoPath),
+                MemberAvatar(photoPath: member.photoPath, viewerLabel: member.fullName),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(

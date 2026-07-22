@@ -6,15 +6,23 @@ import '../../application/member_providers.dart';
 import '../../../../core/net/photo_service.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
+import 'photo_viewer.dart';
 
-/// The one member avatar for list rows: real photo via a signed URL when
+/// The one member avatar for list rows: real photo via the Worker view URL when
 /// photo_path exists, otherwise the single app-wide fallback style
 /// (greenTint square + canopyGreen person icon). Never per-screen variants.
+/// When a photo exists, tapping it opens the full-screen [openPhotoViewer].
 class MemberAvatar extends ConsumerWidget {
   final String? photoPath;
   final double size;
+  final String? viewerLabel;
 
-  const MemberAvatar({super.key, required this.photoPath, this.size = 44});
+  const MemberAvatar({
+    super.key,
+    required this.photoPath,
+    this.size = 44,
+    this.viewerLabel,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,16 +32,19 @@ class MemberAvatar extends ConsumerWidget {
     return urlAsync.when(
       data: (url) => url == null
           ? _fallback()
-          : ClipRRect(
-              borderRadius: AppRadii.borderSm,
-              child: CachedNetworkImage(
-                imageUrl: url,
-                httpHeaders: PhotoService.authHeaders(),
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => _fallback(),
-                errorWidget: (_, _, _) => _fallback(),
+          : GestureDetector(
+              onTap: () => openPhotoViewer(context, photoPath, label: viewerLabel),
+              child: ClipRRect(
+                borderRadius: AppRadii.borderSm,
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  httpHeaders: PhotoService.authHeaders(),
+                  width: size,
+                  height: size,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => _fallback(),
+                  errorWidget: (_, _, _) => _fallback(),
+                ),
               ),
             ),
       loading: _fallback,

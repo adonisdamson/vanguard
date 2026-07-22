@@ -401,7 +401,7 @@ class _PendingTile extends StatelessWidget {
         children: [
           // Verification selfie — the whole point of the access-request flow
           // is the admin confirming a real face before approving.
-          MemberAvatar(photoPath: operator.avatarPath, size: 48),
+          MemberAvatar(photoPath: operator.avatarPath, size: 48, viewerLabel: operator.fullName),
           const SizedBox(width: AppSpacing.base),
           Expanded(
             child: Column(

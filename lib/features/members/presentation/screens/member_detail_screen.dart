@@ -9,6 +9,7 @@ import '../../application/member_providers.dart';
 import '../../data/review_repository.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../core/net/photo_service.dart';
+import '../widgets/photo_viewer.dart';
 import '../../../auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
@@ -404,8 +405,8 @@ class _HeaderCard extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          // Photo avatar — centered, circular
-          _PhotoAvatar(photoPath: member.photoPath),
+          // Photo avatar — centered, circular; tap to view full-screen
+          _PhotoAvatar(photoPath: member.photoPath, label: member.fullName),
           const SizedBox(height: AppSpacing.md),
           // Name
           Text(
@@ -460,13 +461,15 @@ class _HeaderCard extends ConsumerWidget {
 
 class _PhotoAvatar extends ConsumerWidget {
   final String? photoPath;
+  final String? label;
 
-  const _PhotoAvatar({required this.photoPath});
+  const _PhotoAvatar({required this.photoPath, this.label});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     Widget inner;
-    if (photoPath == null || photoPath!.isEmpty) {
+    final hasPhoto = photoPath != null && photoPath!.isNotEmpty;
+    if (!hasPhoto) {
       inner = _placeholder();
     } else {
       final urlAsync = ref.watch(photoUrlProvider(photoPath!));
@@ -487,7 +490,7 @@ class _PhotoAvatar extends ConsumerWidget {
       );
     }
 
-    return Container(
+    final avatar = Container(
       width: 88,
       height: 88,
       decoration: BoxDecoration(
@@ -495,6 +498,12 @@ class _PhotoAvatar extends ConsumerWidget {
         border: Border.all(color: AppColors.surface.withValues(alpha: 0.30), width: 2),
       ),
       child: ClipOval(child: inner),
+    );
+
+    if (!hasPhoto) return avatar;
+    return GestureDetector(
+      onTap: () => openPhotoViewer(context, photoPath, label: label),
+      child: avatar,
     );
   }
 

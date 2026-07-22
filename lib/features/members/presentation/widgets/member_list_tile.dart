@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../application/member_providers.dart';
 import '../../data/member_repository.dart';
 import '../../../../core/net/photo_service.dart';
+import 'photo_viewer.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -42,7 +43,7 @@ class MemberListTile extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            _Avatar(photoPath: member.photoPath, ref: ref),
+            _Avatar(photoPath: member.photoPath, ref: ref, label: member.fullName),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
@@ -76,8 +77,9 @@ class MemberListTile extends ConsumerWidget {
 class _Avatar extends StatelessWidget {
   final String? photoPath;
   final WidgetRef ref;
+  final String? label;
 
-  const _Avatar({required this.photoPath, required this.ref});
+  const _Avatar({required this.photoPath, required this.ref, this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -88,16 +90,19 @@ class _Avatar extends StatelessWidget {
     final urlAsync = ref.watch(photoUrlProvider(photoPath!));
     return urlAsync.when(
       data: (url) => url != null
-          ? ClipRRect(
-              borderRadius: AppRadii.borderSm,
-              child: CachedNetworkImage(
-                imageUrl: url,
-                httpHeaders: PhotoService.authHeaders(),
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => _placeholder(),
-                errorWidget: (_, _, _) => _placeholder(),
+          ? GestureDetector(
+              onTap: () => openPhotoViewer(context, photoPath, label: label),
+              child: ClipRRect(
+                borderRadius: AppRadii.borderSm,
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  httpHeaders: PhotoService.authHeaders(),
+                  width: 44,
+                  height: 44,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => _placeholder(),
+                  errorWidget: (_, _, _) => _placeholder(),
+                ),
               ),
             )
           : _placeholder(),

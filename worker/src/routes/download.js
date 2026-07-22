@@ -83,6 +83,9 @@ download.get('/version', async (c) => {
     size_bytes: asset.size,
     download_count: asset.download_count,
     updated_at: asset.updated_at,
+    // Direct GitHub CDN URL — lets the in-app updater pull the APK without
+    // streaming it through the Worker. `/download` remains the proxy fallback.
+    download_url: asset.browser_download_url,
   });
 });
 

@@ -66,6 +66,7 @@ jobs:
           if [[ "${{ github.ref_name }}" == "master" || "${{ github.ref_name }}" == "main" ]]; then
             echo "tag=latest"                    >> "$GITHUB_OUTPUT"
             echo "apk_name=TemaWest-NDC-v1.0.${{ github.run_number }}.apk"  >> "$GITHUB_OUTPUT"
+            echo "stable_name=TemaWest-NDC.apk"  >> "$GITHUB_OUTPUT"
             echo "release_name=Tema West NDC — v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
             echo "prerelease=false"              >> "$GITHUB_OUTPUT"
             echo "make_latest=true"              >> "$GITHUB_OUTPUT"
@@ -73,6 +74,7 @@ jobs:
           else
             echo "tag=dev-latest"                >> "$GITHUB_OUTPUT"
             echo "apk_name=TemaWest-NDC-DEV-v1.0.${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+            echo "stable_name=TemaWest-NDC-DEV.apk" >> "$GITHUB_OUTPUT"
             echo "release_name=Tema West NDC — DEV v1.0.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
             echo "prerelease=true"               >> "$GITHUB_OUTPUT"
             echo "make_latest=false"             >> "$GITHUB_OUTPUT"
@@ -117,6 +119,11 @@ jobs:
             --dart-define=BUILD_DATE="$(date -u '+%d %b %Y')"
           cp build/app/outputs/flutter-apk/app-release.apk \
             "${{ steps.channel.outputs.apk_name }}"
+          # Stable-named copy so the download proxy can stream a deterministic
+          # URL (github.com/<repo>/releases/download/<tag>/<stable>.apk) without
+          # a rate-limited GitHub API lookup on every request.
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "${{ steps.channel.outputs.stable_name }}"
 
       - name: Collect build metadata
         id: meta
@@ -198,5 +205,6 @@ jobs:
             > Built specifically for modern Android phones — smaller APK, faster install.
           files: |
             ${{ steps.channel.outputs.apk_name }}
+            ${{ steps.channel.outputs.stable_name }}
           prerelease: ${{ steps.channel.outputs.prerelease }}
           make_latest: ${{ steps.channel.outputs.make_latest }}

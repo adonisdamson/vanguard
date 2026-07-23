@@ -33,25 +33,10 @@ async function fetchLatestAsset(env) {
   return asset;
 }
 
-// GET /download — streams the latest production APK.
-download.get('/', async (c) => {
-  let asset;
-  try {
-    asset = await fetchLatestAsset(c.env);
-  } catch {
-    asset = null;
-  }
-  if (!asset) return c.text('APK unavailable — try again shortly', 503);
-
-  // Workers follows redirects automatically; stream the upstream body through.
-  const upstream = await fetch(asset.browser_download_url, {
-    headers: { 'User-Agent': 'vanguard-download/1.0' },
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!upstream.ok || !upstream.body) return c.text('APK unavailable', 502);
-
-  // Sanitise the filename before placing it in a header to prevent injection.
-  const safeName = asset.name.replace(/[^\w.\-]/g, '_');
+// Streams an already-fetched upstream APK response through the Worker so the
+// client never sees GitHub. Sanitises the filename to prevent header injection.
+function streamApk(upstream, name) {
+  const safeName = name.replace(/[^\w.\-]/g, '_');
   const headers = new Headers({
     'Content-Type': 'application/vnd.android.package-archive',
     'Content-Disposition': `attachment; filename="${safeName}"`,
@@ -61,8 +46,44 @@ download.get('/', async (c) => {
   });
   const len = upstream.headers.get('content-length');
   if (len) headers.set('Content-Length', len);
-
   return new Response(upstream.body, { headers });
+}
+
+// The release tag is fixed (`latest`) and the prod build attaches a stable-named
+// asset, so this URL is deterministic across versions — no GitHub API call, and
+// therefore none of the unauthenticated-rate-limit 503 flakiness.
+const STABLE_APK_URL = `https://github.com/${REPO}/releases/download/latest/TemaWest-NDC.apk`;
+
+// GET /download — streams the latest production APK.
+download.get('/', async (c) => {
+  // Primary path: deterministic stable asset, streamed server-side. No API call.
+  try {
+    const upstream = await fetch(STABLE_APK_URL, {
+      headers: { 'User-Agent': 'vanguard-download/1.0' },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(60000),
+    });
+    if (upstream.ok && upstream.body) return streamApk(upstream, 'TemaWest-NDC.apk');
+  } catch {
+    // fall through to API resolution below
+  }
+
+  // Fallback: resolve the versioned asset via the API (e.g. an older release
+  // published before the stable-named asset existed).
+  let asset;
+  try {
+    asset = await fetchLatestAsset(c.env);
+  } catch {
+    asset = null;
+  }
+  if (!asset) return c.text('APK unavailable — try again shortly', 503);
+
+  const upstream = await fetch(asset.browser_download_url, {
+    headers: { 'User-Agent': 'vanguard-download/1.0' },
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!upstream.ok || !upstream.body) return c.text('APK unavailable', 502);
+  return streamApk(upstream, asset.name);
 });
 
 // GET /download/version — live release metadata for the landing page.

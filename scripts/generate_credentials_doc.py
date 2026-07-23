@@ -2,8 +2,12 @@
 """
 Generate a Microsoft Word document with all operator accounts and their credentials.
 Outputs: NDC_Vanguard_Credentials.docx on the Desktop.
+
+Usage:
+  export SUPABASE_SERVICE_ROLE_KEY="<key>"
+  python3 scripts/generate_credentials_doc.py
 """
-import json, urllib.request, os
+import json, urllib.request, os, sys
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -12,11 +16,9 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 SUPABASE_URL = "https://gnolfngnwyuwubqzopzl.supabase.co"
-SERVICE_ROLE_KEY = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub2xmbmdud3l1d3VicXpvcHpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzEwMjU3OCwiZXhwIjoyMDk4Njc4NTc4fQ."
-    "FVNU0eby__ODH5WjIKz-QSwqKJIUoGe8oKFx-pQwLxk"
-)
+SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+if not SERVICE_ROLE_KEY:
+    sys.exit("ERROR: set SUPABASE_SERVICE_ROLE_KEY env var before running this script.")
 PASSWORD = "temawestndc@2026!"
 
 # NDC colors

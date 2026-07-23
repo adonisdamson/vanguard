@@ -21,6 +21,18 @@
   <title>TemaWest</title>
   <link rel="manifest" href="manifest.json">
 
+  <!--
+    Preload hints: browser starts fetching these in parallel with HTML parsing,
+    shaving seconds off cold-start. flutter_bootstrap.js triggers the chain, so
+    preloading it + the main bundle + canvaskit WASM covers the critical path.
+    The skwasm preload helps Wasm-GC-capable browsers (Chrome 119+, Firefox 120+)
+    which use the dart2wasm build and never touch canvaskit at all.
+  -->
+  <link rel="preload" href="flutter_bootstrap.js" as="script">
+  <link rel="preload" href="main.dart.js" as="script">
+  <link rel="preload" href="canvaskit/canvaskit.wasm" as="fetch" type="application/wasm" crossorigin>
+  <link rel="preload" href="canvaskit/skwasm.wasm" as="fetch" type="application/wasm" crossorigin>
+
   <style>
     /* NDC-green boot screen so the PWA never flashes blank white while
        Flutter initialises — matches the native splash (deep canopy green). */

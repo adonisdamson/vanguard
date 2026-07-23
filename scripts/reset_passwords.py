@@ -2,17 +2,19 @@
 """
 Reset ALL operator account passwords to temawestndc@2026!
 Uses the Supabase Admin API with the service_role key.
+
+Usage:
+  export SUPABASE_SERVICE_ROLE_KEY="<key>"
+  python3 scripts/reset_passwords.py
 """
-import json, time, sys
+import json, time, sys, os
 import urllib.request
 import urllib.error
 
 SUPABASE_URL = "https://gnolfngnwyuwubqzopzl.supabase.co"
-SERVICE_ROLE_KEY = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdub2xmbmdud3l1d3VicXpvcHpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzEwMjU3OCwiZXhwIjoyMDk4Njc4NTc4fQ."
-    "FVNU0eby__ODH5WjIKz-QSwqKJIUoGe8oKFx-pQwLxk"
-)
+SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+if not SERVICE_ROLE_KEY:
+    sys.exit("ERROR: set SUPABASE_SERVICE_ROLE_KEY env var before running this script.")
 NEW_PASSWORD = "temawestndc@2026!"
 
 def supabase_get(path):

@@ -42,9 +42,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get --no-example
 
-      - name: Build Flutter web (release)
+      - name: Build Flutter web (release — JS + Wasm dual build)
         run: |
-          flutter build web --release --no-pub \
+          flutter build web --release --no-pub --wasm \
             --dart-define=APP_VERSION=web \
             --dart-define=GIT_SHA=$(git rev-parse --short HEAD) \
             --dart-define=BUILD_DATE="$(date -u '+%d %b %Y')"

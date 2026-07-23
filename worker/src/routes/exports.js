@@ -103,7 +103,7 @@ async function* paginate(env, filters) {
 //         membership_type?, status?, search? }
 // Higher Authority or Admin only.
 exports_.post('/members', async (c) => {
-  const ctx = await requireRole(c, ['admin', 'higher_authority', 'manager']);
+  const ctx = await requireRole(c, ['admin', 'higher_authority']);
   const { format = 'csv', ...filters } = await c.req.json().catch(() => ({}));
 
   // Pin the caller's jurisdiction LAST so it overrides any region/constituency

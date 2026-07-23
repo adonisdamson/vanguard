@@ -749,6 +749,71 @@
     .install-card .install-sub { font-size: 12px; opacity: 0.7; }
     @media (max-width: 520px) { .install-grid { grid-template-columns: 1fr; } }
 
+    /* ── Download card state machine ─────────────────────────────── */
+    /* Default state is always visible; the others are hidden */
+    .install-card .dl-state { display: none; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+    .install-card .dl-default { display: flex; }
+
+    /* Loading state */
+    .install-card.dl-loading .dl-default  { display: none; }
+    .install-card.dl-loading .dl-fetching { display: flex; gap: 8px; }
+    .install-card.dl-loading { pointer-events: none; transform: none !important; box-shadow: var(--shadow-card) !important; }
+
+    /* Success state */
+    .install-card.dl-done .dl-default  { display: none; }
+    .install-card.dl-done .dl-success  { display: flex; }
+    .install-card.dl-done { pointer-events: none; border-color: var(--c-green); }
+
+    /* Error state */
+    .install-card.dl-error .dl-default { display: none; }
+    .install-card.dl-error .dl-err     { display: flex; }
+    .install-card.dl-error { border-color: var(--c-red); }
+
+    /* Circular progress ring */
+    .dl-ring {
+      position: relative; width: 52px; height: 52px; flex-shrink: 0;
+    }
+    .dl-ring-svg { transform: rotate(-90deg); width: 52px; height: 52px; }
+    .dl-ring-bg {
+      fill: none; stroke: rgba(0,107,63,0.12); stroke-width: 3;
+      stroke-dasharray: 100; stroke-dashoffset: 0; stroke-linecap: round;
+    }
+    .dl-ring-fg {
+      fill: none; stroke: var(--c-green); stroke-width: 3;
+      stroke-dasharray: 100; stroke-dashoffset: 100; stroke-linecap: round;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+    .dl-ring-pct {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--c-green); font-family: 'Inter', sans-serif;
+    }
+
+    /* Progress bar (thin, at card bottom) */
+    .dl-bar-track {
+      width: 100%; height: 3px; background: rgba(0,107,63,0.10); border-radius: 2px;
+      overflow: hidden; margin-top: 2px;
+    }
+    .dl-bar-fill {
+      height: 100%; width: 0%; background: linear-gradient(90deg, var(--c-green), #00a35a);
+      border-radius: 2px; transition: width 0.35s ease;
+    }
+
+    /* Check icon pulse-in */
+    .dl-check-wrap {
+      width: 44px; height: 44px; border-radius: 50%; background: var(--c-green);
+      display: flex; align-items: center; justify-content: center;
+      animation: popIn 0.45s cubic-bezier(0.175,0.885,0.32,1.275) forwards;
+    }
+    .dl-check-wrap i { font-size: 22px; color: #fff; }
+    @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* Pulsing "preparing" dot */
+    .dl-prep-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--c-green);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1); } }
+
     .download-note {
       margin-top: 16px;
       font-size: 12px;
@@ -1020,10 +1085,42 @@
       <p class="download-sub reveal reveal-delay-1">Free for all NDC Tema West members. Pick your device — both use the same account.</p>
 
       <div class="install-grid reveal reveal-delay-2">
-        <a href="/download" class="install-card" id="dl-btn">
-          <i class="ph-fill ph-android-logo"></i>
-          <span class="install-head" id="dl-label">Download for Android</span>
-          <span class="install-sub" id="dl-note">Android 10+ · arm64 · APK</span>
+        <a href="/download" class="install-card" id="dl-btn" aria-label="Download TemaWest NDC for Android">
+
+          <!-- ① Default -->
+          <div class="dl-state dl-default">
+            <i class="ph-fill ph-android-logo"></i>
+            <span class="install-head" id="dl-label">Download for Android</span>
+            <span class="install-sub" id="dl-note">Android 10+ · arm64 · APK</span>
+          </div>
+
+          <!-- ② Downloading (progress ring + bar) -->
+          <div class="dl-state dl-fetching">
+            <div class="dl-ring">
+              <svg class="dl-ring-svg" viewBox="0 0 36 36" aria-hidden="true">
+                <circle class="dl-ring-bg" cx="18" cy="18" r="15.9"/>
+                <circle class="dl-ring-fg" id="dl-ring-fg" cx="18" cy="18" r="15.9"/>
+              </svg>
+              <span class="dl-ring-pct" id="dl-pct">0%</span>
+            </div>
+            <span class="install-head">Downloading…</span>
+            <span class="install-sub" id="dl-mb" aria-live="polite">Preparing…</span>
+            <div class="dl-bar-track"><div class="dl-bar-fill" id="dl-bar"></div></div>
+          </div>
+
+          <!-- ③ Done -->
+          <div class="dl-state dl-success">
+            <div class="dl-check-wrap"><i class="ph-fill ph-check"></i></div>
+            <span class="install-head" style="color:var(--c-green)">Download complete!</span>
+            <span class="install-sub">Check your Downloads folder</span>
+          </div>
+
+          <!-- ④ Error (tap to retry) -->
+          <div class="dl-state dl-err">
+            <i class="ph-fill ph-warning-circle" style="font-size:34px;color:var(--c-red)"></i>
+            <span class="install-head" style="color:var(--c-red)">Download failed</span>
+            <span class="install-sub" id="dl-err-msg">Tap to try again</span>
+          </div>
         </a>
         <a href="https://temawest-app.vercel.app" class="install-card">
           <i class="ph-fill ph-apple-logo"></i>
@@ -1056,23 +1153,142 @@
 
   <!-- ── SCROLL REVEAL SCRIPT ──────────────────────────────────── -->
   <script>
+    // ── Scroll reveal ────────────────────────────────────────────────────────
     const observer = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } }),
       { threshold: 0.1, rootMargin: '0px 0px -32px 0px' }
     );
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-    // Show live version on the download CTA — silent fail keeps fallback text.
+    // ── Live version badge ───────────────────────────────────────────────────
+    // Keep a known size fallback for progress calculation if Content-Length is absent.
+    var apkBytes = 33610196; // last known size — overwritten by version API
     fetch('/download/version')
-      .then(r => r.ok ? r.json() : null)
-      .then(v => {
-        if (!v || !v.version) return;
-        document.getElementById('dl-label').textContent = 'Get the App — v' + v.version;
-        const d = v.updated_at ? new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-        document.getElementById('dl-note').textContent =
-          'Latest build: v' + v.version + (d ? ' · Released ' + d : '') + ' · Android 10+ · arm64';
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(v) {
+        if (!v) return;
+        if (v.size_bytes) apkBytes = v.size_bytes;
+        if (v.version) {
+          var lbl = document.getElementById('dl-label');
+          var note = document.getElementById('dl-note');
+          if (lbl) lbl.textContent = 'Download for Android — v' + v.version;
+          if (note) {
+            var d = v.updated_at
+              ? new Date(v.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              : '';
+            note.textContent = 'v' + v.version + (d ? ' · ' + d : '') + ' · 32 MB · arm64';
+          }
+        }
       })
-      .catch(() => {});
+      .catch(function() {});
+
+    // ── Download with real progress ──────────────────────────────────────────
+    // Fetches the APK via the Vercel rewrite (/download → Worker → GitHub CDN),
+    // tracks bytes via ReadableStream, shows a live progress ring + bar, then
+    // triggers the browser "Save file" dialog from a Blob URL — so the user
+    // sees immediate feedback on click rather than a silent pause.
+    (function () {
+      var btn   = document.getElementById('dl-btn');
+      var ring  = document.getElementById('dl-ring-fg');
+      var pct   = document.getElementById('dl-pct');
+      var mb    = document.getElementById('dl-mb');
+      var bar   = document.getElementById('dl-bar');
+      var errMsg = document.getElementById('dl-err-msg');
+      if (!btn) return;
+
+      var CIRC = 99.9; // stroke-dasharray value (2π × r=15.9 ≈ 99.9)
+
+      function fmtMB(bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; }
+
+      function setState(s) {
+        btn.classList.remove('dl-loading', 'dl-done', 'dl-error');
+        if (s) btn.classList.add(s);
+      }
+
+      function setProgress(p) { // p: 0–1
+        var pctVal = Math.round(p * 100);
+        if (ring)  ring.style.strokeDashoffset = (CIRC * (1 - p)).toFixed(2);
+        if (pct)   pct.textContent = pctVal + '%';
+        if (bar)   bar.style.width = pctVal + '%';
+      }
+
+      function setMb(loaded, total) {
+        if (mb) mb.textContent = fmtMB(loaded) + ' / ' + fmtMB(total);
+      }
+
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (btn.classList.contains('dl-loading') || btn.classList.contains('dl-done')) return;
+
+        setState('dl-loading');
+        setProgress(0);
+        if (mb) mb.textContent = 'Preparing…';
+
+        var fetchOpts = {};
+        try { fetchOpts.signal = AbortSignal.timeout(180000); } catch(e) {}
+        fetch('/download', fetchOpts)
+          .then(function (resp) {
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+            var total = parseInt(resp.headers.get('Content-Length') || '0', 10) || apkBytes;
+            var reader = resp.body.getReader();
+            var chunks = [];
+            var loaded = 0;
+
+            function pump() {
+              return reader.read().then(function (res) {
+                if (res.done) return;
+                chunks.push(res.value);
+                loaded += res.value.byteLength;
+                var p = Math.min(loaded / total, 0.99);
+                setProgress(p);
+                setMb(loaded, total);
+                return pump();
+              });
+            }
+
+            return pump().then(function () {
+              // All bytes in — trigger browser Save dialog from Blob URL.
+              setProgress(1);
+              var blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+              var url  = URL.createObjectURL(blob);
+              var a    = document.createElement('a');
+              a.href = url; a.download = 'TemaWest-NDC.apk';
+              document.body.appendChild(a); a.click(); document.body.removeChild(a);
+              setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+
+              // Show success state, auto-reset after 6 s.
+              setTimeout(function () {
+                setState('dl-done');
+                setTimeout(function () { setState(''); setProgress(0); }, 6000);
+              }, 300);
+            });
+          })
+          .catch(function (err) {
+            setState('dl-error');
+            if (errMsg) errMsg.textContent = err && err.name === 'TimeoutError'
+              ? 'Timed out — tap to try again'
+              : 'Connection error — tap to try again';
+            // Re-enable card after 4 s so the user can retry.
+            setTimeout(function () { setState(''); setProgress(0); }, 4000);
+          });
+      });
+    })();
+
+    // ── Hero download button → scrolls to install card ──────────────────────
+    // Intercept the hero "Download for Android" <a> too — scroll to the card
+    // section and trigger the same download click so progress shows there.
+    document.querySelectorAll('a[href="/download"]').forEach(function (link) {
+      if (link.id === 'dl-btn') return; // the card handles its own click
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var card = document.getElementById('dl-btn');
+        if (!card) return;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Small delay so the scroll settles before triggering.
+        setTimeout(function () { card.click(); }, 350);
+      });
+    });
   </script>
 
 </body>

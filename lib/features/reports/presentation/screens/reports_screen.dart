@@ -319,7 +319,7 @@ class _StatusBreakdown extends StatelessWidget {
               icon: PhosphorIconsFill.sealCheck),
           const SizedBox(height: AppSpacing.md),
           _HorizBar(label: 'Pending', value: pending, total: total,
-              color: AppColors.statusPending, bg: AppColors.amberTint,
+              color: AppColors.inkMuted, bg: AppColors.fillMuted,
               icon: PhosphorIconsFill.hourglass),
           const SizedBox(height: AppSpacing.md),
           _HorizBar(label: 'Rejected', value: rejected, total: total,

@@ -91,8 +91,8 @@ class PersonnelHomeScreen extends ConsumerWidget {
                         icon: PhosphorIconsRegular.hourglass,
                         value: '${stats.pending}',
                         label: 'Pending',
-                        iconColor: AppColors.statusPending,
-                        iconBg: AppColors.pendingBg,
+                        iconColor: AppColors.inkMuted,
+                        iconBg: AppColors.fillMuted,
                       )),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(child: StatCard(
@@ -376,7 +376,7 @@ class _ProgressCard extends StatelessWidget {
     final statusColor = pct >= 75
         ? AppColors.canopyGreen
         : pct >= 40
-            ? AppColors.statusPending
+            ? AppColors.inkMuted
             : AppColors.mist;
 
     return Container(
@@ -444,18 +444,18 @@ class _OfflineBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.pendingBg,
+        color: AppColors.fillMuted,
         borderRadius: BorderRadius.circular(AppRadii.sm),
-        border: Border.all(color: AppColors.statusPending.withValues(alpha: 0.4)),
+        border: Border.all(color: AppColors.inkMuted.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.statusPending),
+          const PhosphorIcon(PhosphorIconsFill.cloudSlash, size: 18, color: AppColors.inkMuted),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               '$count registration${count == 1 ? '' : 's'} saved offline. Connect to sync.',
-              style: AppTextStyles.small(color: AppColors.statusPending),
+              style: AppTextStyles.small(color: AppColors.inkMuted),
             ),
           ),
         ],
@@ -474,7 +474,7 @@ class _SubmissionActivityItem extends StatelessWidget {
     'active'    => (PhosphorIconsRegular.sealCheck,      AppColors.canopyGreen, AppColors.greenTint),
     'rejected'  => (PhosphorIconsRegular.xCircle,        AppColors.umbrellaRed, AppColors.redTint),
     'suspended' => (PhosphorIconsRegular.prohibit,       AppColors.umbrellaRed, AppColors.redTint),
-    _           => (PhosphorIconsRegular.hourglass,      AppColors.statusPending, AppColors.pendingBg),
+    _           => (PhosphorIconsRegular.hourglass,      AppColors.inkMuted, AppColors.fillMuted),
   };
 
   static String _label(String status) => switch (status) {

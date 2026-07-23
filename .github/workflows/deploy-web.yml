@@ -1,0 +1,70 @@
+name: Tema West — Build & Deploy PWA
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-web:
+    name: Build Flutter Web + Deploy to Vercel
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter 3.38.1
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: pub-
+
+      - name: Write .env file
+        run: |
+          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\nAPI_BASE_URL=%s\n' \
+            "${{ secrets.SUPABASE_URL }}" \
+            "${{ secrets.SUPABASE_ANON_KEY }}" \
+            "${{ secrets.API_BASE_URL }}" > .env
+
+      - name: Install dependencies
+        run: flutter pub get --no-example
+
+      - name: Build Flutter web (release)
+        run: |
+          flutter build web --release --no-pub \
+            --dart-define=APP_VERSION=web \
+            --dart-define=GIT_SHA=$(git rev-parse --short HEAD) \
+            --dart-define=BUILD_DATE="$(date -u '+%d %b %Y')"
+
+      - name: Copy Vercel config into build output
+        run: |
+          cp web/vercel.json build/web/vercel.json
+
+      - name: Deploy to Vercel (production)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npm install -g vercel@latest --quiet
+          cd build/web
+          vercel deploy --prod --token="$VERCEL_TOKEN" \
+            --scope="$VERCEL_ORG_ID" \
+            --yes \
+            --name temawest-app 2>&1
+
+      - name: Report deployed URL
+        run: echo "Deployed → https://temawest-app.vercel.app"

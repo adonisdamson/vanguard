@@ -91,8 +91,8 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
                           icon: PhosphorIconsRegular.hourglass,
                           value: '${s.pending}',
                           label: 'Pending review',
-                          iconColor: AppColors.statusPending,
-                          iconBg: AppColors.pendingBg,
+                          iconColor: AppColors.inkMuted,
+                          iconBg: AppColors.fillMuted,
                         )),
                       ]),
                       const SizedBox(height: AppSpacing.sm),
@@ -361,7 +361,7 @@ class _HeroStatsRow extends StatelessWidget {
           _InlineStat(
             value: '$pending',
             label: 'Pending',
-            color: pending > 0 ? AppColors.statusPending : AppColors.surface,
+            color: AppColors.surface,
           ),
           _Divider(),
           _InlineStat(value: '$active', label: 'Approved'),
@@ -421,12 +421,12 @@ class _ReviewUrgencyCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.base),
         decoration: BoxDecoration(
-          color: AppColors.pendingBg,
+          color: AppColors.brandTint,
           borderRadius: AppRadii.borderMd,
-          border: Border.all(color: AppColors.statusPending.withValues(alpha: 0.35)),
+          border: Border.all(color: AppColors.brand.withValues(alpha: 0.25)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.statusPending.withValues(alpha: 0.08),
+              color: AppColors.brand.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -436,8 +436,8 @@ class _ReviewUrgencyCard extends StatelessWidget {
           children: [
             Container(
               width: 40, height: 40,
-              decoration: BoxDecoration(color: AppColors.statusPending.withValues(alpha: 0.15), borderRadius: AppRadii.borderSm),
-              child: const Icon(PhosphorIconsFill.bell, size: 20, color: AppColors.statusPending),
+              decoration: BoxDecoration(color: AppColors.brand.withValues(alpha: 0.12), borderRadius: AppRadii.borderSm),
+              child: const PhosphorIcon(PhosphorIconsFill.bell, size: 20, color: AppColors.brand),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -455,7 +455,7 @@ class _ReviewUrgencyCard extends StatelessWidget {
                 ],
               ),
             ),
-            const PhosphorIcon(PhosphorIconsRegular.arrowRight, size: 18, color: AppColors.statusPending),
+            const PhosphorIcon(PhosphorIconsRegular.arrowRight, size: 18, color: AppColors.brand),
           ],
         ),
       ),
@@ -819,7 +819,7 @@ class _ProgressCard extends StatelessWidget {
     final statusColor = pct >= 75
         ? AppColors.canopyGreen
         : pct >= 40
-            ? AppColors.statusPending
+            ? AppColors.inkMuted
             : AppColors.mist;
 
     return Container(

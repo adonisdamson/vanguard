@@ -73,8 +73,8 @@ class AdminHomeScreen extends ConsumerWidget {
                         icon: PhosphorIconsRegular.hourglass,
                         value: '${s.pending}',
                         label: 'Pending',
-                        iconColor: AppColors.statusPending,
-                        iconBg: AppColors.pendingBg,
+                        iconColor: AppColors.inkMuted,
+                        iconBg: AppColors.fillMuted,
                       )),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(child: StatCard(
@@ -332,8 +332,8 @@ class _SystemActionsGrid extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         _SystemActionRow(
           icon: PhosphorIconsRegular.listChecks,
-          iconColor: AppColors.warning,
-          iconBg: AppColors.amberTint,
+          iconColor: AppColors.ink,
+          iconBg: AppColors.fillMuted,
           label: 'Review queue',
           subtitle: pendingCount != null && pendingCount! > 0
               ? '$pendingCount registrations waiting'
@@ -431,7 +431,7 @@ class _SystemActionRow extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: const BoxDecoration(
-                    color: AppColors.warning,
+                    color: AppColors.danger,
                     borderRadius: AppRadii.borderPill,
                   ),
                   child: Text('$badge',
@@ -588,7 +588,7 @@ class _ProgressCard extends StatelessWidget {
     final statusColor = pct >= 75
         ? AppColors.canopyGreen
         : pct >= 40
-            ? AppColors.statusPending
+            ? AppColors.inkMuted
             : AppColors.mist;
 
     return Container(

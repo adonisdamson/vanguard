@@ -24,7 +24,7 @@ class StatusDonut extends StatelessWidget {
     final total = active + pending + rejected;
     final slices = <_Seg>[
       _Seg('Active', active, AppColors.success),
-      _Seg('Pending', pending, AppColors.warning),
+      _Seg('Pending', pending, AppColors.inkMuted),
       _Seg('Rejected', rejected, AppColors.danger),
     ];
 

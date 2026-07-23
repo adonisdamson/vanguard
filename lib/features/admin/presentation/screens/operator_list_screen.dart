@@ -250,12 +250,12 @@ class _PendingSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.amberTint,
+                color: AppColors.fillMuted,
                 borderRadius: AppRadii.borderPill,
               ),
               child: Text(
                 '${pending.length}',
-                style: AppTextStyles.badge(color: AppColors.statusPending),
+                style: AppTextStyles.badge(color: AppColors.inkMuted),
               ),
             ),
           ],
@@ -461,7 +461,7 @@ class _PendingTile extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
         boxShadow: AppShadows.e1,
-        border: Border.all(color: AppColors.amberTint, width: 1.5),
+        border: Border.all(color: AppColors.brandTint, width: 1.5),
       ),
       child: Row(
         children: [
@@ -662,8 +662,8 @@ class _RolePill extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color, bg) = switch (role) {
       AppUserRole.admin          => ('Admin',     AppColors.umbrellaRed,  AppColors.redTint),
-      AppUserRole.manager        => ('Admin’r', AppColors.deepCanopy, AppColors.greenTint),
-      AppUserRole.higherAuthority => ('Coord.',   AppColors.statusPending, AppColors.amberTint),
+      AppUserRole.manager        => ('Manager',     AppColors.brand900, AppColors.brandTint),
+      AppUserRole.higherAuthority => ('Coordinator', AppColors.brand,      AppColors.brandTint),
       AppUserRole.personnel      => ('Personnel', AppColors.canopyGreen,  AppColors.greenTint),
     };
     return Container(

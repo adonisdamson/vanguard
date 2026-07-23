@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/net/authed_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -94,14 +94,14 @@ class _Avatar extends StatelessWidget {
               onTap: () => openPhotoViewer(context, photoPath, label: label),
               child: ClipRRect(
                 borderRadius: AppRadii.borderSm,
-                child: CachedNetworkImage(
-                  imageUrl: url,
-                  httpHeaders: PhotoService.authHeaders(),
+                child: Image(
+                  image: AuthedNetworkImage(url, PhotoService.authHeaders()),
                   width: 44,
                   height: 44,
                   fit: BoxFit.cover,
-                  placeholder: (_, _) => _placeholder(),
-                  errorWidget: (_, _, _) => _placeholder(),
+                  gaplessPlayback: true,
+                  errorBuilder: (_, _, _) => _placeholder(),
+                  loadingBuilder: (_, child, p) => p == null ? child : _placeholder(),
                 ),
               ),
             )

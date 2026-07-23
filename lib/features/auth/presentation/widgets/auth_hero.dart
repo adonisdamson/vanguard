@@ -8,6 +8,11 @@ import '../../../../shared/theme/app_text_styles.dart';
 /// image with a brand gradient scrim so the logo, wordmark, and title read
 /// cleanly over it. The scrim deepens into the brand green at the bottom so
 /// the form beneath feels connected to the image.
+///
+/// The height adapts to the viewport — on web/desktop and short windows it
+/// shrinks so the sign-in fields stay above the fold instead of being pushed
+/// under a tall image. If the photo can't decode (e.g. a cold PWA cache) it
+/// degrades to an intentional brand gradient, never a blank block.
 class AuthHero extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -16,13 +21,25 @@ class AuthHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top;
+    final media = MediaQuery.of(context);
+    final top = media.padding.top;
+    // Compact on wide (web/tablet) or short viewports; full-height on phones.
+    final compact = media.size.width > 620 || media.size.height < 720;
+    final imageHeight = compact ? 200.0 : 280.0;
+
     return SizedBox(
-      height: 300 + top,
+      height: imageHeight + top,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/images/login_hero.jpg', fit: BoxFit.cover),
+          // Base brand wash — always painted, so even a failed image decode
+          // reads as a deliberate green field rather than an empty box.
+          const ColoredBox(color: AppColors.deepCanopy),
+          Image.asset(
+            'assets/images/login_hero.jpg',
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
           // Brand scrim: transparent at top → deep green at the bottom edge.
           DecoratedBox(
             decoration: BoxDecoration(

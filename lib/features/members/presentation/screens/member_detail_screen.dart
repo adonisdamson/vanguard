@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/net/authed_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -476,14 +476,15 @@ class _PhotoAvatar extends ConsumerWidget {
       final urlAsync = ref.watch(photoUrlProvider(photoPath!));
       inner = urlAsync.when(
         data: (url) => url != null
-            ? CachedNetworkImage(
-                imageUrl: url,
-                httpHeaders: PhotoService.authHeaders(),
+            ? Image(
+                image: AuthedNetworkImage(url, PhotoService.authHeaders()),
                 width: 88,
                 height: 88,
                 fit: BoxFit.cover,
-                placeholder: (_, _) => const SizedBox(width: 88, height: 88),
-                errorWidget: (_, _, _) => _placeholder(),
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) => _placeholder(),
+                loadingBuilder: (_, child, p) =>
+                    p == null ? child : const SizedBox(width: 88, height: 88),
               )
             : _placeholder(),
         loading: () => const SizedBox(width: 88, height: 88),

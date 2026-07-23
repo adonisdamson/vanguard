@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/net/authed_image.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/net/photo_service.dart';
@@ -77,13 +77,15 @@ class _PhotoViewerState extends State<_PhotoViewer> {
                 minScale: 1.0,
                 maxScale: 5.0,
                 child: Center(
-                  child: CachedNetworkImage(
-                    imageUrl: PhotoService.viewUrl(widget.photoPath),
-                    httpHeaders: PhotoService.authHeaders(),
+                  child: Image(
+                    image: AuthedNetworkImage(
+                        PhotoService.viewUrl(widget.photoPath),
+                        PhotoService.authHeaders()),
                     fit: BoxFit.contain,
-                    fadeInDuration: const Duration(milliseconds: 180),
-                    placeholder: (_, _) => const LottieLoader(size: 96),
-                    errorWidget: (_, _, _) => _error(),
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => _error(),
+                    loadingBuilder: (_, child, p) =>
+                        p == null ? child : const LottieLoader(size: 96),
                   ),
                 ),
               ),

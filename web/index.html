@@ -56,6 +56,37 @@
       var b = document.getElementById('boot');
       if (b) { b.classList.add('hide'); setTimeout(function () { b.remove(); }, 450); }
     });
+
+    // ── Reliable PWA updates ────────────────────────────────────────────────
+    // Flutter's service worker serves main.dart.js cache-first, so a returning
+    // user keeps running the OLD bundle after a deploy until every tab is
+    // closed. That made shipped fixes "never show up" (e.g. member photos on
+    // web). Here we: (1) poll for a new worker on load, (2) tell a freshly
+    // installed worker to activate immediately (the generated SW handles the
+    // 'skipWaiting' message), and (3) reload exactly once when it takes control
+    // — so a new deploy lands on the very next visit, no manual cache-clearing.
+    if ('serviceWorker' in navigator) {
+      var __reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (__reloading) return;
+        __reloading = true;
+        window.location.reload();
+      });
+      navigator.serviceWorker.ready.then(function (reg) {
+        function watch(worker) {
+          if (!worker) return;
+          worker.addEventListener('statechange', function () {
+            // A new worker finished installing while an old one still controls
+            // the page → a genuine update is waiting. Activate it now.
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              worker.postMessage('skipWaiting');
+            }
+          });
+        }
+        reg.addEventListener('updatefound', function () { watch(reg.installing); });
+        try { reg.update(); } catch (e) {}
+      });
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

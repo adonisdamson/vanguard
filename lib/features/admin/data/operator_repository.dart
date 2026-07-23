@@ -83,6 +83,8 @@ class OperatorDetail {
       isActive: isActive ?? this.isActive,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt,
+      partyPosition: partyPosition,
+      branch: branch,
     );
   }
 }

@@ -146,6 +146,15 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
                       onTap: () => context.push('/member-directory'),
                     )),
                   ]),
+                  const SizedBox(height: AppSpacing.sm),
+                  // Coordinators can view the full operator roster (read-only).
+                  _ActionCard(
+                    icon: PhosphorIconsFill.identificationBadge,
+                    label: 'Party operators',
+                    color: AppColors.deepCanopy,
+                    bg: AppColors.greenTint,
+                    onTap: () => context.push('/admin/operators'),
+                  ),
                   const SizedBox(height: AppSpacing.xl),
 
                   // Status breakdown donut

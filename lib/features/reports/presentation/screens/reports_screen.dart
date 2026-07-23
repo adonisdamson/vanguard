@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../../../core/net/file_saver.dart';
 import '../../../../features/dashboard/application/dashboard_providers.dart';
+import '../../../../features/dashboard/data/dashboard_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
 import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
@@ -72,6 +75,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         subject: 'NDC member register ($stamp)',
         text: 'NDC Tema West member register — CSV export ($stamp).',
       );
+      if (mounted) {
+        HapticFeedback.mediumImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Member register exported.'),
+            backgroundColor: AppColors.canopyGreen,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,6 +174,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.base),
+
+                // Registration trend — smooth gradient area chart (the headline
+                // analytic). A curve with a filled gradient reads far better
+                // than plain bars for month-over-month momentum.
+                statsAsync.when(
+                  data: (s) => s.trend.length >= 2
+                      ? _TrendAreaChart(trend: s.trend)
+                      : const SizedBox.shrink(),
+                  loading: () => const SkeletonLoader(height: 220, borderRadius: AppRadii.borderMd),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
+                statsAsync.when(
+                  data: (s) => s.trend.length >= 2
+                      ? const SizedBox(height: AppSpacing.base)
+                      : const SizedBox.shrink(),
+                  loading: () => const SizedBox(height: AppSpacing.base),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
 
                 // Status breakdown donut (pie) — appears once there's data
                 statsAsync.when(
@@ -357,6 +387,182 @@ class _ReportTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Registration trend — gradient area chart ──────────────────────────────────
+class _TrendAreaChart extends StatefulWidget {
+  final List<MonthlyCount> trend;
+  const _TrendAreaChart({required this.trend});
+
+  @override
+  State<_TrendAreaChart> createState() => _TrendAreaChartState();
+}
+
+class _TrendAreaChartState extends State<_TrendAreaChart> {
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.trend;
+    final maxCount = t.fold<int>(0, (m, e) => e.count > m ? e.count : m);
+    final maxY = (maxCount < 5 ? 5 : (maxCount * 1.25).ceil()).toDouble();
+    final total = t.fold<int>(0, (m, e) => m + e.count);
+
+    // Momentum: last month vs the previous one.
+    final last = t.last.count;
+    final prev = t.length >= 2 ? t[t.length - 2].count : 0;
+    final delta = last - prev;
+    final up = delta >= 0;
+
+    final spots = <FlSpot>[
+      for (var i = 0; i < t.length; i++) FlSpot(i.toDouble(), t[i].count.toDouble()),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 3, height: 14, color: AppColors.canopyGreen,
+                  margin: const EdgeInsets.only(right: 8)),
+              Expanded(child: Text('Registration trend', style: AppTextStyles.h3())),
+              // Momentum pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: up ? AppColors.greenTint : AppColors.redTint,
+                  borderRadius: AppRadii.borderPill,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    PhosphorIcon(
+                      up ? PhosphorIconsFill.trendUp : PhosphorIconsFill.trendDown,
+                      size: 12,
+                      color: up ? AppColors.canopyGreen : AppColors.umbrellaRed,
+                    ),
+                    const SizedBox(width: 4),
+                    Text('${delta.abs()}',
+                        style: AppTextStyles.badge(
+                            color: up ? AppColors.canopyGreen : AppColors.umbrellaRed)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text('$total members over ${t.length} months',
+              style: AppTextStyles.caption()),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 168,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: (t.length - 1).toDouble(),
+                minY: 0,
+                maxY: maxY,
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => AppColors.deepCanopy,
+                    getTooltipItems: (spots) => spots.map((s) {
+                      final i = s.x.toInt();
+                      final label = (i >= 0 && i < t.length) ? t[i].month : '';
+                      return LineTooltipItem(
+                        '${s.y.toInt()}\n',
+                        AppTextStyles.bodyMedium(color: AppColors.surface),
+                        children: [
+                          TextSpan(
+                            text: label,
+                            style: AppTextStyles.caption(
+                                color: AppColors.surface.withValues(alpha: 0.7)),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      interval: (maxY / 2).ceilToDouble(),
+                      getTitlesWidget: (v, _) => Text(v.toInt().toString(),
+                          style: AppTextStyles.caption()),
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      interval: 1,
+                      getTitlesWidget: (v, _) {
+                        final i = v.toInt();
+                        if (i < 0 || i >= t.length) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(t[i].month, style: AppTextStyles.caption()),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: (maxY / 2).ceilToDouble(),
+                  getDrawingHorizontalLine: (_) =>
+                      FlLine(color: AppColors.hairline, strokeWidth: 1),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    curveSmoothness: 0.32,
+                    preventCurveOverShooting: true,
+                    color: AppColors.canopyGreen,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, _, _, _) => FlDotCirclePainter(
+                        radius: 3.5,
+                        color: AppColors.surface,
+                        strokeWidth: 2.5,
+                        strokeColor: AppColors.canopyGreen,
+                      ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.canopyGreen.withValues(alpha: 0.28),
+                          AppColors.canopyGreen.withValues(alpha: 0.02),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

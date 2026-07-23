@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
 import '../../data/operator_repository.dart';
+import 'operator_detail_screen.dart';
 import '../../../auth/application/user_role_provider.dart';
 import '../../../members/data/location_repository.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -13,7 +14,6 @@ import '../../../../shared/theme/app_radii.dart';
 import '../../../../shared/theme/app_shadows.dart';
 import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
-import '../../../../shared/widgets/context_menu_sheet.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/load_more_button.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
@@ -36,6 +36,11 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
   bool _loadingMore = false;
   bool _hasMore = false;
   String? _error;
+
+  /// Only System Admins may manage operators (create, approve, change role,
+  /// suspend). Coordinators / Administrators get a read-only roster.
+  bool get _isAdmin =>
+      ref.read(appUserProvider).valueOrNull?.role == AppUserRole.admin;
 
   final _searchCtrl = TextEditingController();
   Timer? _debounce;
@@ -68,8 +73,9 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
     try {
       final search = _searchCtrl.text.trim();
       final results = await Future.wait([
-        // Hide the pending self-signup section while searching.
-        search.isEmpty
+        // Pending approvals are an admin-only action — coordinators never see
+        // the approve/decline queue. Also hidden while searching.
+        (_isAdmin && search.isEmpty)
             ? OperatorRepository().listPendingOperators()
             : Future.value(<PendingOperator>[]),
         OperatorRepository().listOperators(page: page, search: search),
@@ -146,15 +152,17 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.canopyGreen,
-        icon: const PhosphorIcon(PhosphorIconsRegular.userPlus, color: AppColors.surface, size: 20),
-        label: Text('New operator', style: AppTextStyles.label(color: AppColors.surface)),
-        onPressed: () async {
-          await context.push('/admin/operators/create');
-          _loadPage(0);
-        },
-      ),
+      floatingActionButton: _isAdmin
+          ? FloatingActionButton.extended(
+              backgroundColor: AppColors.canopyGreen,
+              icon: const PhosphorIcon(PhosphorIconsRegular.userPlus, color: AppColors.surface, size: 20),
+              label: Text('New operator', style: AppTextStyles.label(color: AppColors.surface)),
+              onPressed: () async {
+                await context.push('/admin/operators/create');
+                _loadPage(0);
+              },
+            )
+          : null,
       body: RefreshIndicator(
         color: AppColors.canopyGreen,
         onRefresh: () => _loadPage(0),
@@ -212,7 +220,11 @@ class _OperatorListScreenState extends ConsumerState<OperatorListScreen> {
           return LoadMoreButton(loading: _loadingMore, onPressed: () => _loadPage(_page + 1));
         }
         if (itemIndex >= _items.length) return const SizedBox.shrink();
-        return _OperatorTile(operator: _items[itemIndex], onChanged: () => _loadAll(0));
+        return _OperatorTile(
+          operator: _items[itemIndex],
+          isAdmin: _isAdmin,
+          onChanged: () => _loadAll(0),
+        );
       },
     );
   }
@@ -521,8 +533,24 @@ class _ActionChip extends StatelessWidget {
 
 class _OperatorTile extends StatelessWidget {
   final OperatorDetail operator;
+  final bool isAdmin;
   final VoidCallback onChanged;
-  const _OperatorTile({required this.operator, required this.onChanged});
+  const _OperatorTile({
+    required this.operator,
+    required this.isAdmin,
+    required this.onChanged,
+  });
+
+  Future<void> _openDetail(BuildContext context) async {
+    HapticFeedback.selectionClick();
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            OperatorDetailScreen(operator: operator, isAdmin: isAdmin),
+      ),
+    );
+    if (changed == true) onChanged();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -537,106 +565,82 @@ class _OperatorTile extends StatelessWidget {
         boxShadow: AppShadows.e1,
         border: Border.all(color: AppColors.hairline, width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
-        child: Row(
-          children: [
-            // Avatar chip
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: iconBg, borderRadius: AppRadii.borderSm),
-              child: PhosphorIcon(_roleIcon(operator.role), size: 22, color: iconColor),
-            ),
-            const SizedBox(width: AppSpacing.base),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: AppRadii.borderMd,
+        child: InkWell(
+          borderRadius: AppRadii.borderMd,
+          onTap: () => _openDetail(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base, vertical: AppSpacing.md),
+            child: Row(
+              children: [
+                // Avatar chip
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: iconBg, borderRadius: AppRadii.borderSm),
+                  child: PhosphorIcon(_roleIcon(operator.role), size: 22, color: iconColor),
+                ),
+                const SizedBox(width: AppSpacing.base),
 
-            // Name + email — ellipsis on both
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                // Name + login ID + position/branch
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          operator.fullName,
-                          style: AppTextStyles.title(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              operator.fullName,
+                              style: AppTextStyles.title(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          _RolePill(role: operator.role),
+                        ],
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      _RolePill(role: operator.role),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    // Phone is the login ID; the email is a synthetic internal one.
-                    operator.phone ?? operator.email,
-                    style: AppTextStyles.body(color: AppColors.mist),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if ([operator.partyPosition, operator.branch]
-                      .any((s) => s != null && s.isNotEmpty))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        [operator.partyPosition, operator.branch]
-                            .where((s) => s != null && s.isNotEmpty)
-                            .join(' · '),
-                        style: AppTextStyles.small(),
+                      const SizedBox(height: 2),
+                      Text(
+                        // Phone is the login ID; the email is a synthetic internal one.
+                        operator.phone ?? operator.email,
+                        style: AppTextStyles.body(color: AppColors.mist),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  if (!operator.isActive)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: StatusPill(MemberStatus.suspended),
-                    ),
-                ],
-              ),
-            ),
+                      if ([operator.partyPosition, operator.branch]
+                          .any((s) => s != null && s.isNotEmpty))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            [operator.partyPosition, operator.branch]
+                                .where((s) => s != null && s.isNotEmpty)
+                                .join(' · '),
+                            style: AppTextStyles.small(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      if (!operator.isActive)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: StatusPill(MemberStatus.suspended),
+                        ),
+                    ],
+                  ),
+                ),
 
-            // Context menu — bottom sheet, not popup
-            IconButton(
-              tooltip: 'More options',
-              icon: const PhosphorIcon(
-                PhosphorIconsRegular.dotsThreeVertical,
-                size: 20,
-                color: AppColors.mist,
-              ),
-              onPressed: () => showContextMenuSheet(
-                context,
-                title: operator.fullName,
-                actions: [
-                  ContextMenuAction(
-                    icon: PhosphorIconsRegular.arrowsLeftRight,
-                    label: 'Change role',
-                    onTap: () => _changeRole(context),
-                  ),
-                  ContextMenuAction(
-                    icon: PhosphorIconsRegular.password,
-                    label: 'Reset password',
-                    onTap: () => _resetPassword(context),
-                  ),
-                  if (operator.isActive)
-                    ContextMenuAction(
-                      icon: PhosphorIconsRegular.prohibit,
-                      label: 'Suspend',
-                      isDestructive: true,
-                      onTap: () => _toggleActive(context, suspend: true),
-                    )
-                  else
-                    ContextMenuAction(
-                      icon: PhosphorIconsRegular.checkCircle,
-                      label: 'Reactivate',
-                      onTap: () => _toggleActive(context, suspend: false),
-                    ),
-                ],
-              ),
+                const SizedBox(width: AppSpacing.sm),
+                const PhosphorIcon(
+                  PhosphorIconsRegular.caretRight,
+                  size: 18,
+                  color: AppColors.mist,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -647,221 +651,6 @@ class _OperatorTile extends StatelessWidget {
     AppUserRole.manager        => PhosphorIconsFill.shieldCheck,
     AppUserRole.higherAuthority => PhosphorIconsFill.userCircleCheck,
     AppUserRole.personnel      => PhosphorIconsFill.userCircle,
-  };
-
-  Future<void> _toggleActive(BuildContext context, {required bool suspend}) async {
-    try {
-      if (suspend) { await OperatorRepository().suspendOperator(operator.id); }
-      else { await OperatorRepository().reactivateOperator(operator.id); }
-      HapticFeedback.mediumImpact();
-      onChanged();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-            suspend ? '${operator.fullName} suspended.' : '${operator.fullName} reactivated.',
-          ),
-        ));
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  backgroundColor: AppColors.umbrellaRed,
-  content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
-));
-      }
-    }
-  }
-
-  Future<void> _resetPassword(BuildContext context) async {
-    final seed = DateTime.now().microsecondsSinceEpoch;
-    final ctrl =
-        TextEditingController(text: 'NDC-${seed % 900000 + 100000}');
-    final password = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
-        title: Text('Reset password', style: AppTextStyles.h3()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Set a new password for ${operator.fullName}. It takes effect '
-              'immediately — share it with them securely.',
-              style: AppTextStyles.body(),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              style: AppTextStyles.bodyLarge(),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (ctrl.text.length < 8) return;
-              Navigator.pop(ctx, ctrl.text);
-            },
-            child: Text('Set password',
-                style: TextStyle(color: AppColors.canopyGreen)),
-          ),
-        ],
-      ),
-    );
-    if (password == null || !context.mounted) return;
-    try {
-      await OperatorRepository().setOperatorPassword(operator.id, password);
-      HapticFeedback.mediumImpact();
-      if (context.mounted) {
-        // Never splash the password in a snackbar (it lingers on screen and in
-        // the notification shade). Show a controlled dialog that keeps it
-        // masked until the admin explicitly reveals or copies it.
-        await _showPasswordResultDialog(context, operator.fullName, password);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: AppColors.umbrellaRed,
-          content: Text(AppErrorMapper.forAdminAction(e),
-              style: AppTextStyles.body(color: AppColors.surface)),
-        ));
-      }
-    }
-  }
-
-  // Post-reset confirmation: password stays masked behind an explicit reveal,
-  // with a copy button for secure hand-off. It is not echoed anywhere else.
-  Future<void> _showPasswordResultDialog(
-      BuildContext context, String name, String password) async {
-    bool revealed = false;
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
-          title: Text('Password updated', style: AppTextStyles.h3()),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "New password for $name takes effect immediately. Share it "
-                "securely — it won't be shown again after you close this.",
-                style: AppTextStyles.body(),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.paper,
-                  borderRadius: AppRadii.borderSm,
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        revealed ? password : '•' * password.length,
-                        style: AppTextStyles.bodyLarge()
-                            .copyWith(letterSpacing: revealed ? 0.5 : 2),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: revealed ? 'Hide' : 'Reveal',
-                      icon: PhosphorIcon(
-                        revealed
-                            ? PhosphorIconsRegular.eyeSlash
-                            : PhosphorIconsRegular.eye,
-                        size: 20,
-                        color: AppColors.mist,
-                      ),
-                      onPressed: () => setState(() => revealed = !revealed),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: password));
-                HapticFeedback.selectionClick();
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                    content: Text('Password copied'),
-                    duration: Duration(seconds: 2),
-                  ));
-                }
-              },
-              child: Text('Copy',
-                  style: TextStyle(color: AppColors.canopyGreen)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Done',
-                  style: TextStyle(color: AppColors.canopyGreen)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _changeRole(BuildContext context) async {
-    String selected = roleToString(operator.role);
-    final newRole = await showDialog<String>(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: AppRadii.borderLg),
-          title: Text('Change role', style: AppTextStyles.h3()),
-          content: RadioGroup<String>(
-            groupValue: selected,
-            onChanged: (v) => setState(() => selected = v!),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: ['personnel', 'higher_authority', 'manager', 'admin'].map((r) => RadioListTile<String>(
-                value: r,
-                title: Text(_roleLabel(r), style: AppTextStyles.body()),
-                activeColor: AppColors.canopyGreen,
-              )).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            TextButton(
-              onPressed: () => Navigator.pop(context, selected),
-              child: Text('Apply', style: TextStyle(color: AppColors.canopyGreen)),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (newRole == null || newRole == roleToString(operator.role) || !context.mounted) return;
-    try {
-      await OperatorRepository().changeRole(operator.id, newRole);
-      HapticFeedback.mediumImpact();
-      onChanged();
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  backgroundColor: AppColors.umbrellaRed,
-  content: Text(AppErrorMapper.forAdminAction(e), style: AppTextStyles.body(color: AppColors.surface)),
-));
-      }
-    }
-  }
-
-  String _roleLabel(String r) => switch (r) {
-    'admin'           => 'System Admin',
-    'manager'         => 'Administrator',
-    'higher_authority' => 'Coordinator',
-    _                  => 'Personnel',
   };
 }
 

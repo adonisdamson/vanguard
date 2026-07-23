@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/net/authed_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -42,14 +42,15 @@ class MemberAvatar extends ConsumerWidget {
                     openPhotoViewer(context, photoPath, label: viewerLabel),
                 child: ClipRRect(
                   borderRadius: AppRadii.borderSm,
-                  child: CachedNetworkImage(
-                    imageUrl: url,
-                    httpHeaders: PhotoService.authHeaders(),
+                  child: Image(
+                    image: AuthedNetworkImage(url, PhotoService.authHeaders()),
                     width: size,
                     height: size,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => _fallback(),
-                    errorWidget: (_, _, _) => _fallback(),
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => _fallback(),
+                    loadingBuilder: (_, child, p) =>
+                        p == null ? child : _fallback(),
                   ),
                 ),
               ),

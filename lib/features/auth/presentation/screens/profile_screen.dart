@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../core/net/authed_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -313,12 +313,13 @@ class _AvatarHeader extends ConsumerWidget {
         data: (url) => url == null
             ? _initialsCircle(initials)
             : ClipOval(
-                child: CachedNetworkImage(
-                    imageUrl: url,
-                    httpHeaders: PhotoService.authHeaders(),
+                child: Image(
+                    image: AuthedNetworkImage(url, PhotoService.authHeaders()),
                     width: 80,
                     height: 80,
-                    fit: BoxFit.cover),
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, _, _) => _initialsCircle(initials)),
               ),
         loading: () => _initialsCircle(initials),
         error: (_, _) => _initialsCircle(initials),

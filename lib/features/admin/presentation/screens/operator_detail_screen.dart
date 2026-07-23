@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../../core/errors/app_error_mapper.dart';
+import '../../../../core/net/authed_image.dart';
+import '../../../../core/net/photo_service.dart';
 import '../../data/operator_repository.dart';
 import '../../../auth/application/user_role_provider.dart';
 import '../../../../shared/theme/app_colors.dart';
@@ -113,17 +115,7 @@ class _OperatorDetailScreenState extends State<OperatorDetailScreen> {
       ),
       child: Column(
         children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: const BoxDecoration(
-              color: AppColors.deepCanopy,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(_initials(),
-                style: AppTextStyles.h1(color: AppColors.surface)),
-          ),
+          _OperatorAvatar(avatarPath: _op.avatarPath, initials: _initials(), size: 76),
           const SizedBox(height: 14),
           Text(_op.fullName,
               style: AppTextStyles.h2(), textAlign: TextAlign.center),
@@ -515,6 +507,50 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
+// Shows operator avatar photo if available, falls back to initials circle.
+class _OperatorAvatar extends StatelessWidget {
+  final String? avatarPath;
+  final String initials;
+  final double size;
+  const _OperatorAvatar({this.avatarPath, required this.initials, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    if (avatarPath != null && avatarPath!.isNotEmpty) {
+      return ClipOval(
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Image(
+            image: AuthedNetworkImage(avatarPath!, PhotoService.authHeaders()),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _fallback(),
+          ),
+        ),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() => Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          color: AppColors.deepCanopy,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Text(initials,
+            style: TextStyle(
+              color: AppColors.surface,
+              fontSize: size * 0.28,
+              fontWeight: FontWeight.w700,
+            )),
+      );
+}
+
 class _RoleBadge extends StatelessWidget {
   final AppUserRole role;
   const _RoleBadge({required this.role});
@@ -524,8 +560,8 @@ class _RoleBadge extends StatelessWidget {
     final (label, color) = switch (role) {
       AppUserRole.admin => ('Admin', AppColors.umbrellaRed),
       AppUserRole.manager => ('Administrator', AppColors.deepCanopy),
-      AppUserRole.higherAuthority => ('Coordinator', AppColors.gold),
-      AppUserRole.personnel => ('Personnel', AppColors.canopyGreen),
+      AppUserRole.higherAuthority => ('Coordinator', AppColors.canopyGreen),
+      AppUserRole.personnel => ('Personnel', AppColors.inkMuted),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

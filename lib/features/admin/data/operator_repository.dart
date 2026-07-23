@@ -42,6 +42,7 @@ class OperatorDetail {
   final DateTime? lastLoginAt;
   final String? partyPosition;
   final String? branch;
+  final String? avatarPath;
 
   const OperatorDetail({
     required this.id,
@@ -54,6 +55,7 @@ class OperatorDetail {
     this.lastLoginAt,
     this.partyPosition,
     this.branch,
+    this.avatarPath,
   });
 
   factory OperatorDetail.fromMap(Map<String, dynamic> m) {
@@ -70,6 +72,7 @@ class OperatorDetail {
           : null,
       partyPosition: m['party_position'] as String?,
       branch: m['branch'] as String?,
+      avatarPath: m['avatar_path'] as String?,
     );
   }
 
@@ -85,6 +88,7 @@ class OperatorDetail {
       lastLoginAt: lastLoginAt,
       partyPosition: partyPosition,
       branch: branch,
+      avatarPath: avatarPath,
     );
   }
 }
@@ -136,7 +140,7 @@ class OperatorRepository {
   Future<List<OperatorDetail>> listOperators({int page = 0, String? search}) async {
     var query = _db
         .from('app_users')
-        .select('id, full_name, email, phone, role, is_active, created_at, last_login_at, party_position, branch')
+        .select('id, full_name, email, phone, role, is_active, created_at, last_login_at, party_position, branch, avatar_path')
         .not('role', 'is', null); // exclude pending self-signups
     final q = (search ?? '').trim();
     if (q.isNotEmpty) {

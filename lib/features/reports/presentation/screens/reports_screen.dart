@@ -209,10 +209,11 @@ class _HeroHeader extends StatelessWidget {
         children: [
           // Label
           Row(children: [
-            const PhosphorIcon(PhosphorIconsFill.chartLineUp,
-                size: 15, color: AppColors.gold),
+            PhosphorIcon(PhosphorIconsFill.chartLineUp,
+                size: 15, color: AppColors.surface.withValues(alpha: 0.55)),
             const SizedBox(width: 6),
-            Text('ANALYTICS', style: AppTextStyles.eyebrow(color: AppColors.gold)),
+            Text('ANALYTICS', style: AppTextStyles.eyebrow(
+                color: AppColors.surface.withValues(alpha: 0.55))),
           ]),
           const SizedBox(height: 6),
           Text('Reports', style: AppTextStyles.display(color: AppColors.surface)),
@@ -265,11 +266,11 @@ class _HeroKpi extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: highlight
-              ? AppColors.gold.withValues(alpha: 0.18)
+              ? AppColors.surface.withValues(alpha: 0.18)
               : AppColors.surface.withValues(alpha: 0.08),
           borderRadius: AppRadii.borderSm,
           border: highlight
-              ? Border.all(color: AppColors.gold.withValues(alpha: 0.4), width: 1)
+              ? Border.all(color: AppColors.surface.withValues(alpha: 0.55), width: 1)
               : Border.all(color: AppColors.surface.withValues(alpha: 0.12), width: 1),
         ),
         child: Column(
@@ -277,7 +278,7 @@ class _HeroKpi extends StatelessWidget {
           children: [
             Text(
               value,
-              style: AppTextStyles.h2(color: highlight ? AppColors.gold : AppColors.surface),
+              style: AppTextStyles.h2(color: AppColors.surface),
             ),
             const SizedBox(height: 2),
             Text(label,
@@ -648,7 +649,7 @@ class _ReportGrid extends StatelessWidget {
         icon: PhosphorIconsFill.listChecks,
         title: 'Review queue',
         subtitle: 'Pending approvals',
-        color: AppColors.gold,
+        color: AppColors.ndcRed,
         onTap: () => context.push('/review-queue'),
       ),
       _TileData(
@@ -808,7 +809,7 @@ class _ExportCard extends StatelessWidget {
                       key: const ValueKey('button'),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
                       decoration: BoxDecoration(
-                        color: AppColors.gold,
+                        color: AppColors.surface,
                         borderRadius: AppRadii.borderSm,
                       ),
                       child: Text('Export',

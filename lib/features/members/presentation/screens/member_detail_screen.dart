@@ -659,8 +659,8 @@ class _TimelineItem extends StatelessWidget {
       'member_status_changed'=> _statusIcon,
       'member_updated'       => (PhosphorIconsFill.pencilSimple,  AppColors.mist,         AppColors.fillMuted),
       'operator_created'     => (PhosphorIconsFill.userGear,      AppColors.canopyGreen,  AppColors.greenTint),
-      'role_changed'         => (PhosphorIconsFill.arrowsLeftRight,AppColors.gold,        AppColors.goldTint),
-      'account_status_changed'=> (PhosphorIconsFill.toggleRight,  AppColors.gold,         AppColors.goldTint),
+      'role_changed'         => (PhosphorIconsFill.arrowsLeftRight,AppColors.canopyGreen,  AppColors.greenTint),
+      'account_status_changed'=> (PhosphorIconsFill.toggleRight,  AppColors.canopyGreen,  AppColors.greenTint),
       _                      => (PhosphorIconsRegular.dot,        AppColors.mist,         AppColors.fillMuted),
     };
   }

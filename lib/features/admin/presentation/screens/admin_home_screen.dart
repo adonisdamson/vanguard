@@ -73,8 +73,8 @@ class AdminHomeScreen extends ConsumerWidget {
                         icon: PhosphorIconsRegular.hourglass,
                         value: '${s.pending}',
                         label: 'Pending',
-                        iconColor: AppColors.gold,
-                        iconBg: AppColors.goldTint,
+                        iconColor: AppColors.statusPending,
+                        iconBg: AppColors.pendingBg,
                       )),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(child: StatCard(
@@ -588,7 +588,7 @@ class _ProgressCard extends StatelessWidget {
     final statusColor = pct >= 75
         ? AppColors.canopyGreen
         : pct >= 40
-            ? AppColors.gold
+            ? AppColors.statusPending
             : AppColors.mist;
 
     return Container(

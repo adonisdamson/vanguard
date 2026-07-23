@@ -316,16 +316,6 @@ class _CreateOperatorScreenState extends State<CreateOperatorScreen> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     _RoleOption(
-                      value: 'manager',
-                      selected: _selectedRole == 'manager',
-                      title: 'Administrator',
-                      subtitle: 'Organiser/Treasurer/Comms — manage & approve members, dashboards (no operator admin)',
-                      icon: PhosphorIconsFill.shieldCheck,
-                      color: AppColors.deepCanopy,
-                      onTap: () => setState(() => _selectedRole = 'manager'),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _RoleOption(
                       value: 'admin',
                       selected: _selectedRole == 'admin',
                       title: 'System Admin',

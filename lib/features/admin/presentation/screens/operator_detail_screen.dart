@@ -214,12 +214,13 @@ class _OperatorDetailScreenState extends State<OperatorDetailScreen> {
           Text('Manage', style: AppTextStyles.h3()),
         ]),
         const SizedBox(height: AppSpacing.md),
-        _ActionRow(
-          icon: PhosphorIconsRegular.arrowsLeftRight,
-          label: 'Change role',
-          color: AppColors.canopyGreen,
-          onTap: _changeRole,
-        ),
+        if (_op.role != AppUserRole.higherAuthority)
+          _ActionRow(
+            icon: PhosphorIconsRegular.arrowsLeftRight,
+            label: 'Change role',
+            color: AppColors.canopyGreen,
+            onTap: _changeRole,
+          ),
         const SizedBox(height: AppSpacing.sm),
         _ActionRow(
           icon: PhosphorIconsRegular.password,
@@ -290,7 +291,7 @@ class _OperatorDetailScreenState extends State<OperatorDetailScreen> {
             onChanged: (v) => setLocal(() => selected = v!),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: ['personnel', 'higher_authority', 'manager', 'admin']
+              children: ['personnel', 'higher_authority', 'admin']
                   .map((r) => RadioListTile<String>(
                         value: r,
                         title: Text(_roleLabelFromString(r),
@@ -331,7 +332,6 @@ class _OperatorDetailScreenState extends State<OperatorDetailScreen> {
 
   AppUserRole _parse(String r) => switch (r) {
     'admin' => AppUserRole.admin,
-    'manager' => AppUserRole.manager,
     'higher_authority' => AppUserRole.higherAuthority,
     _ => AppUserRole.personnel,
   };

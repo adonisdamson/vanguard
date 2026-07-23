@@ -312,7 +312,7 @@ class _PendingTile extends StatelessWidget {
                   groupValue: selectedRole,
                   onChanged: (v) => setS(() => selectedRole = v!),
                   child: Column(
-                    children: ['personnel', 'higher_authority', 'manager', 'admin'].map((r) => RadioListTile<String>(
+                    children: ['personnel', 'higher_authority', 'admin'].map((r) => RadioListTile<String>(
                       dense: true,
                       value: r,
                       title: Text(_roleLabel(r), style: AppTextStyles.body()),

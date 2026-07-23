@@ -5,7 +5,7 @@ import { serviceClient } from '../supabase.js';
 
 const admin = new Hono();
 
-const VALID_ROLES = new Set(['admin', 'higher_authority', 'manager', 'personnel']);
+const VALID_ROLES = new Set(['admin', 'higher_authority', 'personnel']);
 
 // POST /api/admin/operators — creates Supabase Auth user + app_users row. Admin only.
 admin.post('/', async (c) => {
@@ -112,10 +112,16 @@ admin.post('/:id/role', async (c) => {
   if (!VALID_ROLES.has(role)) {
     throw new HTTPException(400, { message: `Invalid role. Must be one of: ${[...VALID_ROLES].join(', ')}` });
   }
-  const { error } = await serviceClient(c.env)
-    .from('app_users')
-    .update({ role })
-    .eq('id', c.req.param('id'));
+  const svc = serviceClient(c.env);
+  const id = c.req.param('id');
+
+  // higher_authority accounts are protected — their role cannot be changed.
+  const { data: target } = await svc.from('app_users').select('role').eq('id', id).single();
+  if (target?.role === 'higher_authority') {
+    throw new HTTPException(403, { message: 'The role of a Higher Authority account cannot be changed.' });
+  }
+
+  const { error } = await svc.from('app_users').update({ role }).eq('id', id);
   if (error) throw new HTTPException(500, { message: error.message });
   return c.json({ ok: true });
 });

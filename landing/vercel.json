@@ -1,6 +1,7 @@
 {
   "rewrites": [
-    { "source": "/download", "destination": "/api/download" }
+    { "source": "/download", "destination": "https://vanguard-api.vanguard-ndc.workers.dev/download" },
+    { "source": "/download/version", "destination": "/api/version" }
   ],
   "headers": [
     {

@@ -5,6 +5,8 @@ import { serviceClient } from '../supabase.js';
 
 const admin = new Hono();
 
+const VALID_ROLES = new Set(['admin', 'higher_authority', 'manager', 'personnel']);
+
 // POST /api/admin/operators — creates Supabase Auth user + app_users row. Admin only.
 admin.post('/', async (c) => {
   const ctx = await requireRole(c, ['admin']);
@@ -15,6 +17,9 @@ admin.post('/', async (c) => {
     await c.req.json().catch(() => ({}));
   if (!full_name || !email || !role) {
     throw new HTTPException(400, { message: 'full_name, email, and role are required' });
+  }
+  if (!VALID_ROLES.has(role)) {
+    throw new HTTPException(400, { message: `Invalid role. Must be one of: ${[...VALID_ROLES].join(', ')}` });
   }
 
   // Two creation modes:
@@ -104,6 +109,9 @@ admin.post('/:id/role', async (c) => {
   await requireRole(c, ['admin']);
   const { role } = await c.req.json().catch(() => ({}));
   if (!role) throw new HTTPException(400, { message: 'role is required' });
+  if (!VALID_ROLES.has(role)) {
+    throw new HTTPException(400, { message: `Invalid role. Must be one of: ${[...VALID_ROLES].join(', ')}` });
+  }
   const { error } = await serviceClient(c.env)
     .from('app_users')
     .update({ role })
@@ -150,6 +158,9 @@ admin.post('/:id/approve', async (c) => {
   const { role, assigned_region_id, assigned_district_id, assigned_constituency_id } =
     await c.req.json().catch(() => ({}));
   if (!role) throw new HTTPException(400, { message: 'role is required' });
+  if (!VALID_ROLES.has(role)) {
+    throw new HTTPException(400, { message: `Invalid role. Must be one of: ${[...VALID_ROLES].join(', ')}` });
+  }
 
   const { error } = await serviceClient(c.env)
     .from('app_users')

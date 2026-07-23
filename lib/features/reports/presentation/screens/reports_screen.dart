@@ -19,25 +19,15 @@ import '../../../../shared/theme/app_spacing.dart';
 import '../../../../shared/theme/app_text_styles.dart';
 import '../../../../shared/widgets/skeleton_loader.dart';
 import '../../../../shared/widgets/inline_load_error.dart';
-import '../../../dashboard/presentation/widgets/status_donut.dart';
 
-class _ReportTileData {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color bg;
-  final VoidCallback onTap;
-
-  const _ReportTileData({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.bg,
-    required this.onTap,
-  });
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Reports screen — completely redesigned.
+// Design direction: "NDC Command Centre" — data-dense but purposeful.
+//   • Hero header shows approval rate as the headline KPI (political health signal)
+//   • Horizontal stacked bars for status breakdown (legible at a glance, no donut)
+//   • Gradient area chart for registration trend
+//   • Report shortcuts + export CTA at bottom
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -54,22 +44,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     try {
       final token = Supabase.instance.client.auth.currentSession?.accessToken;
       if (token == null) throw Exception('Not authenticated');
-      final apiBaseUrl =
-          dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/exports/members'),
+      final base = dotenv.env['API_BASE_URL'] ?? dotenv.env['RAILWAY_API_URL'] ?? '';
+      final resp = await http.post(
+        Uri.parse('$base/api/exports/members'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({'format': 'csv'}),
       ).timeout(const Duration(seconds: 120));
-      if (response.statusCode != 200) throw Exception('Export failed');
+      if (resp.statusCode != 200) throw Exception('Export failed (${resp.statusCode})');
 
       final stamp = DateTime.now().toIso8601String().substring(0, 10);
-      // Mobile: temp file + share sheet. Web: browser download.
       await saveOrShareBytes(
-        response.bodyBytes,
+        resp.bodyBytes,
         filename: 'NDC_members_$stamp.csv',
         mime: 'text/csv',
         subject: 'NDC member register ($stamp)',
@@ -77,21 +65,21 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       );
       if (mounted) {
         HapticFeedback.mediumImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Member register exported.'),
-            backgroundColor: AppColors.canopyGreen,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('Member register exported successfully.'),
+          backgroundColor: AppColors.canopyGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+        ));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppErrorMapper.friendly(e)),
-            backgroundColor: AppColors.umbrellaRed,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppErrorMapper.friendly(e)),
+          backgroundColor: AppColors.umbrellaRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: AppRadii.borderSm),
+        ));
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -99,158 +87,73 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   @override
-  Widget build(BuildContext context, ) {
+  Widget build(BuildContext context) {
     final statsAsync = ref.watch(dashboardStatsProvider);
-
-    final tiles = [
-      _ReportTileData(
-        icon: PhosphorIconsRegular.chartBar,
-        title: 'Constituency summary',
-        subtitle: 'Overall registration and approval stats',
-        color: AppColors.canopyGreen,
-        bg: AppColors.greenTint,
-        onTap: () => context.push('/member-directory'),
-      ),
-      _ReportTileData(
-        icon: PhosphorIconsRegular.mapPin,
-        title: 'Area performance',
-        subtitle: 'Coverage per electoral area',
-        color: AppColors.gold,
-        bg: AppColors.goldTint,
-        onTap: () => context.push('/tracker'),
-      ),
-      _ReportTileData(
-        icon: PhosphorIconsRegular.userPlus,
-        title: 'New registrations',
-        subtitle: 'Members registered this month',
-        color: AppColors.canopyGreen,
-        bg: AppColors.greenTint,
-        onTap: () => context.push('/member-directory'),
-      ),
-      _ReportTileData(
-        icon: PhosphorIconsRegular.clock,
-        title: 'Unverified members',
-        subtitle: 'Pending approval — needs review',
-        color: AppColors.gold,
-        bg: AppColors.goldTint,
-        onTap: () => context.push('/review-queue'),
-      ),
-      _ReportTileData(
-        icon: PhosphorIconsRegular.xCircle,
-        title: 'Rejected records',
-        subtitle: 'Members rejected during review',
-        color: AppColors.umbrellaRed,
-        bg: AppColors.redTint,
-        onTap: () => context.push('/member-directory'),
-      ),
-      _ReportTileData(
-        icon: PhosphorIconsRegular.scroll,
-        title: 'Audit log',
-        subtitle: 'Full system activity trail',
-        color: AppColors.mist,
-        bg: AppColors.fillMuted,
-        onTap: () => context.push('/admin/audit'),
-      ),
-    ];
 
     return Scaffold(
       backgroundColor: AppColors.paper,
-      body: CustomScrollView(
-        slivers: [
-          _ReportsAppBar(statsAsync: statsAsync),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenH, AppSpacing.lg,
-              AppSpacing.screenH, AppSpacing.h1,
+      body: RefreshIndicator(
+        color: AppColors.canopyGreen,
+        onRefresh: () async => ref.invalidate(dashboardStatsProvider),
+        child: CustomScrollView(
+          slivers: [
+            // ── Hero header ──────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: statsAsync.when(
+                data: (s) => _HeroHeader(stats: s),
+                loading: () => const SkeletonLoader(height: 180),
+                error: (_, _) => _HeroHeaderEmpty(),
+              ),
             ),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Stats summary
-                statsAsync.when(
-                  data: (s) => _StatsRow(stats: s),
-                  loading: () => const SkeletonLoader(height: 72, borderRadius: AppRadii.borderMd),
-                  error: (_, _) => InlineLoadError(
-                    onRetry: () => ref.invalidate(dashboardStatsProvider),
+
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenH, AppSpacing.xl,
+                AppSpacing.screenH, AppSpacing.h1,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // ── Status breakdown (horizontal bars) ───────────────
+                  _SectionLabel('Member status'),
+                  const SizedBox(height: AppSpacing.md),
+                  statsAsync.when(
+                    data: (s) => s.total == 0
+                        ? _EmptyCard(message: 'No members in the system yet.')
+                        : _StatusBreakdown(
+                            active: s.active,
+                            pending: s.pending,
+                            rejected: s.rejected,
+                            total: s.total,
+                          ),
+                    loading: () => const SkeletonLoader(height: 130, borderRadius: AppRadii.borderMd),
+                    error: (_, _) => InlineLoadError(
+                        onRetry: () => ref.invalidate(dashboardStatsProvider)),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.base),
+                  const SizedBox(height: AppSpacing.xl),
 
-                // Registration trend — smooth gradient area chart (the headline
-                // analytic). A curve with a filled gradient reads far better
-                // than plain bars for month-over-month momentum.
-                statsAsync.when(
-                  data: (s) => s.trend.length >= 2
-                      ? _TrendAreaChart(trend: s.trend)
-                      : const SizedBox.shrink(),
-                  loading: () => const SkeletonLoader(height: 220, borderRadius: AppRadii.borderMd),
-                  error: (_, _) => const SizedBox.shrink(),
-                ),
-                statsAsync.when(
-                  data: (s) => s.trend.length >= 2
-                      ? const SizedBox(height: AppSpacing.base)
-                      : const SizedBox.shrink(),
-                  loading: () => const SizedBox(height: AppSpacing.base),
-                  error: (_, _) => const SizedBox.shrink(),
-                ),
+                  // ── Registration trend chart ─────────────────────────
+                  _SectionLabel('Registration trend'),
+                  const SizedBox(height: AppSpacing.md),
+                  statsAsync.when(
+                    data: (s) => s.trend.length >= 2
+                        ? _TrendChart(trend: s.trend)
+                        : _EmptyCard(message: 'Not enough data yet — trend appears after 2 months.'),
+                    loading: () => const SkeletonLoader(height: 240, borderRadius: AppRadii.borderMd),
+                    error: (_, _) => InlineLoadError(
+                        onRetry: () => ref.invalidate(dashboardStatsProvider)),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
 
-                // Status breakdown donut (pie) — appears once there's data
-                statsAsync.when(
-                  data: (s) => (s.total > 0)
-                      ? StatusDonut(
-                          active: s.active, pending: s.pending, rejected: s.rejected)
-                      : const SizedBox.shrink(),
-                  loading: () => const SkeletonLoader(height: 160, borderRadius: AppRadii.borderMd),
-                  error: (_, _) => const SizedBox.shrink(),
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                  // ── Quick report links ───────────────────────────────
+                  _SectionLabel('Quick access'),
+                  const SizedBox(height: AppSpacing.md),
+                  _ReportGrid(context: context),
+                  const SizedBox(height: AppSpacing.xl),
 
-                // Report tiles grid
-                Text('Reports', style: AppTextStyles.h3()),
-                const SizedBox(height: AppSpacing.md),
-                GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: AppSpacing.md,
-                  mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 1.15,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: tiles.map((t) => _ReportTile(data: t)).toList(),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                // Export card
-                _ExportCard(exporting: _exporting, onExport: _exportCsv),
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReportsAppBar extends StatelessWidget {
-  final AsyncValue<dynamic> statsAsync;
-  const _ReportsAppBar({required this.statsAsync});
-
-  @override
-  Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: Container(
-        color: AppColors.deepCanopy,
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.screenH,
-          MediaQuery.of(context).padding.top + AppSpacing.base,
-          AppSpacing.screenH,
-          AppSpacing.base,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Reports', style: AppTextStyles.h2(color: AppColors.surface)),
-            Text(
-              'Analytics & data exports',
-              style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.6)),
+                  // ── Export CTA ───────────────────────────────────────
+                  _ExportCard(exporting: _exporting, onExport: _exportCsv),
+                ]),
+              ),
             ),
           ],
         ),
@@ -259,168 +162,299 @@ class _ReportsAppBar extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  final dynamic stats;
-  const _StatsRow({required this.stats});
+// ── Section label with left accent bar ───────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
 
   @override
   Widget build(BuildContext context) {
+    return Row(children: [
+      Container(width: 3, height: 16, color: AppColors.canopyGreen,
+          margin: const EdgeInsets.only(right: 10)),
+      Text(text, style: AppTextStyles.h3()),
+    ]);
+  }
+}
+
+// ── Hero header — approval rate as the headline KPI ──────────────────────────
+
+class _HeroHeader extends StatelessWidget {
+  final DashboardStats stats;
+  const _HeroHeader({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = stats.total == 0
+        ? 0
+        : ((stats.active / stats.total) * 100).round();
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadii.borderMd,
-        border: Border.all(color: AppColors.line),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.deepCanopy, Color(0xFF005733)],
+        ),
       ),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.screenH,
+        MediaQuery.of(context).padding.top + AppSpacing.base,
+        AppSpacing.screenH,
+        AppSpacing.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Metric(value: '${stats.total}', label: 'Total'),
-          _Divider(),
-          _Metric(value: '${stats.active}', label: 'Approved', dotColor: AppColors.success),
-          _Divider(),
-          _Metric(value: '${stats.pending}', label: 'Pending', dotColor: AppColors.warning),
-          _Divider(),
-          _Metric(value: '${stats.rejected}', label: 'Rejected', dotColor: AppColors.danger),
+          // Label
+          Row(children: [
+            const PhosphorIcon(PhosphorIconsFill.chartLineUp,
+                size: 15, color: AppColors.gold),
+            const SizedBox(width: 6),
+            Text('ANALYTICS', style: AppTextStyles.eyebrow(color: AppColors.gold)),
+          ]),
+          const SizedBox(height: 6),
+          Text('Reports', style: AppTextStyles.display(color: AppColors.surface)),
+          const SizedBox(height: AppSpacing.xl),
+
+          // Three KPI chips in a row
+          Row(
+            children: [
+              _HeroKpi(value: '${stats.total}', label: 'Total'),
+              const SizedBox(width: AppSpacing.sm),
+              _HeroKpi(value: '$pct%', label: 'Approved', highlight: true),
+              const SizedBox(width: AppSpacing.sm),
+              _HeroKpi(value: '${stats.thisMonth}', label: 'This month'),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _Divider extends StatelessWidget {
+class _HeroHeaderEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 30, color: AppColors.line);
+    return Container(
+      color: AppColors.deepCanopy,
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.screenH,
+        MediaQuery.of(context).padding.top + AppSpacing.base,
+        AppSpacing.screenH,
+        AppSpacing.xl,
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Reports', style: AppTextStyles.display(color: AppColors.surface)),
+      ]),
+    );
   }
 }
 
-class _Metric extends StatelessWidget {
+class _HeroKpi extends StatelessWidget {
   final String value;
   final String label;
-  final Color? dotColor;
-  const _Metric({required this.value, required this.label, this.dotColor});
+  final bool highlight;
+  const _HeroKpi({required this.value, required this.label, this.highlight = false});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(value, style: AppTextStyles.h1()),
-          const SizedBox(height: 3),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (dotColor != null) ...[
-                Container(
-                    width: 6, height: 6,
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: dotColor)),
-                const SizedBox(width: 4),
-              ],
-              Flexible(
-                child: Text(label,
-                    style: AppTextStyles.caption(),
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.fade),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReportTile extends StatelessWidget {
-  final _ReportTileData data;
-  const _ReportTile({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    // Real button affordance: ink ripple + chevron. Uniform brand icon chip —
-    // no rainbow of green/gold/red tinted boxes.
-    return Material(
-      color: AppColors.surface,
-      borderRadius: AppRadii.borderMd,
-      child: InkWell(
-        borderRadius: AppRadii.borderMd,
-        onTap: data.onTap,
-        child: Ink(
-          padding: const EdgeInsets.all(AppSpacing.base),
-          decoration: BoxDecoration(
-            borderRadius: AppRadii.borderMd,
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.brandTint,
-                      borderRadius: AppRadii.borderSm,
-                    ),
-                    child: Icon(data.icon, color: AppColors.brand, size: 18),
-                  ),
-                  const Spacer(),
-                  const PhosphorIcon(PhosphorIconsRegular.caretRight,
-                      size: 15, color: AppColors.inkMuted),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                data.title,
-                style: AppTextStyles.bodyMedium(),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                data.subtitle,
-                style: AppTextStyles.caption(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: highlight
+              ? AppColors.gold.withValues(alpha: 0.18)
+              : AppColors.surface.withValues(alpha: 0.08),
+          borderRadius: AppRadii.borderSm,
+          border: highlight
+              ? Border.all(color: AppColors.gold.withValues(alpha: 0.4), width: 1)
+              : Border.all(color: AppColors.surface.withValues(alpha: 0.12), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: AppTextStyles.h2(color: highlight ? AppColors.gold : AppColors.surface),
+            ),
+            const SizedBox(height: 2),
+            Text(label,
+                style: AppTextStyles.caption(
+                    color: AppColors.surface.withValues(alpha: 0.6))),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Registration trend — gradient area chart ──────────────────────────────────
-class _TrendAreaChart extends StatefulWidget {
-  final List<MonthlyCount> trend;
-  const _TrendAreaChart({required this.trend});
+// ── Status breakdown — horizontal bars, much cleaner than a donut ─────────────
 
-  @override
-  State<_TrendAreaChart> createState() => _TrendAreaChartState();
-}
+class _StatusBreakdown extends StatelessWidget {
+  final int active, pending, rejected, total;
+  const _StatusBreakdown({
+    required this.active,
+    required this.pending,
+    required this.rejected,
+    required this.total,
+  });
 
-class _TrendAreaChartState extends State<_TrendAreaChart> {
   @override
   Widget build(BuildContext context) {
-    final t = widget.trend;
-    final maxCount = t.fold<int>(0, (m, e) => e.count > m ? e.count : m);
-    final maxY = (maxCount < 5 ? 5 : (maxCount * 1.25).ceil()).toDouble();
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadii.borderMd,
+        boxShadow: AppShadows.e1,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Column(
+        children: [
+          _HorizBar(label: 'Approved', value: active, total: total,
+              color: AppColors.canopyGreen, bg: AppColors.greenTint,
+              icon: PhosphorIconsFill.sealCheck),
+          const SizedBox(height: AppSpacing.md),
+          _HorizBar(label: 'Pending', value: pending, total: total,
+              color: AppColors.statusPending, bg: AppColors.amberTint,
+              icon: PhosphorIconsFill.hourglass),
+          const SizedBox(height: AppSpacing.md),
+          _HorizBar(label: 'Rejected', value: rejected, total: total,
+              color: AppColors.umbrellaRed, bg: AppColors.redTint,
+              icon: PhosphorIconsFill.xCircle),
+        ],
+      ),
+    );
+  }
+}
+
+class _HorizBar extends StatefulWidget {
+  final String label;
+  final int value;
+  final int total;
+  final Color color;
+  final Color bg;
+  final IconData icon;
+  const _HorizBar({
+    required this.label,
+    required this.value,
+    required this.total,
+    required this.color,
+    required this.bg,
+    required this.icon,
+  });
+
+  @override
+  State<_HorizBar> createState() => _HorizBarState();
+}
+
+class _HorizBarState extends State<_HorizBar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
+    _anim = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = widget.total == 0 ? 0.0 : widget.value / widget.total;
+    final pctLabel = '${(pct * 100).round()}%';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 26, height: 26,
+              decoration: BoxDecoration(
+                color: widget.bg, borderRadius: AppRadii.borderSm),
+              child: PhosphorIcon(widget.icon, size: 14, color: widget.color),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(widget.label, style: AppTextStyles.bodyMedium())),
+            Text(
+              '${widget.value}',
+              style: AppTextStyles.bodyMedium().copyWith(color: widget.color),
+            ),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 38,
+              child: Text(pctLabel,
+                  style: AppTextStyles.caption(),
+                  textAlign: TextAlign.right),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Animated progress bar
+        AnimatedBuilder(
+          animation: _anim,
+          builder: (_, _) => ClipRRect(
+            borderRadius: AppRadii.borderPill,
+            child: Stack(
+              children: [
+                Container(
+                  height: 7,
+                  color: AppColors.hairline,
+                  width: double.infinity,
+                ),
+                FractionallySizedBox(
+                  widthFactor: (_anim.value * pct).clamp(0.0, 1.0),
+                  child: Container(height: 7, color: widget.color),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Registration trend — gradient area chart with annotations ─────────────────
+
+class _TrendChart extends StatelessWidget {
+  final List<MonthlyCount> trend;
+  const _TrendChart({required this.trend});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = trend;
+    final maxY = t.fold<int>(0, (m, e) => e.count > m ? e.count : m);
+    final chartMax = (maxY < 5 ? 6 : (maxY * 1.3).ceil()).toDouble();
     final total = t.fold<int>(0, (m, e) => m + e.count);
 
-    // Momentum: last month vs the previous one.
     final last = t.last.count;
     final prev = t.length >= 2 ? t[t.length - 2].count : 0;
     final delta = last - prev;
     final up = delta >= 0;
 
-    final spots = <FlSpot>[
-      for (var i = 0; i < t.length; i++) FlSpot(i.toDouble(), t[i].count.toDouble()),
+    final spots = [
+      for (var i = 0; i < t.length; i++)
+        FlSpot(i.toDouble(), t[i].count.toDouble()),
     ];
 
+    // Show at most 6 x-axis labels — take evenly spaced indices
+    final step = (t.length / 6).ceil().clamp(1, t.length);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.fromLTRB(4, 20, 16, 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
@@ -430,61 +464,70 @@ class _TrendAreaChartState extends State<_TrendAreaChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(width: 3, height: 14, color: AppColors.canopyGreen,
-                  margin: const EdgeInsets.only(right: 8)),
-              Expanded(child: Text('Registration trend', style: AppTextStyles.h3())),
-              // Momentum pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: up ? AppColors.greenTint : AppColors.redTint,
-                  borderRadius: AppRadii.borderPill,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Row(children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    PhosphorIcon(
-                      up ? PhosphorIconsFill.trendUp : PhosphorIconsFill.trendDown,
-                      size: 12,
-                      color: up ? AppColors.canopyGreen : AppColors.umbrellaRed,
-                    ),
-                    const SizedBox(width: 4),
-                    Text('${delta.abs()}',
-                        style: AppTextStyles.badge(
-                            color: up ? AppColors.canopyGreen : AppColors.umbrellaRed)),
+                    Text('$total', style: AppTextStyles.h1()),
+                    Text('members over ${t.length} months',
+                        style: AppTextStyles.caption()),
                   ],
                 ),
               ),
-            ],
+              // Momentum badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: up ? AppColors.greenTint : AppColors.redTint,
+                  borderRadius: AppRadii.borderPill,
+                  border: Border.all(
+                    color: (up ? AppColors.canopyGreen : AppColors.umbrellaRed)
+                        .withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  PhosphorIcon(
+                    up ? PhosphorIconsFill.trendUp : PhosphorIconsFill.trendDown,
+                    size: 13,
+                    color: up ? AppColors.canopyGreen : AppColors.umbrellaRed,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${delta.abs()} this month',
+                    style: AppTextStyles.badge(
+                        color: up ? AppColors.canopyGreen : AppColors.umbrellaRed),
+                  ),
+                ]),
+              ),
+            ]),
           ),
-          const SizedBox(height: 2),
-          Text('$total members over ${t.length} months',
-              style: AppTextStyles.caption()),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           SizedBox(
-            height: 168,
+            height: 180,
             child: LineChart(
               LineChartData(
                 minX: 0,
                 maxX: (t.length - 1).toDouble(),
                 minY: 0,
-                maxY: maxY,
+                maxY: chartMax,
                 lineTouchData: LineTouchData(
+                  handleBuiltInTouches: true,
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (_) => AppColors.deepCanopy,
+                    tooltipRoundedRadius: 8,
                     getTooltipItems: (spots) => spots.map((s) {
                       final i = s.x.toInt();
-                      final label = (i >= 0 && i < t.length) ? t[i].month : '';
                       return LineTooltipItem(
                         '${s.y.toInt()}\n',
                         AppTextStyles.bodyMedium(color: AppColors.surface),
                         children: [
                           TextSpan(
-                            text: label,
+                            text: (i >= 0 && i < t.length) ? t[i].month : '',
                             style: AppTextStyles.caption(
-                                color: AppColors.surface.withValues(alpha: 0.7)),
+                                color: AppColors.surface.withValues(alpha: 0.65)),
                           ),
                         ],
                       );
@@ -498,23 +541,33 @@ class _TrendAreaChartState extends State<_TrendAreaChart> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 28,
-                      interval: (maxY / 2).ceilToDouble(),
-                      getTitlesWidget: (v, _) => Text(v.toInt().toString(),
-                          style: AppTextStyles.caption()),
+                      reservedSize: 32,
+                      interval: (chartMax / 3).ceilToDouble(),
+                      getTitlesWidget: (v, _) => Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Text(
+                          v.toInt() == 0 ? '' : '${v.toInt()}',
+                          style: AppTextStyles.caption(),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
                     ),
                   ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 22,
+                      reservedSize: 26,
                       interval: 1,
                       getTitlesWidget: (v, _) {
                         final i = v.toInt();
                         if (i < 0 || i >= t.length) return const SizedBox.shrink();
+                        if (i % step != 0 && i != t.length - 1) {
+                          return const SizedBox.shrink();
+                        }
                         return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(t[i].month, style: AppTextStyles.caption()),
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(t[i].month,
+                              style: AppTextStyles.caption(), textAlign: TextAlign.center),
                         );
                       },
                     ),
@@ -523,7 +576,7 @@ class _TrendAreaChartState extends State<_TrendAreaChart> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: (maxY / 2).ceilToDouble(),
+                  horizontalInterval: (chartMax / 3).ceilToDouble(),
                   getDrawingHorizontalLine: (_) =>
                       FlLine(color: AppColors.hairline, strokeWidth: 1),
                 ),
@@ -532,19 +585,26 @@ class _TrendAreaChartState extends State<_TrendAreaChart> {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    curveSmoothness: 0.32,
+                    curveSmoothness: 0.35,
                     preventCurveOverShooting: true,
                     color: AppColors.canopyGreen,
-                    barWidth: 3,
+                    barWidth: 2.5,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
                       show: true,
-                      getDotPainter: (spot, _, _, _) => FlDotCirclePainter(
-                        radius: 3.5,
-                        color: AppColors.surface,
-                        strokeWidth: 2.5,
-                        strokeColor: AppColors.canopyGreen,
-                      ),
+                      getDotPainter: (spot, _, ld, i) {
+                        // Only show dot on the last (current) point
+                        if (i != ld.spots.length - 1) {
+                          return FlDotCirclePainter(
+                              radius: 0, color: Colors.transparent, strokeWidth: 0, strokeColor: Colors.transparent);
+                        }
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: AppColors.surface,
+                          strokeWidth: 2.5,
+                          strokeColor: AppColors.canopyGreen,
+                        );
+                      },
                     ),
                     belowBarData: BarAreaData(
                       show: true,
@@ -552,8 +612,8 @@ class _TrendAreaChartState extends State<_TrendAreaChart> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          AppColors.canopyGreen.withValues(alpha: 0.28),
-                          AppColors.canopyGreen.withValues(alpha: 0.02),
+                          AppColors.canopyGreen.withValues(alpha: 0.22),
+                          AppColors.canopyGreen.withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -568,6 +628,127 @@ class _TrendAreaChartState extends State<_TrendAreaChart> {
   }
 }
 
+// ── Quick report tiles grid ───────────────────────────────────────────────────
+
+class _ReportGrid extends StatelessWidget {
+  final BuildContext context;
+  const _ReportGrid({required this.context});
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = [
+      _TileData(
+        icon: PhosphorIconsFill.users,
+        title: 'Member directory',
+        subtitle: 'Browse & search all members',
+        color: AppColors.canopyGreen,
+        onTap: () => context.push('/member-directory'),
+      ),
+      _TileData(
+        icon: PhosphorIconsFill.listChecks,
+        title: 'Review queue',
+        subtitle: 'Pending approvals',
+        color: AppColors.gold,
+        onTap: () => context.push('/review-queue'),
+      ),
+      _TileData(
+        icon: PhosphorIconsFill.mapPin,
+        title: 'Area tracker',
+        subtitle: 'Coverage by polling station',
+        color: AppColors.deepCanopy,
+        onTap: () => context.push('/tracker'),
+      ),
+      _TileData(
+        icon: PhosphorIconsFill.scroll,
+        title: 'Audit log',
+        subtitle: 'Full system activity trail',
+        color: AppColors.inkMuted,
+        onTap: () => context.push('/admin/audit'),
+      ),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: AppSpacing.md,
+        mainAxisSpacing: AppSpacing.md,
+        childAspectRatio: 1.3,
+      ),
+      itemCount: tiles.length,
+      itemBuilder: (_, i) => _ReportTile(data: tiles[i]),
+    );
+  }
+}
+
+class _TileData {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+  const _TileData({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+}
+
+class _ReportTile extends StatelessWidget {
+  final _TileData data;
+  const _ReportTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadii.borderMd,
+      child: InkWell(
+        borderRadius: AppRadii.borderMd,
+        onTap: data.onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.borderMd,
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Container(
+                  width: 34, height: 34,
+                  decoration: BoxDecoration(
+                    color: data.color.withValues(alpha: 0.1),
+                    borderRadius: AppRadii.borderSm,
+                  ),
+                  child: PhosphorIcon(data.icon, size: 17, color: data.color),
+                ),
+                const Spacer(),
+                PhosphorIcon(PhosphorIconsRegular.arrowRight,
+                    size: 14, color: AppColors.inkMuted),
+              ]),
+              const Spacer(),
+              Text(data.title,
+                  style: AppTextStyles.bodyMedium(),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(data.subtitle,
+                  style: AppTextStyles.caption(),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Export CTA ────────────────────────────────────────────────────────────────
+
 class _ExportCard extends StatelessWidget {
   final bool exporting;
   final VoidCallback onExport;
@@ -575,58 +756,94 @@ class _ExportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: exporting ? null : onExport,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.deepCanopy, Color(0xFF005733)],
+          ),
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e2,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46, height: 46,
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.12),
+                borderRadius: AppRadii.borderSm,
+              ),
+              child: const PhosphorIcon(PhosphorIconsRegular.downloadSimple,
+                  color: AppColors.surface, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.base),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Export member register',
+                      style: AppTextStyles.bodyMedium(color: AppColors.surface)),
+                  const SizedBox(height: 2),
+                  Text('Download full CSV — all members, all fields',
+                      style: AppTextStyles.caption(
+                          color: AppColors.surface.withValues(alpha: 0.6))),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: exporting
+                  ? const SizedBox(
+                      key: ValueKey('loading'),
+                      width: 22, height: 22,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.surface),
+                    )
+                  : Container(
+                      key: const ValueKey('button'),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold,
+                        borderRadius: AppRadii.borderSm,
+                      ),
+                      child: Text('Export',
+                          style: AppTextStyles.buttonText(
+                              color: AppColors.deepCanopy)),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Misc helpers ──────────────────────────────────────────────────────────────
+
+class _EmptyCard extends StatelessWidget {
+  final String message;
+  const _EmptyCard({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.base),
       decoration: BoxDecoration(
-        color: AppColors.deepCanopy,
+        color: AppColors.surface,
         borderRadius: AppRadii.borderMd,
-        boxShadow: AppShadows.e2,
+        border: Border.all(color: AppColors.hairline),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.12),
-              borderRadius: AppRadii.borderSm,
-            ),
-            child: const Icon(PhosphorIconsRegular.download, color: AppColors.surface, size: 20),
-          ),
-          const SizedBox(width: AppSpacing.base),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Export member data', style: AppTextStyles.bodyMedium(color: AppColors.surface)),
-                Text(
-                  'Download full register as CSV',
-                  style: AppTextStyles.caption(color: AppColors.surface.withValues(alpha: 0.6)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          if (exporting)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.surface),
-            )
-          else
-            GestureDetector(
-              onTap: onExport,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: AppRadii.borderSm,
-                ),
-                child: Text('Export', style: AppTextStyles.buttonText(color: AppColors.deepCanopy)),
-              ),
-            ),
-        ],
-      ),
+      child: Row(children: [
+        const PhosphorIcon(PhosphorIconsRegular.info,
+            size: 18, color: AppColors.inkMuted),
+        const SizedBox(width: 10),
+        Expanded(child: Text(message, style: AppTextStyles.body(color: AppColors.inkMuted))),
+      ]),
     );
   }
 }

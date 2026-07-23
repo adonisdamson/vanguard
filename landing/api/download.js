@@ -1,15 +1,18 @@
-// Vercel Edge Function — streams the latest APK straight from the GitHub
-// release. Self-contained: no dependency on the Railway backend, and no way
-// to serve a stale build because (a) the release lookup is always fetched
-// no-store, (b) each release exposes exactly ONE apk asset with a version-
-// stamped filename, and (c) the response itself is no-store.
+// Vercel Edge Function — resolves the latest release and 302-redirects the
+// browser straight to the GitHub CDN asset.
+//
+// Why redirect instead of streaming the bytes through this function: a streamed
+// Response drops Content-Length (it goes out chunked), so the browser shows an
+// "unknown size" (?) and no download progress. GitHub's CDN serves the APK with
+// a correct Content-Length, so redirecting gives the user a real size + progress
+// bar. The release lookup is no-store, so the redirect always points at the
+// newest `latest` build.
 export const config = { runtime: 'edge' };
 
 const REPO = 'adonisdamson/vanguard';
 
 export default async function handler() {
   try {
-    // 1. Latest release — fetched no-store so we never see a cached release.
     const apiRes = await fetch(
       `https://api.github.com/repos/${REPO}/releases/latest`,
       {
@@ -32,7 +35,6 @@ export default async function handler() {
     }
 
     const release = await apiRes.json();
-    // One versioned APK per release — grab it by extension.
     const asset = (release.assets || []).find((a) => a.name.endsWith('.apk'));
     if (!asset) {
       return new Response('APK not available yet — check back shortly.', {
@@ -41,24 +43,13 @@ export default async function handler() {
       });
     }
 
-    // 2. Fetch the actual bytes from the GitHub CDN (also no-store).
-    const apkRes = await fetch(asset.browser_download_url, { cache: 'no-store' });
-    if (!apkRes.ok) {
-      return new Response('APK fetch failed.', {
-        status: 502,
-        headers: { 'Cache-Control': 'no-store' },
-      });
-    }
-
-    // 3. Stream to the user under the real versioned filename — never cached.
-    return new Response(apkRes.body, {
-      status: 200,
+    // 302 to the CDN — browser downloads directly with size + progress.
+    return new Response(null, {
+      status: 302,
       headers: {
-        'Content-Type': 'application/vnd.android.package-archive',
-        'Content-Disposition': `attachment; filename="${asset.name}"`,
-        'Content-Length': String(asset.size),
+        Location: asset.browser_download_url,
         'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'Pragma': 'no-cache',
+        Pragma: 'no-cache',
       },
     });
   } catch (err) {

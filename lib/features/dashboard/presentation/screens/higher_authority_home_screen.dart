@@ -146,13 +146,9 @@ class HigherAuthorityHomeScreen extends ConsumerWidget {
                       onTap: () => context.push('/member-directory'),
                     )),
                   ]),
-                  const SizedBox(height: AppSpacing.sm),
-                  // Coordinators can view the full operator roster (read-only).
-                  _ActionCard(
-                    icon: PhosphorIconsFill.identificationBadge,
-                    label: 'Party operators',
-                    color: AppColors.deepCanopy,
-                    bg: AppColors.greenTint,
+                  const SizedBox(height: AppSpacing.base),
+                  // Operator roster — full read access for all coordinators.
+                  _OperatorRosterBanner(
                     onTap: () => context.push('/admin/operators'),
                   ),
                   const SizedBox(height: AppSpacing.xl),
@@ -872,6 +868,64 @@ class _ProgressCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Operator roster banner ────────────────────────────────────────────────────
+/// Prominently surfaced on the coordinator home screen. All coordinators AND
+/// administrators have read-only access to the full operator list and can open
+/// any operator's profile to see their details (RLS migration 0030).
+class _OperatorRosterBanner extends StatelessWidget {
+  final VoidCallback onTap;
+  const _OperatorRosterBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadii.borderMd,
+          boxShadow: AppShadows.e1,
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.deepCanopy.withValues(alpha: 0.1),
+                borderRadius: AppRadii.borderSm,
+              ),
+              child: const PhosphorIcon(
+                PhosphorIconsFill.identificationBadge,
+                size: 22, color: AppColors.deepCanopy,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.base),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Party operators',
+                      style: AppTextStyles.bodyMedium()),
+                  const SizedBox(height: 2),
+                  Text('View all operators & their full profiles',
+                      style: AppTextStyles.caption()),
+                ],
+              ),
+            ),
+            const PhosphorIcon(PhosphorIconsRegular.caretRight,
+                size: 18, color: AppColors.inkMuted),
+          ],
+        ),
       ),
     );
   }

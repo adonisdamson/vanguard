@@ -61,6 +61,19 @@ photos.get('/view', async (c) => {
   obj.writeHttpMetadata(headers); // sets Content-Type from stored metadata
   headers.set('etag', obj.httpEtag);
   headers.set('Cache-Control', 'private, max-age=3600');
+
+  // Hono's cors middleware cannot inject headers into a streaming Response
+  // after the fact (ReadableStream body + immutable Headers), so CORS headers
+  // must be added explicitly here. The browser's XHR (Flutter web http package)
+  // will otherwise see a response without Access-Control-Allow-Origin and block
+  // it even after a successful OPTIONS preflight.
+  const origin = c.req.header('Origin');
+  if (origin) {
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Credentials', 'true');
+    headers.set('Vary', 'Origin');
+  }
+
   return new Response(obj.body, { headers });
 });
 

@@ -151,13 +151,20 @@ function streamCsv(c, filters) {
     },
   });
 
-  return new Response(body, {
-    headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="members_${ts}.csv"`,
-      'Cache-Control': 'no-store',
-    },
+  const headers = new Headers({
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': `attachment; filename="members_${ts}.csv"`,
+    'Cache-Control': 'no-store',
   });
+  // ReadableStream Response: Hono cors middleware can't inject CORS headers
+  // into a streaming body after the fact (immutable Headers), so set explicitly.
+  const origin = c.req.header('Origin');
+  if (origin) {
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Credentials', 'true');
+    headers.set('Vary', 'Origin');
+  }
+  return new Response(body, { headers });
 }
 
 // ── PDF (pdf-lib) ─────────────────────────────────────────────────────────────
@@ -294,13 +301,18 @@ async function streamPdf(c, filters) {
   drawFooter(page);
 
   const bytes = await doc.save();
-  return new Response(bytes, {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="members_${ts}.pdf"`,
-      'Cache-Control': 'no-store',
-    },
+  const pdfHeaders = new Headers({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': `attachment; filename="members_${ts}.pdf"`,
+    'Cache-Control': 'no-store',
   });
+  const pdfOrigin = c.req.header('Origin');
+  if (pdfOrigin) {
+    pdfHeaders.set('Access-Control-Allow-Origin', pdfOrigin);
+    pdfHeaders.set('Access-Control-Allow-Credentials', 'true');
+    pdfHeaders.set('Vary', 'Origin');
+  }
+  return new Response(bytes, { headers: pdfHeaders });
 }
 
 export default exports_;

@@ -42,6 +42,47 @@
       animation: spin .9s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── PWA install banner ─────────────────────────────────────────────── */
+    #pwa-banner {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 8888;
+      background: #0A3D2A; color: #fff;
+      padding: 14px 16px 14px 16px;
+      display: flex; align-items: flex-start; gap: 12px;
+      font-family: system-ui, sans-serif; font-size: 14px; line-height: 1.4;
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.28);
+      transform: translateY(100%);
+      transition: transform .35s cubic-bezier(.22,.68,0,1.2);
+    }
+    #pwa-banner.show { transform: translateY(0); }
+    #pwa-banner .pwa-icon {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border-radius: 10px; overflow: hidden;
+    }
+    #pwa-banner .pwa-icon img {
+      width: 40px; height: 40px; object-fit: cover; display: block;
+    }
+    #pwa-banner .pwa-body { flex: 1; }
+    #pwa-banner .pwa-title { font-weight: 700; font-size: 14px; color: #fff; }
+    #pwa-banner .pwa-sub { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 2px; }
+    #pwa-banner .pwa-actions { display: flex; gap: 8px; margin-top: 10px; }
+    #pwa-banner .pwa-btn {
+      padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; line-height: 1;
+    }
+    #pwa-banner .pwa-install { background: #FFC700; color: #0A3D2A; }
+    #pwa-banner .pwa-dismiss { background: rgba(255,255,255,.12); color: #fff; }
+    #pwa-banner .pwa-close {
+      background: none; border: none; color: rgba(255,255,255,.5);
+      font-size: 20px; line-height: 1; cursor: pointer; padding: 0 0 0 4px;
+      flex-shrink: 0; align-self: flex-start; margin-top: -2px;
+    }
+    /* iOS share arrow hint */
+    #pwa-ios-hint {
+      display: none; margin-top: 8px; font-size: 12px;
+      color: rgba(255,255,255,.75); line-height: 1.5;
+    }
+    #pwa-ios-hint.show { display: block; }
   </style>
 </head>
 <body>
@@ -50,6 +91,25 @@
     <div class="mark">TEMA WEST</div>
     <div class="sub">NDC MEMBERSHIP</div>
   </div>
+
+  <!-- PWA install banner (hidden until JS decides to show it) -->
+  <div id="pwa-banner" role="dialog" aria-label="Install TemaWest app" style="display:none">
+    <div class="pwa-icon"><img src="icons/Icon-192.png" alt="TemaWest"></div>
+    <div class="pwa-body">
+      <div class="pwa-title">Install TemaWest</div>
+      <div class="pwa-sub" id="pwa-sub-text">Add to your home screen for the best experience.</div>
+      <div id="pwa-ios-hint">
+        Tap the <strong>Share</strong> button ⬆ in Safari,<br>
+        then choose <strong>"Add to Home Screen"</strong>.
+      </div>
+      <div class="pwa-actions">
+        <button class="pwa-btn pwa-install" id="pwa-install-btn">Install app</button>
+        <button class="pwa-btn pwa-dismiss" id="pwa-dismiss-btn">Not now</button>
+      </div>
+    </div>
+    <button class="pwa-close" id="pwa-close-btn" aria-label="Close">×</button>
+  </div>
+
   <script>
     // Remove the boot screen once Flutter has painted the first frame.
     window.addEventListener('flutter-first-frame', function () {
@@ -89,5 +149,103 @@
     }
   </script>
   <script src="flutter_bootstrap.js" async></script>
+
+  <script>
+    // ── Smart PWA install prompt ─────────────────────────────────────────────
+    // Detects platform and shows the right prompt:
+    //   Android Chrome  → native beforeinstallprompt API
+    //   iOS Safari      → guide overlay (no native API exists on iOS)
+    //   Already standalone / dismissed → silent
+    (function () {
+      var DISMISS_KEY = 'pwa_install_dismissed';
+      var banner   = document.getElementById('pwa-banner');
+      var installBtn = document.getElementById('pwa-install-btn');
+      var dismissBtn = document.getElementById('pwa-dismiss-btn');
+      var closeBtn   = document.getElementById('pwa-close-btn');
+      var subText    = document.getElementById('pwa-sub-text');
+      var iosHint    = document.getElementById('pwa-ios-hint');
+      if (!banner) return;
+
+      // Already installed as standalone — never show the banner.
+      var isStandalone = window.navigator.standalone === true ||
+                         window.matchMedia('(display-mode: standalone)').matches;
+      if (isStandalone) return;
+
+      // User previously dismissed — respect their choice for 7 days.
+      var dismissed = localStorage.getItem(DISMISS_KEY);
+      if (dismissed && Date.now() - parseInt(dismissed, 10) < 7 * 86400 * 1000) return;
+
+      var ua = navigator.userAgent || '';
+      var isIOS = /iphone|ipad|ipod/i.test(ua);
+      var isSafari = isIOS && /safari/i.test(ua) && !/crios|fxios|opios/i.test(ua);
+      var isAndroid = /android/i.test(ua);
+
+      var deferredPrompt = null; // Android: holds the native install event
+
+      function showBanner() {
+        banner.style.display = 'flex';
+        // Animate in after a short delay so the Flutter first-frame lands first.
+        setTimeout(function () { banner.classList.add('show'); }, 100);
+      }
+
+      function hideBanner(remember) {
+        banner.classList.remove('show');
+        setTimeout(function () { banner.style.display = 'none'; }, 380);
+        if (remember) localStorage.setItem(DISMISS_KEY, Date.now().toString());
+      }
+
+      // Close / dismiss buttons.
+      closeBtn.addEventListener('click',   function () { hideBanner(true); });
+      dismissBtn.addEventListener('click', function () { hideBanner(true); });
+
+      // ── Android Chrome path ────────────────────────────────────────────────
+      if (isAndroid) {
+        window.addEventListener('beforeinstallprompt', function (e) {
+          e.preventDefault();
+          deferredPrompt = e;
+          subText.textContent = 'Install the app for faster access — works offline too.';
+          // Wait until after Flutter has painted so the banner doesn't race
+          // with the boot screen.
+          window.addEventListener('flutter-first-frame', function () {
+            setTimeout(showBanner, 1500);
+          }, { once: true });
+          // Fallback in case the event fires before flutter-first-frame.
+          setTimeout(function () {
+            if (banner.style.display === 'none' || !banner.classList.contains('show')) {
+              showBanner();
+            }
+          }, 4000);
+        });
+
+        window.addEventListener('appinstalled', function () {
+          hideBanner(false);
+          deferredPrompt = null;
+        });
+
+        installBtn.addEventListener('click', function () {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(function (choice) {
+            deferredPrompt = null;
+            hideBanner(choice.outcome !== 'accepted');
+          });
+        });
+      }
+
+      // ── iOS Safari path ────────────────────────────────────────────────────
+      // iOS has no install API — we guide the user to use the Share sheet.
+      if (isSafari) {
+        installBtn.textContent  = 'How to install';
+        subText.textContent     = 'Add TemaWest to your home screen for the full app experience.';
+        installBtn.addEventListener('click', function () {
+          iosHint.classList.add('show');
+          installBtn.style.display = 'none';
+        });
+        window.addEventListener('flutter-first-frame', function () {
+          setTimeout(showBanner, 2000);
+        }, { once: true });
+      }
+    })();
+  </script>
 </body>
 </html>

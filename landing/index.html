@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vanguard — NDC Member Registration</title>
+  <title>TEMAWEST-NDC — Member Registration</title>
   <meta name="description" content="The official NDC Tema West membership platform. Register members, review submissions, and manage the constituency register — all from your phone." />
 
   <!-- Fonts: Bricolage Grotesque (display) + Inter (body) -->
@@ -730,6 +730,25 @@
     .download .btn-download:hover { background: var(--c-green-tint); box-shadow: 0 8px 28px rgba(0,0,0,0.25); }
     .download .btn-download i { font-size: 22px; color: var(--c-green); }
 
+    /* Two-device install cards (Android APK + iPhone/Web PWA) */
+    .install-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      max-width: 520px; margin: 0 auto;
+    }
+    .install-card {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 22px 16px; border-radius: 18px; text-decoration: none;
+      background: var(--c-white); color: var(--c-green-dark);
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 6px 22px rgba(0,0,0,0.12);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .install-card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(0,0,0,0.20); }
+    .install-card i { font-size: 34px; color: var(--c-green); }
+    .install-card .install-head { font-weight: 800; font-size: 16px; }
+    .install-card .install-sub { font-size: 12px; opacity: 0.7; }
+    @media (max-width: 520px) { .install-grid { grid-template-columns: 1fr; } }
+
     .download-note {
       margin-top: 16px;
       font-size: 12px;
@@ -777,9 +796,9 @@
     <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%;">
       <a href="/" class="nav-brand">
         <div class="nav-logo">
-          <img src="app-icon.png" alt="Vanguard" />
+          <img src="app-icon.png" alt="TemaWest NDC" />
         </div>
-        <span class="nav-name">Vanguard <span>NDC</span></span>
+        <span class="nav-name">TEMAWEST<span>NDC</span></span>
       </a>
 
       <div class="nav-links">
@@ -788,9 +807,9 @@
         <a href="#roles">Roles</a>
       </div>
 
-      <a href="/download" class="nav-cta">
-        <i class="ph-fill ph-android-logo"></i>
-        Download App
+      <a href="https://temawest-app.vercel.app" class="nav-cta">
+        <i class="ph-fill ph-sign-in"></i>
+        Sign in
       </a>
     </div>
   </nav>
@@ -995,17 +1014,27 @@
   <section class="download" id="download">
     <div class="wrap">
       <div class="download-icon reveal">
-        <img src="app-icon.png" alt="Vanguard" />
+        <img src="app-icon.png" alt="TemaWest NDC" />
       </div>
-      <h2 class="reveal reveal-delay-1">Download Vanguard for Android</h2>
-      <p class="download-sub reveal reveal-delay-1">Free for all NDC Tema West personnel. Install in under a minute.</p>
+      <h2 class="reveal reveal-delay-1">Get TEMAWEST&#8209;NDC</h2>
+      <p class="download-sub reveal reveal-delay-1">Free for all NDC Tema West members. Pick your device — both use the same account.</p>
 
-      <a href="/download" class="btn btn-download reveal reveal-delay-2" id="dl-btn">
-        <i class="ph-fill ph-android-logo"></i>
-        <span id="dl-label">Get the App</span>
+      <div class="install-grid reveal reveal-delay-2">
+        <a href="/download" class="install-card" id="dl-btn">
+          <i class="ph-fill ph-android-logo"></i>
+          <span class="install-head" id="dl-label">Download for Android</span>
+          <span class="install-sub" id="dl-note">Android 10+ · arm64 · APK</span>
+        </a>
+        <a href="https://temawest-app.vercel.app" class="install-card">
+          <i class="ph-fill ph-apple-logo"></i>
+          <span class="install-head">iPhone &amp; Web</span>
+          <span class="install-sub">Open, then “Add to Home Screen”</span>
+        </a>
+      </div>
+
+      <a href="https://temawest-app.vercel.app" class="btn btn-green reveal reveal-delay-3" style="margin-top:18px;display:inline-flex;">
+        <i class="ph-fill ph-sign-in"></i>&nbsp; Sign in to the system
       </a>
-
-      <p class="download-note reveal reveal-delay-3" id="dl-note">Android 10+ (API 29) · arm64 · Enable "Install unknown apps" in Settings</p>
     </div>
   </section>
 
@@ -1013,8 +1042,8 @@
   <footer>
     <div class="wrap">
       <div class="footer-brand">
-        <div class="footer-logo"><img src="app-icon.png" alt="Vanguard" /></div>
-        <span class="footer-name">Vanguard NDC</span>
+        <div class="footer-logo"><img src="app-icon.png" alt="TemaWest NDC" /></div>
+        <span class="footer-name">TEMAWEST-NDC</span>
       </div>
       <span class="footer-copy">© 2026 NDC Tema West Constituency</span>
       <div class="footer-links">
